@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+ENV/
+backend/venv/
+
+# Variables de entorno
+.env
+.env.local
+*.env
+backend/.env
+frontend/.env
+frontend/.env.local
+
+# Node.js (frontend)
+node_modules/
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log
+
+# Documentos generados
+generated_documents/
+*.docx
+*.pdf
+
+# Base de datos
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos temporales
+*.tmp
+*.temp
+tmp/
+temp/
