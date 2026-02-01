@@ -12,6 +12,11 @@ from app.schemas.system_user import (
     MessageResponse,
     ChangePasswordRequest
 )
+from app.schemas.document import (
+    GenerateMatrizRequest,
+    GenerateMatrizResponse,
+    LawyerData
+)
 
 __all__ = [
     "SystemUserCreate",
@@ -25,5 +30,8 @@ __all__ = [
     "UserData",
     "VerifyResponse",
     "MessageResponse",
-    "ChangePasswordRequest"
+    "ChangePasswordRequest",
+    "GenerateMatrizRequest",
+    "GenerateMatrizResponse",
+    "LawyerData"
 ]

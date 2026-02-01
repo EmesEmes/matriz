@@ -1,0 +1,52 @@
+INSTRUCCIONES PARA CREAR LA PLANTILLA DE MINUTA
+================================================
+
+Debes crear un archivo llamado "minuta.docx" en esta misma carpeta usando Microsoft Word.
+
+El contenido debe ser el siguiente (copia y pega en Word, reemplazando los textos entre {} por las variables):
+
+-------------------------------------------------------------------
+
+SEÑOR NOTARIO:
+
+En el protocolo de escrituras públicas a su cargo, sírvase insertar una de {tipoContrato} de acuerdo con las siguientes cláusulas:
+
+PRIMERA.- COMPARECIENTES.- Comparecen a la celebración del presente contrato por una parte {#vendedoresList}el{/vendedoresList}{#vendedoresList.length > 1}los{/vendedoresList.length > 1} {#vendedoresList}{tratamiento} {nombre}, de nacionalidad {nacionalidad}, con cédula de ciudadanía número {cedula}, de {edad} años de edad{?hasProfession}, de profesión {profesion}{/hasProfession}, de ocupación {ocupacion}, teléfono celular número {telefono}, con domicilio electrónico en el correo {correo}, domiciliado físicamente en {direccion}, Parroquia {parroquia}, Cantón {canton}, Provincia {provincia}{#vendedoresList.length > 1}{? @index !== vendedoresList.length - 1}; {/@index !== vendedoresList.length - 1}{? @index === vendedoresList.length - 1} y {/@index === vendedoresList.length - 1}{/vendedoresList.length > 1}{/vendedoresList}, a quien{?vendedoresList.length > 1}es{/vendedoresList.length > 1}{^vendedoresList.length > 1} se{/vendedoresList.length > 1} se denominará{?vendedoresList.length > 1}n{/vendedoresList.length > 1} {?vendedoresList.length > 1}LOS VENDEDORES{/vendedoresList.length > 1}{^vendedoresList.length > 1}EL VENDEDOR{/vendedoresList.length > 1}; y, por otra parte {#compradoresList}el{/compradoresList}{#compradoresList.length > 1}los{/compradoresList.length > 1} {#compradoresList}{tratamiento} {nombre}, de nacionalidad {nacionalidad}, con cédula de ciudadanía número {cedula}, de {edad} años de edad{?hasProfession}, de profesión {profesion}{/hasProfession}, de ocupación {ocupacion}, teléfono celular número {telefono}, con domicilio electrónico en el correo {correo}, domiciliado físicamente en {direccion}, Parroquia {parroquia}, Cantón {canton}, Provincia {provincia}{#compradoresList.length > 1}{? @index !== compradoresList.length - 1}; {/@index !== compradoresList.length - 1}{? @index === compradoresList.length - 1} y {/@index === compradoresList.length - 1}{/compradoresList.length > 1}{/compradoresList}, a quien{?compradoresList.length > 1}es{/compradoresList.length > 1}{^compradoresList.length > 1} se{/compradoresList.length > 1} se denominará{?compradoresList.length > 1}n{/compradoresList.length > 1} {?compradoresList.length > 1}LOS COMPRADORES{/compradoresList.length > 1}{^compradoresList.length > 1}EL COMPRADOR{/compradoresList.length > 1}.
+
+SEGUNDA.- OBJETO DEL CONTRATO.- El{?vendedoresList.length > 1} LOS VENDEDORES{/vendedoresList.length > 1}{^vendedoresList.length > 1} VENDEDOR{/vendedoresList.length > 1} da{?vendedoresList.length > 1}n{/vendedoresList.length > 1} en venta real y perpetua enajenación a favor del{?compradoresList.length > 1} LOS COMPRADORES{/compradoresList.length > 1}{^compradoresList.length > 1} COMPRADOR{/compradoresList.length > 1}, la propiedad del siguiente bien inmueble: {descripcionBien}
+
+TERCERA.- PRECIO.- Las partes han fijado como justo precio la suma de: {precioEnLetras} DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA (${precio}), cantidad que {?compradoresList.length > 1}los compradores declaran{/compradoresList.length > 1}{^compradoresList.length > 1}el comprador declara{/compradoresList.length > 1} haber entregado a entera satisfacción {?vendedoresList.length > 1}de los vendedores{/vendedoresList.length > 1}{^vendedoresList.length > 1}del vendedor{/vendedoresList.length > 1}.
+
+{?esHorizontal}CUARTA.- SOMETIMIENTO AL RÉGIMEN DE PROPIEDAD HORIZONTAL.- El{?compradoresList.length > 1} LOS COMPRADORES{/compradoresList.length > 1}{^compradoresList.length > 1} COMPRADOR{/compradoresList.length > 1} declara{?compradoresList.length > 1}n{/compradoresList.length > 1} que conoce{?compradoresList.length > 1}n{/compradoresList.length > 1}, acepta{?compradoresList.length > 1}n{/compradoresList.length > 1} y se somete{?compradoresList.length > 1}n{/compradoresList.length > 1} al Régimen de Propiedad Horizontal al cual está sujeto el objeto de esta compraventa, así como a la Ley de la materia, su Reglamento, la Normativa Técnica, el Reglamento Interno y demás disposiciones pertinentes.{/esHorizontal}
+
+QUINTA.- ACEPTACIÓN.- Las partes contratantes declaran expresamente que aceptan el total contenido de las cláusulas que anteceden por estar elaboradas en seguridad de sus respectivos intereses.
+
+SEXTA.- SANEAMIENTO.- El{?vendedoresList.length > 1} LOS VENDEDORES{/vendedoresList.length > 1}{^vendedoresList.length > 1} VENDEDOR{/vendedoresList.length > 1} declara{?vendedoresList.length > 1}n{/vendedoresList.length > 1} que sobre el bien inmueble materia de esta compraventa no pesa ninguna prohibición de enajenar que limite su dominio. Sin embargo, se sujeta{?vendedoresList.length > 1}n{/vendedoresList.length > 1} al saneamiento por evicción de conformidad con la Ley.
+
+SÉPTIMA.- GASTOS.- Todos y cada uno de los gastos que demande la celebración de la presente escritura pública hasta su inscripción en el Registro de la Propiedad, serán de cuenta del{?compradoresList.length > 1} LOS COMPRADORES{/compradoresList.length > 1}{^compradoresList.length > 1} COMPRADOR{/compradoresList.length > 1}.
+
+OCTAVA.- INSCRIPCIÓN.- El{?vendedoresList.length > 1} LOS VENDEDORES{/vendedoresList.length > 1}{^vendedoresList.length > 1} VENDEDOR{/vendedoresList.length > 1} autoriza{?vendedoresList.length > 1}n{/vendedoresList.length > 1} al{?compradoresList.length > 1} LOS COMPRADORES{/compradoresList.length > 1}{^compradoresList.length > 1} COMPRADOR{/compradoresList.length > 1} para que solicite{?compradoresList.length > 1}n{/compradoresList.length > 1} la inscripción de este título en el Registro de la Propiedad del cantón correspondiente, por sí mismo{?compradoresList.length > 1}s{/compradoresList.length > 1} o por medio del profesional que patrocine la minuta.
+
+Usted señor Notario se servirá agregar las demás cláusulas de estilo para la perfecta validez y efecto legal de este tipo de instrumentos.
+
+
+
+
+{?abogadoEsMujer}AB. {/abogadoEsMujer}{^abogadoEsMujer}ABG. {/abogadoEsMujer}{abogadoNombre}
+MAT. {abogadoMatricula}
+
+-------------------------------------------------------------------
+
+NOTAS IMPORTANTES:
+==================
+
+1. Los textos entre {} son variables que se llenarán automáticamente con los datos del formulario.
+
+2. Los textos entre {#...} y {/...} son loops (repeticiones) para mostrar múltiples vendedores/compradores.
+
+3. Los textos entre {?...} y {/...} son condicionales que muestran u ocultan contenido.
+
+4. Una vez creado el archivo minuta.docx, elimina este archivo de instrucciones.
+
+5. Para probar, completa el formulario en la aplicación y genera una minuta.
+

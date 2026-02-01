@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     """
     POST /api/auth/login - Login de usuario
-    Devuelve: { message, token, user: {id, nombre, username, rol} }
+    Devuelve: { message, token, user: {id, nombre, username, rol, iniciales} }
     """
     
     # Validar que vengan los datos (FastAPI ya valida, pero por consistencia)
@@ -67,7 +67,6 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     )
     
     # Retornar datos del usuario (sin password) y el token
-    # Formato idéntico a Node.js
     return {
         "message": "Login exitoso",
         "token": token,
@@ -75,7 +74,8 @@ def login(login_data: LoginRequest, db: Session = Depends(get_db)):
             "id": user.id,
             "nombre": user.nombre,
             "username": user.username,
-            "rol": user.rol.value
+            "rol": user.rol.value,
+            "iniciales": user.iniciales
         }
     }
 
@@ -105,7 +105,8 @@ def verify_token(
             "id": user.id,
             "nombre": user.nombre,
             "username": user.username,
-            "rol": user.rol.value
+            "rol": user.rol.value,
+            "iniciales": user.iniciales
         }
     }
 

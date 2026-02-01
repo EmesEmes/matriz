@@ -58,6 +58,7 @@ def create_system_user(
         username=user_data.username,
         password=get_password_hash(user_data.password),
         rol=UserRole[user_data.rol],  # Convertir string a enum
+        iniciales=user_data.iniciales,  # 🔥 NUEVO
         activo=True
     )
     
@@ -73,6 +74,7 @@ def create_system_user(
             "nombre": new_user.nombre,
             "username": new_user.username,
             "rol": new_user.rol.value,
+            "iniciales": new_user.iniciales,  # 🔥 NUEVO
             "activo": new_user.activo
         }
     }
@@ -115,8 +117,7 @@ def update_system_user(
     current_user: SystemUser = Depends(is_admin)
 ):
     """
-    PUT /api/system-users/:id - Actualizar usuario (solo admin)
-    Actualizar estado activo/inactivo, rol o nombre
+    Actualizar usuario del sistema (solo admin)
     """
     user = db.query(SystemUser).filter(SystemUser.id == id).first()
     
@@ -126,23 +127,40 @@ def update_system_user(
             detail="Usuario no encontrado"
         )
     
-    # Actualizar solo los campos proporcionados
+    # Actualizar campos
     if user_data.nombre is not None:
         user.nombre = user_data.nombre
     
     if user_data.rol is not None:
-        if user_data.rol not in ['admin', 'notaria', 'lexdata']:
+        # Validar que el rol sea válido
+        valid_roles = ['admin', 'notaria', 'lexdata']
+        if user_data.rol not in valid_roles:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Rol inválido. Debe ser: admin, notaria o lexdata"
+                detail=f"Rol inválido. Debe ser uno de: {', '.join(valid_roles)}"
             )
-        user.rol = UserRole[user_data.rol]
+        user.rol = UserRole(user_data.rol)
     
     if user_data.activo is not None:
         user.activo = user_data.activo
     
-    db.commit()
-    db.refresh(user)
+    # Actualizar contraseña si se proporciona
+    if user_data.password is not None and user_data.password.strip():
+        user.password = get_password_hash(user_data.password)
+    
+    # 🔥 NUEVO: Actualizar iniciales
+    if user_data.iniciales is not None:
+        user.iniciales = user_data.iniciales
+    
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar usuario: {str(e)}"
+        )
     
     return {
         "message": "Usuario actualizado exitosamente",
@@ -151,6 +169,7 @@ def update_system_user(
             "nombre": user.nombre,
             "username": user.username,
             "rol": user.rol.value,
+            "iniciales": user.iniciales,  # 🔥 NUEVO
             "activo": user.activo
         }
     }

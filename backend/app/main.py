@@ -1,22 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
-from app.routes import auth, users, parties
+from app.routes import auth, users, parties, documents  # Agregar documents
 
-# Crear tablas en la base de datos
+# Crear tablas
 Base.metadata.create_all(bind=engine)
 
-# Crear aplicación FastAPI
 app = FastAPI(
     title="Sistema Notarial API",
     description="API para generación de matrices y minutas notariales",
     version="1.0.0"
 )
 
-# Configurar CORS (para que tu frontend React pueda conectarse)
+# CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # Puertos comunes de React
+    allow_origins=["http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,8 +25,8 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(parties.router)
+app.include_router(documents.router)  # Nueva línea
 
-# Ruta de prueba
 @app.get("/")
 def root():
     return {

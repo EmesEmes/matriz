@@ -8,6 +8,7 @@ class SystemUserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=100, description="Nombre de usuario único")
     password: str = Field(..., min_length=6, description="Contraseña (mínimo 6 caracteres)")
     rol: str = Field(..., pattern="^(admin|notaria|lexdata)$", description="Rol del usuario")
+    iniciales: Optional[str] = Field(None, max_length=10, description="Iniciales del usuario")  # 🔥 NUEVO
     
     @field_validator('username')
     @classmethod
@@ -21,6 +22,7 @@ class SystemUserUpdate(BaseModel):
     nombre: Optional[str] = Field(None, min_length=3, max_length=100)
     password: Optional[str] = Field(None, min_length=6)
     rol: Optional[str] = Field(None, pattern="^(admin|notaria|lexdata)$")
+    iniciales: Optional[str] = Field(None, max_length=10)  # 🔥 NUEVO
     activo: Optional[bool] = None
 
 # Schema para respuesta (sin password)
@@ -29,6 +31,7 @@ class SystemUserResponse(BaseModel):
     nombre: str
     username: str
     rol: str
+    iniciales: Optional[str] = None  # 🔥 NUEVO
     activo: bool
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
@@ -58,6 +61,7 @@ class UserData(BaseModel):
     nombre: str
     username: str
     rol: str
+    iniciales: Optional[str] = None  # 🔥 NUEVO
 
 # Schema para verify endpoint
 class VerifyResponse(BaseModel):
@@ -66,12 +70,12 @@ class VerifyResponse(BaseModel):
 # Schema para respuesta de creación de usuario
 class SystemUserCreateResponse(BaseModel):
     message: str
-    user: dict  # {id, nombre, username, rol, activo}
+    user: dict  # {id, nombre, username, rol, iniciales, activo}  # 🔥 ACTUALIZADO COMENTARIO
 
 # Schema para respuesta de actualización
 class SystemUserUpdateResponse(BaseModel):
     message: str
-    user: dict  # {id, nombre, username, rol, activo}
+    user: dict  # {id, nombre, username, rol, iniciales, activo}  # 🔥 ACTUALIZADO COMENTARIO
 
 # Schema para respuesta simple con mensaje
 class MessageResponse(BaseModel):
