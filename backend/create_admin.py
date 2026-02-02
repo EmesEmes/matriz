@@ -21,6 +21,7 @@ def create_admin():
             username="admin",
             password=get_password_hash("admin123"),  # Cambiar en producción
             rol=UserRole.admin,
+            iniciales="A.M.V",
             activo=True
         )
         

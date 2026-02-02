@@ -2,6 +2,7 @@ from docxtpl import DocxTemplate, RichText
 from pathlib import Path
 from datetime import datetime
 from app.utils.number_to_words import numero_a_letras, numero_a_digitos, formatear_fecha_notarial
+from app.utils.html_to_richtext import html_to_richtext
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 OUTPUTS_DIR = Path(__file__).parent.parent.parent / "generated_documents"
@@ -217,13 +218,13 @@ def generate_matriz_compraventa(data: dict) -> str:
     
     # Convertir minuta a RichText
     if 'abogadoTexto' in data and data['abogadoTexto']:
-        print("DEBUG - Procesando minuta como texto plano:", data['abogadoTexto'])
-        context['abogadoTexto'] = data['abogadoTexto']
-        print("DEBUG - Texto plano agregado al context")
+        print("DEBUG - Procesando minuta HTML:", data['abogadoTexto'][:100], "...")
+        context['abogadoTexto'] = html_to_richtext(data['abogadoTexto'])
+        print("DEBUG - RichText con formato creado")
     else:
         print("DEBUG - NO hay abogadoTexto en data")
         context['abogadoTexto'] = ''
-    
+        
     print("Contexto preparado:")
     print(f"- Vendedores: {len(vendedores_procesados)}")
     print(f"- Compradores: {len(compradores_procesados)}")

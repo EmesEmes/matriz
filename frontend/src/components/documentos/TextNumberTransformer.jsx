@@ -674,14 +674,15 @@ const TextNumberTransformer = ({ onChange }) => {
     editorRef.current.focus();
   };
 
-  // Función para capturar y exportar contenido
+  // Función para capturar y exportar contenido con formato HTML
   const handleContentChange = () => {
     if (editorRef.current && onChange) {
-      // innerText preserva saltos de línea como \n
-      const plainText = editorRef.current.innerText || '';
-      onChange(plainText.trim());
+      // innerHTML preserva el formato (negritas, cursivas, etc.)
+      const htmlContent = editorRef.current.innerHTML || '';
+      onChange(htmlContent.trim());
     }
   };
+
 
   // Sincronizar contenido cuando cambia el editor
   useEffect(() => {
