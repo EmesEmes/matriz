@@ -1,13 +1,14 @@
-import { Routes, Route, Navigate } from 'react-router';
-import { ToastContainer } from './components/shared';
-import { MainLayout, ProtectedRoute } from './components/layout';
-import LoginPage from './pages/LoginPage';
-import HomePage from './pages/HomePage';
-import GestionUsuariosPage from './pages/GestionUsuariosPage';
-import ComparecientesPage from './pages/ComparecientesPage';
-import { useAuth } from './context/AuthContext';
-import TestInlinePage from './pages/TestInlinePage';
-import GenerarMatrizPage from './pages/GenerarMatrizPage';
+import { Routes, Route, Navigate } from "react-router";
+import { ToastContainer } from "./components/shared";
+import { MainLayout, ProtectedRoute } from "./components/layout";
+import LoginPage from "./pages/LoginPage";
+import HomePage from "./pages/HomePage";
+import GestionUsuariosPage from "./pages/GestionUsuariosPage";
+import ComparecientesPage from "./pages/ComparecientesPage";
+import { useAuth } from "./context/AuthContext";
+import TestInlinePage from "./pages/TestInlinePage";
+import GenerarMatrizPage from "./pages/GenerarMatrizPage";
+import GenerarMinutaPage from "./pages/GenerarMinutaPage";
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -27,13 +28,13 @@ function App() {
     <>
       <ToastContainer />
       <Routes>
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
-          } 
+          }
         />
-        
+
         <Route
           path="/"
           element={
@@ -48,7 +49,7 @@ function App() {
         <Route
           path="/usuarios"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={["admin"]}>
               <MainLayout>
                 <GestionUsuariosPage />
               </MainLayout>
@@ -84,6 +85,16 @@ function App() {
             <ProtectedRoute>
               <MainLayout>
                 <GenerarMatrizPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minutas/nueva"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
+              <MainLayout>
+                <GenerarMinutaPage />
               </MainLayout>
             </ProtectedRoute>
           }
