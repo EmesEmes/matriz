@@ -1,4 +1,4 @@
-import { FormField } from '../shared';
+import { FormField } from "../shared";
 
 const ComparecienteOptions = ({ options, onChange }) => {
   const handleChange = (field, value) => {
@@ -10,13 +10,15 @@ const ComparecienteOptions = ({ options, onChange }) => {
       <h4 className="font-semibold text-blue-900">Opciones Especiales</h4>
 
       {/* Cónyuge no comparece */}
-      {options.estadoCivil === 'casado' && (
+      {options.estadoCivil === "casado" && (
         <div className="space-y-2">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
               checked={!options.conyugueComparece}
-              onChange={(e) => handleChange('conyugueComparece', !e.target.checked)}
+              onChange={(e) =>
+                handleChange("conyugueComparece", !e.target.checked)
+              }
               className="w-4 h-4 text-blue-600 rounded"
             />
             <span className="text-sm font-medium text-gray-700">
@@ -27,14 +29,20 @@ const ComparecienteOptions = ({ options, onChange }) => {
           {!options.conyugueComparece && (
             <FormField label="Razón de exclusión">
               <select
-                value={options.razonExclusionConyugue || ''}
-                onChange={(e) => handleChange('razonExclusionConyugue', e.target.value)}
+                value={options.razonExclusionConyugue || ""}
+                onChange={(e) =>
+                  handleChange("razonExclusionConyugue", e.target.value)
+                }
                 className="input-field text-sm"
               >
                 <option value="">Seleccione una razón</option>
-                <option value="disolucion">Disolución de sociedad conyugal</option>
+                <option value="disolucion">
+                  Disolución de sociedad conyugal
+                </option>
                 <option value="capitulacion">Capitulación matrimonial</option>
-                <option value="adquirido_solo">Bien adquirido soltero/viudo/divorciado</option>
+                <option value="adquirido_solo">
+                  Bien adquirido soltero/viudo/divorciado
+                </option>
               </select>
             </FormField>
           )}
@@ -47,7 +55,9 @@ const ComparecienteOptions = ({ options, onChange }) => {
           <input
             type="checkbox"
             checked={options.hasDiscapacidadIntelectual || false}
-            onChange={(e) => handleChange('hasDiscapacidadIntelectual', e.target.checked)}
+            onChange={(e) =>
+              handleChange("hasDiscapacidadIntelectual", e.target.checked)
+            }
             className="w-4 h-4 text-blue-600 rounded"
           />
           <span className="text-sm font-medium text-gray-700">
@@ -59,8 +69,10 @@ const ComparecienteOptions = ({ options, onChange }) => {
           <FormField label="Tipo de discapacidad">
             <input
               type="text"
-              value={options.tipoDiscapacidad || ''}
-              onChange={(e) => handleChange('tipoDiscapacidad', e.target.value.toUpperCase())}
+              value={options.tipoDiscapacidad || ""}
+              onChange={(e) =>
+                handleChange("tipoDiscapacidad", e.target.value.toUpperCase())
+              }
               className="input-field text-sm uppercase"
               placeholder="Ej: INTELECTUAL LEVE"
             />
@@ -74,7 +86,7 @@ const ComparecienteOptions = ({ options, onChange }) => {
           <input
             type="checkbox"
             checked={options.isNoVidente || false}
-            onChange={(e) => handleChange('isNoVidente', e.target.checked)}
+            onChange={(e) => handleChange("isNoVidente", e.target.checked)}
             className="w-4 h-4 text-blue-600 rounded"
           />
           <span className="text-sm font-medium text-gray-700">
@@ -86,8 +98,13 @@ const ComparecienteOptions = ({ options, onChange }) => {
           <FormField label="Persona de confianza">
             <input
               type="text"
-              value={options.personaConfianzaNoVidente || ''}
-              onChange={(e) => handleChange('personaConfianzaNoVidente', e.target.value.toUpperCase())}
+              value={options.personaConfianzaNoVidente || ""}
+              onChange={(e) =>
+                handleChange(
+                  "personaConfianzaNoVidente",
+                  e.target.value.toUpperCase(),
+                )
+              }
               className="input-field text-sm uppercase"
               placeholder="NOMBRE COMPLETO"
             />
@@ -101,7 +118,7 @@ const ComparecienteOptions = ({ options, onChange }) => {
           <input
             type="checkbox"
             checked={options.isAnalfabeta || false}
-            onChange={(e) => handleChange('isAnalfabeta', e.target.checked)}
+            onChange={(e) => handleChange("isAnalfabeta", e.target.checked)}
             className="w-4 h-4 text-blue-600 rounded"
           />
           <span className="text-sm font-medium text-gray-700">
@@ -110,11 +127,16 @@ const ComparecienteOptions = ({ options, onChange }) => {
         </label>
 
         {options.isAnalfabeta && (
-          <FormField label="Persona de confianza">
+          <FormField label="Testigo">
             <input
               type="text"
-              value={options.personaConfianzaAnalfabeta || ''}
-              onChange={(e) => handleChange('personaConfianzaAnalfabeta', e.target.value.toUpperCase())}
+              value={options.personaConfianzaAnalfabeta || ""}
+              onChange={(e) =>
+                handleChange(
+                  "personaConfianzaAnalfabeta",
+                  e.target.value.toUpperCase(),
+                )
+              }
               className="input-field text-sm uppercase"
               placeholder="NOMBRE COMPLETO"
             />
@@ -128,7 +150,7 @@ const ComparecienteOptions = ({ options, onChange }) => {
           <input
             type="checkbox"
             checked={options.needsInterpreter || false}
-            onChange={(e) => handleChange('needsInterpreter', e.target.checked)}
+            onChange={(e) => handleChange("needsInterpreter", e.target.checked)}
             className="w-4 h-4 text-blue-600 rounded"
           />
           <span className="text-sm font-medium text-gray-700">
@@ -141,8 +163,10 @@ const ComparecienteOptions = ({ options, onChange }) => {
             <FormField label="Nombre del intérprete" required>
               <input
                 type="text"
-                value={options.nombreInterprete || ''}
-                onChange={(e) => handleChange('nombreInterprete', e.target.value.toUpperCase())}
+                value={options.nombreInterprete || ""}
+                onChange={(e) =>
+                  handleChange("nombreInterprete", e.target.value.toUpperCase())
+                }
                 className="input-field text-sm uppercase"
                 placeholder="NOMBRE COMPLETO"
               />
@@ -151,8 +175,10 @@ const ComparecienteOptions = ({ options, onChange }) => {
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Género" required>
                 <select
-                  value={options.generoInterprete || ''}
-                  onChange={(e) => handleChange('generoInterprete', e.target.value)}
+                  value={options.generoInterprete || ""}
+                  onChange={(e) =>
+                    handleChange("generoInterprete", e.target.value)
+                  }
                   className="input-field text-sm"
                 >
                   <option value="">Seleccione</option>
@@ -164,8 +190,10 @@ const ComparecienteOptions = ({ options, onChange }) => {
               <FormField label="Cédula" required>
                 <input
                   type="text"
-                  value={options.cedulaInterprete || ''}
-                  onChange={(e) => handleChange('cedulaInterprete', e.target.value)}
+                  value={options.cedulaInterprete || ""}
+                  onChange={(e) =>
+                    handleChange("cedulaInterprete", e.target.value)
+                  }
                   className="input-field text-sm"
                   placeholder="1234567890"
                   maxLength="10"
@@ -176,8 +204,10 @@ const ComparecienteOptions = ({ options, onChange }) => {
             <FormField label="Idioma" required>
               <input
                 type="text"
-                value={options.idiomaInterprete || ''}
-                onChange={(e) => handleChange('idiomaInterprete', e.target.value)}
+                value={options.idiomaInterprete || ""}
+                onChange={(e) =>
+                  handleChange("idiomaInterprete", e.target.value)
+                }
                 className="input-field text-sm"
                 placeholder="Ej: Inglés, Francés, etc."
               />

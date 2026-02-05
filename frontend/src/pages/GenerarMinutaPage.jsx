@@ -12,8 +12,7 @@ const GenerarMinutaPage = () => {
   // Antecedentes
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [nombreConjunto, setNombreConjunto] = useState("");
-  const [bienesSeleccionados, setBienesSeleccionados] = useState([]);
-  const [datosBienes, setDatosBienes] = useState({});
+  const [predios, setPredios] = useState([]);
 
   // Construido en
   const [ubicacion, setUbicacion] = useState({
@@ -32,8 +31,20 @@ const GenerarMinutaPage = () => {
     tituloOtro: "",
     fechaOtorgamiento: "",
     numeroNotaria: "",
+    cantonNotaria: "",
     notario: "",
     fechaInscripcion: "",
+
+    // Solo si es sucesión
+    nombreCausante: "",
+    causanteAdquiridoDe: "",
+    causanteTitulo: "",
+    causanteTituloOtro: "",
+    causanteFechaOtorgamiento: "",
+    causanteNumeroNotaria: "",
+    causanteCantonNotaria: "",
+    causanteNotario: "",
+    causanteFechaInscripcion: "",
   });
 
   // Declaratoria de propiedad horizontal
@@ -42,6 +53,7 @@ const GenerarMinutaPage = () => {
   const [declaratoriaFormulario, setDeclaratoriaFormulario] = useState({
     fechaOtorgamiento: "",
     numeroNotaria: "",
+    cantonNotaria: "",
     notario: "",
     fechaInscripcion: "",
   });
@@ -111,6 +123,157 @@ const GenerarMinutaPage = () => {
   ];
 
   const bienesComun = ["Casa", "Terreno", "Solares", "Fincas", "Haciendas"];
+
+  // Opciones de tipos para predios
+  const tiposPredios = [
+    "Departamento",
+    "Suite",
+    "Casa",
+    "Loft",
+    "Estacionamiento",
+    "Oficina",
+    "Bodega",
+    "Almacén",
+    "Porche",
+    "Terraza",
+    "Jardín Delantero",
+    "Jardín Trasero",
+    "Secadero",
+    "Otro",
+  ];
+
+  // Opciones de tipos para inmuebles (solo en predios compuestos)
+  const tiposInmuebles = [
+    "Planta",
+    "Planta Baja",
+    "Planta Alta",
+    "Departamento",
+    "Suite",
+    "Casa",
+    "Loft",
+    "Estacionamiento",
+    "Oficina",
+    "Bodega",
+    "Almacén",
+    "Porche",
+    "Terraza",
+    "Jardín Delantero",
+    "Jardín Trasero",
+    "Secadero",
+    "Otro",
+  ];
+
+  // Agregar predio
+  const handleAgregarPredio = (esCompuesto) => {
+    setPredios([
+      ...predios,
+      {
+        id: Date.now(),
+        esCompuesto: esCompuesto, // true o false
+        tipo: "",
+        tipoOtro: "",
+        numero: "",
+        inmuebles: [
+          {
+            id: Date.now() + Math.random(),
+            tipo: "", // Solo se usa si esCompuesto === true
+            tipoOtro: "",
+            nivel: "",
+            areaCubierta: "",
+            areaDescubierta: "",
+            alicuotaParcial: "",
+          },
+        ],
+        alicuotaTotal: 0,
+      },
+    ]);
+  };
+
+  // Eliminar predio
+  const handleEliminarPredio = (predioId) => {
+    setPredios(predios.filter((p) => p.id !== predioId));
+  };
+
+  // Actualizar campo de predio
+  const handlePredioChange = (predioId, field, value) => {
+    setPredios(
+      predios.map((predio) => {
+        if (predio.id === predioId) {
+          return { ...predio, [field]: value };
+        }
+        return predio;
+      }),
+    );
+  };
+
+  // Agregar inmueble a un predio compuesto
+  const handleAgregarInmueble = (predioId) => {
+    setPredios(
+      predios.map((predio) => {
+        if (predio.id === predioId && predio.esCompuesto) {
+          return {
+            ...predio,
+            inmuebles: [
+              ...predio.inmuebles,
+              {
+                id: Date.now() + Math.random(),
+                tipo: "",
+                tipoOtro: "",
+                nivel: "",
+                areaCubierta: "",
+                areaDescubierta: "",
+                alicuotaParcial: "",
+              },
+            ],
+          };
+        }
+        return predio;
+      }),
+    );
+  };
+
+  // Eliminar inmueble de un predio
+  const handleEliminarInmueble = (predioId, inmuebleId) => {
+    setPredios(
+      predios.map((predio) => {
+        if (predio.id === predioId) {
+          return {
+            ...predio,
+            inmuebles: predio.inmuebles.filter((i) => i.id !== inmuebleId),
+          };
+        }
+        return predio;
+      }),
+    );
+  };
+
+  // Actualizar campo de inmueble
+  const handleInmuebleChange = (predioId, inmuebleId, field, value) => {
+    setPredios(
+      predios.map((predio) => {
+        if (predio.id === predioId) {
+          const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
+            if (inmueble.id === inmuebleId) {
+              return { ...inmueble, [field]: value };
+            }
+            return inmueble;
+          });
+
+          // Calcular alícuota total del predio
+          const alicuotaTotal = nuevosInmuebles.reduce((sum, inm) => {
+            return sum + (parseFloat(inm.alicuotaParcial) || 0);
+          }, 0);
+
+          return {
+            ...predio,
+            inmuebles: nuevosInmuebles,
+            alicuotaTotal: alicuotaTotal,
+          };
+        }
+        return predio;
+      }),
+    );
+  };
 
   // Manejar vendedores
   const handleAgregarVendedor = () => {
@@ -415,176 +578,457 @@ const GenerarMinutaPage = () => {
           </Card>
         )}
 
-        {/* 6. BIENES A INCLUIR */}
-        {tipoPropiedad && (
-          <Card title="Bienes a Incluir">
-            <div className="space-y-4">
-              {/* Botones para agregar bienes */}
-              <div className="flex flex-wrap gap-2">
-                {(tipoPropiedad === "horizontal"
-                  ? bienesHorizontal
-                  : bienesComun
-                ).map((bien) => (
+        {/* 6. BIENES A INCLUIR (PREDIOS) */}
+        {tipoPropiedad === "horizontal" && (
+          <Card title="Bienes a Incluir (Predios)">
+            <div className="space-y-6">
+              {/* Botones para agregar predio */}
+              <div className="flex flex-col gap-3">
+                <p className="text-sm font-medium text-gray-700">
+                  ¿Qué tipo de predio desea agregar?
+                </p>
+                <div className="flex gap-3">
                   <button
-                    key={bien}
-                    onClick={() => handleAgregarBien(bien)}
-                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium"
+                    onClick={() => handleAgregarPredio(false)}
+                    className="flex-1 p-4 border-2 border-blue-300 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors text-left"
                   >
-                    <Plus className="w-4 h-4 inline mr-1" />
-                    {bien}
+                    <div className="font-semibold text-blue-900 mb-1">
+                      Predio Simple
+                    </div>
+                    <div className="text-xs text-blue-700">
+                      Un solo inmueble independiente (ej: Parqueadero, Bodega)
+                    </div>
                   </button>
-                ))}
+
+                  <button
+                    onClick={() => handleAgregarPredio(true)}
+                    className="flex-1 p-4 border-2 border-purple-300 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-left"
+                  >
+                    <div className="font-semibold text-purple-900 mb-1">
+                      Predio Compuesto
+                    </div>
+                    <div className="text-xs text-purple-700">
+                      Múltiples inmuebles relacionados (ej: Departamento con
+                      porche, terraza, jardines)
+                    </div>
+                  </button>
+                </div>
               </div>
 
-              {/* Lista de bienes agregados */}
-              {bienesSeleccionados.length === 0 && (
-                <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center">
-                  <p className="text-gray-600 text-sm">
-                    No hay bienes agregados. Click en los botones de arriba para
-                    agregar.
+              {/* Lista de predios */}
+              {predios.length === 0 && (
+                <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg text-center">
+                  <p className="text-gray-600">
+                    No hay predios agregados. Seleccione el tipo de predio
+                    arriba.
                   </p>
                 </div>
               )}
 
-              {bienesSeleccionados.map((bien) => (
+              {predios.map((predio, predioIndex) => (
                 <div
-                  key={bien.id}
-                  className="border border-gray-300 rounded-lg p-4 bg-gray-50"
+                  key={predio.id}
+                  className={`border-2 rounded-lg p-6 ${
+                    predio.esCompuesto
+                      ? "border-purple-300 bg-purple-50"
+                      : "border-blue-300 bg-blue-50"
+                  }`}
                 >
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-semibold text-gray-900">{bien.tipo}</h3>
+                  {/* Header del predio */}
+                  <div className="flex justify-between items-center mb-4">
+                    <div className="flex items-center gap-3">
+                      <h3
+                        className={`text-lg font-bold ${
+                          predio.esCompuesto
+                            ? "text-purple-900"
+                            : "text-blue-900"
+                        }`}
+                      >
+                        PREDIO {predioIndex + 1}
+                      </h3>
+                      <span
+                        className={`text-xs px-2 py-1 rounded ${
+                          predio.esCompuesto
+                            ? "bg-purple-200 text-purple-800"
+                            : "bg-blue-200 text-blue-800"
+                        }`}
+                      >
+                        {predio.esCompuesto ? "Compuesto" : "Simple"}
+                      </span>
+                    </div>
                     <button
-                      onClick={() => handleEliminarBien(bien.id)}
-                      className="text-red-600 hover:text-red-800"
+                      onClick={() => handleEliminarPredio(predio.id)}
+                      className="text-red-600 hover:text-red-800 font-medium text-sm"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      Eliminar Predio
                     </button>
                   </div>
 
-                  {tipoPropiedad === "horizontal" ? (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
+                  {/* Datos del predio */}
+                  <div className="grid grid-cols-3 gap-4 mb-4">
+                    <div className="col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tipo de Predio
+                      </label>
+                      <select
+                        value={predio.tipo}
+                        onChange={(e) =>
+                          handlePredioChange(predio.id, "tipo", e.target.value)
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
+                      >
+                        <option value="">Seleccione tipo</option>
+                        {tiposPredios.map((tipo) => (
+                          <option key={tipo} value={tipo}>
+                            {tipo}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {predio.tipo === "Otro" && (
+                      <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Número
+                          Especifique el tipo
                         </label>
                         <input
                           type="text"
-                          value={datosBienes[bien.id]?.numero || ""}
+                          value={predio.tipoOtro}
                           onChange={(e) =>
-                            handleDatosBienChange(
-                              bien.id,
-                              "numero",
+                            handlePredioChange(
+                              predio.id,
+                              "tipoOtro",
                               e.target.value,
                             )
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Ej: 2"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Local comercial"
                         />
                       </div>
+                    )}
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nivel
-                        </label>
-                        <input
-                          type="text"
-                          value={datosBienes[bien.id]?.nivel || ""}
-                          onChange={(e) =>
-                            handleDatosBienChange(
-                              bien.id,
-                              "nivel",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Ej: N+3.00"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Número
+                      </label>
+                      <input
+                        type="text"
+                        value={predio.numero}
+                        onChange={(e) =>
+                          handlePredioChange(
+                            predio.id,
+                            "numero",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ej: 2"
+                      />
+                    </div>
+                  </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Alícuota Parcial (%)
-                        </label>
-                        <input
-                          type="text"
-                          value={datosBienes[bien.id]?.alicuotaParcial || ""}
-                          onChange={(e) =>
-                            handleDatosBienChange(
-                              bien.id,
-                              "alicuotaParcial",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Ej: 11.4013"
-                        />
-                      </div>
+                  {/* Inmuebles del predio */}
+                  <div className="border-t-2 border-gray-300 pt-4">
+                    <h4 className="font-semibold text-gray-900 mb-3">
+                      {predio.esCompuesto
+                        ? "Inmuebles del Predio"
+                        : "Datos del Inmueble"}
+                    </h4>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Alícuota Total (%)
-                        </label>
-                        <input
-                          type="text"
-                          value={datosBienes[bien.id]?.alicuotaTotal || ""}
-                          onChange={(e) =>
-                            handleDatosBienChange(
-                              bien.id,
-                              "alicuotaTotal",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Ej: 31.2217"
-                        />
-                      </div>
+                    <div className="space-y-3">
+                      {predio.inmuebles.map((inmueble, inmuebleIndex) => (
+                        <div
+                          key={inmueble.id}
+                          className="border border-gray-300 rounded-lg p-4 bg-white"
+                        >
+                          {predio.esCompuesto && (
+                            <div className="flex justify-between items-center mb-3">
+                              <span className="text-sm font-semibold text-gray-700">
+                                Inmueble {inmuebleIndex + 1}
+                              </span>
+                              {predio.inmuebles.length > 1 && (
+                                <button
+                                  onClick={() =>
+                                    handleEliminarInmueble(
+                                      predio.id,
+                                      inmueble.id,
+                                    )
+                                  }
+                                  className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                  Eliminar
+                                </button>
+                              )}
+                            </div>
+                          )}
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Área Cubierta (m²)
-                        </label>
-                        <input
-                          type="text"
-                          value={datosBienes[bien.id]?.areaCubierta || ""}
-                          onChange={(e) =>
-                            handleDatosBienChange(
-                              bien.id,
-                              "areaCubierta",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Ej: 217.49"
-                        />
-                      </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            {/* Solo mostrar tipo si es compuesto */}
+                            {predio.esCompuesto && (
+                              <>
+                                <div className="col-span-2">
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Tipo de Inmueble
+                                  </label>
+                                  <select
+                                    value={inmueble.tipo}
+                                    onChange={(e) =>
+                                      handleInmuebleChange(
+                                        predio.id,
+                                        inmueble.id,
+                                        "tipo",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                  >
+                                    <option value="">Seleccione tipo</option>
+                                    {tiposInmuebles.map((tipo) => (
+                                      <option key={tipo} value={tipo}>
+                                        {tipo}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Área Descubierta (m²)
-                        </label>
-                        <input
-                          type="text"
-                          value={datosBienes[bien.id]?.areaDescubierta || ""}
-                          onChange={(e) =>
-                            handleDatosBienChange(
-                              bien.id,
-                              "areaDescubierta",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                          placeholder="Ej: 166.04"
-                        />
+                                {inmueble.tipo === "Otro" && (
+                                  <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Especifique el tipo
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={inmueble.tipoOtro}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "tipoOtro",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                      placeholder="Ej: Balcón"
+                                    />
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Nivel
+                              </label>
+                              <input
+                                type="text"
+                                value={inmueble.nivel}
+                                onChange={(e) =>
+                                  handleInmuebleChange(
+                                    predio.id,
+                                    inmueble.id,
+                                    "nivel",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                placeholder="Ej: N+3.00"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Área Cubierta (m²)
+                              </label>
+                              <input
+                                type="text"
+                                value={inmueble.areaCubierta}
+                                onChange={(e) =>
+                                  handleInmuebleChange(
+                                    predio.id,
+                                    inmueble.id,
+                                    "areaCubierta",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                placeholder="Ej: 217.49"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Área Descubierta (m²)
+                              </label>
+                              <input
+                                type="text"
+                                value={inmueble.areaDescubierta}
+                                onChange={(e) =>
+                                  handleInmuebleChange(
+                                    predio.id,
+                                    inmueble.id,
+                                    "areaDescubierta",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                placeholder="Ej: 166.04"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Alícuota Parcial (%)
+                              </label>
+                              <input
+                                type="text"
+                                value={inmueble.alicuotaParcial}
+                                onChange={(e) =>
+                                  handleInmuebleChange(
+                                    predio.id,
+                                    inmueble.id,
+                                    "alicuotaParcial",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                placeholder="Ej: 11.4013"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Botón agregar inmueble (solo para compuestos) */}
+                    {predio.esCompuesto && (
+                      <button
+                        onClick={() => handleAgregarInmueble(predio.id)}
+                        className="mt-3 w-full text-sm px-3 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+                      >
+                        + Agregar Inmueble
+                      </button>
+                    )}
+
+                    {/* Alícuota total del predio */}
+                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-green-900">
+                          Alícuota Total del Predio:
+                        </span>
+                        <span className="text-lg font-bold text-green-700">
+                          {predio.alicuotaTotal.toFixed(4)}%
+                        </span>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-sm text-gray-600">
-                      Los datos específicos de propiedad común se capturarán en
-                      la siguiente fase
-                    </div>
-                  )}
+                  </div>
                 </div>
               ))}
+            </div>
+          </Card>
+        )}
+        {/* 6B. BIENES PARA PROPIEDAD COMÚN */}
+        {tipoPropiedad === "comun" && (
+          <Card title="Descripción del Bien (Propiedad Común)">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Bien
+                </label>
+                <select
+                  value={ubicacion.tipoBienComun || ""}
+                  onChange={(e) =>
+                    setUbicacion({
+                      ...ubicacion,
+                      tipoBienComun: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="">Seleccione el tipo de bien</option>
+                  <option value="casa">Casa</option>
+                  <option value="terreno">Terreno</option>
+                  <option value="solares">Solares</option>
+                  <option value="fincas">Fincas</option>
+                  <option value="haciendas">Haciendas</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </div>
+
+              {ubicacion.tipoBienComun === "otro" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Especifique el tipo de bien
+                  </label>
+                  <input
+                    type="text"
+                    value={ubicacion.tipoBienComunOtro || ""}
+                    onChange={(e) =>
+                      setUbicacion({
+                        ...ubicacion,
+                        tipoBienComunOtro: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ej: Quinta"
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Superficie Total (m²)
+                  </label>
+                  <input
+                    type="text"
+                    value={ubicacion.superficieBienComun || ""}
+                    onChange={(e) =>
+                      setUbicacion({
+                        ...ubicacion,
+                        superficieBienComun: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ej: 1000.44"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Número de Predio (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={ubicacion.numeroPredio || ""}
+                    onChange={(e) =>
+                      setUbicacion({
+                        ...ubicacion,
+                        numeroPredio: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ej: 123"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción Adicional (opcional)
+                </label>
+                <textarea
+                  value={ubicacion.descripcionBienComun || ""}
+                  onChange={(e) =>
+                    setUbicacion({
+                      ...ubicacion,
+                      descripcionBienComun: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 resize-none"
+                  rows="3"
+                  placeholder="Ej: Casa de dos plantas con jardín frontal y posterior..."
+                />
+              </div>
             </div>
           </Card>
         )}
@@ -686,11 +1130,11 @@ const GenerarMinutaPage = () => {
             onTextoManualChange={setHistoriaManual}
             placeholderTexto="Escriba aquí la historia de dominio del inmueble..."
             renderFormulario={() => (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Título
+                      Título de Adquisición
                     </label>
                     <select
                       value={historiaFormulario.titulo}
@@ -701,6 +1145,43 @@ const GenerarMinutaPage = () => {
                           tituloOtro:
                             e.target.value === "otro"
                               ? historiaFormulario.tituloOtro
+                              : "",
+                          // Limpiar campos de causante si no es sucesión
+                          nombreCausante:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.nombreCausante
+                              : "",
+                          causanteAdquiridoDe:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteAdquiridoDe
+                              : "",
+                          causanteTitulo:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteTitulo
+                              : "",
+                          causanteTituloOtro:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteTituloOtro
+                              : "",
+                          causanteFechaOtorgamiento:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteFechaOtorgamiento
+                              : "",
+                          causanteNumeroNotaria:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteNumeroNotaria
+                              : "",
+                          causanteCantonNotaria:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteCantonNotaria
+                              : "",
+                          causanteNotario:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteNotario
+                              : "",
+                          causanteFechaInscripcion:
+                            e.target.value === "sucesion"
+                              ? historiaFormulario.causanteFechaInscripcion
                               : "",
                         })
                       }
@@ -740,6 +1221,57 @@ const GenerarMinutaPage = () => {
                     </div>
                   )}
 
+                  {/* SI ES SUCESIÓN - Mostrar causante */}
+                  {historiaFormulario.titulo === "sucesion" && (
+                    <div className="col-span-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                      <h4 className="font-semibold text-blue-900 mb-3">
+                        Datos del Causante
+                      </h4>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nombre completo del Causante (de quien heredaron)
+                          </label>
+                          <input
+                            type="text"
+                            value={historiaFormulario.nombreCausante}
+                            onChange={(e) =>
+                              setHistoriaFormulario({
+                                ...historiaFormulario,
+                                nombreCausante: e.target.value.toUpperCase(),
+                              })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                            placeholder="Ej: JUAN CARLOS PÉREZ LÓPEZ"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SI NO ES SUCESIÓN - Campo "Adquirido de" */}
+                  {historiaFormulario.titulo &&
+                    historiaFormulario.titulo !== "sucesion" && (
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Adquirido de
+                        </label>
+                        <input
+                          type="text"
+                          value={historiaFormulario.adquiridoDe}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              adquiridoDe: e.target.value.toUpperCase(),
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                          placeholder="Ej: los cónyuges CECILIA IZURIETA y HUGO HURTADO"
+                        />
+                      </div>
+                    )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fecha de Otorgamiento
@@ -772,6 +1304,24 @@ const GenerarMinutaPage = () => {
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: Vigésimo Segunda"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cantón de la Notaría
+                    </label>
+                    <input
+                      type="text"
+                      value={historiaFormulario.cantonNotaria}
+                      onChange={(e) =>
+                        setHistoriaFormulario({
+                          ...historiaFormulario,
+                          cantonNotaria: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: Quito"
                     />
                   </div>
 
@@ -810,6 +1360,176 @@ const GenerarMinutaPage = () => {
                     />
                   </div>
                 </div>
+
+                {/* ADQUISICIÓN DEL CAUSANTE (solo si es sucesión) */}
+                {historiaFormulario.titulo === "sucesion" && (
+                  <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
+                    <h4 className="font-semibold text-amber-900 mb-3">
+                      Adquisición del Causante
+                    </h4>
+                    <p className="text-sm text-amber-700 mb-4">
+                      Datos de cómo el causante adquirió originalmente el
+                      inmueble
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          El causante lo adquirió de
+                        </label>
+                        <input
+                          type="text"
+                          value={historiaFormulario.causanteAdquiridoDe}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteAdquiridoDe: e.target.value.toUpperCase(),
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                          placeholder="Ej: los señores MARÍA LÓPEZ y PEDRO SÁNCHEZ"
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Título de Adquisición del Causante
+                        </label>
+                        <select
+                          value={historiaFormulario.causanteTitulo}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteTitulo: e.target.value,
+                              causanteTituloOtro:
+                                e.target.value === "otro"
+                                  ? historiaFormulario.causanteTituloOtro
+                                  : "",
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">Seleccione el título</option>
+                          <option value="compraventa">Compraventa</option>
+                          <option value="donacion">Donación</option>
+                          <option value="permuta">Permuta</option>
+                          <option value="particion">
+                            Partición y Adjudicación
+                          </option>
+                          <option value="otro">Otro</option>
+                        </select>
+                      </div>
+
+                      {historiaFormulario.causanteTitulo === "otro" && (
+                        <div className="col-span-2">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Especifique el título
+                          </label>
+                          <input
+                            type="text"
+                            value={historiaFormulario.causanteTituloOtro}
+                            onChange={(e) =>
+                              setHistoriaFormulario({
+                                ...historiaFormulario,
+                                causanteTituloOtro: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                            placeholder="Ej: Adjudicación judicial"
+                          />
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fecha de Otorgamiento
+                        </label>
+                        <input
+                          type="date"
+                          value={historiaFormulario.causanteFechaOtorgamiento}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteFechaOtorgamiento: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Número de Notaría
+                        </label>
+                        <input
+                          type="text"
+                          value={historiaFormulario.causanteNumeroNotaria}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteNumeroNotaria: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Trigésimo Séptima"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cantón de la Notaría
+                        </label>
+                        <input
+                          type="text"
+                          value={historiaFormulario.causanteCantonNotaria}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteCantonNotaria: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Quito"
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Notario/Notaria
+                        </label>
+                        <input
+                          type="text"
+                          value={historiaFormulario.causanteNotario}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteNotario: e.target.value.toUpperCase(),
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                          placeholder="Ej: ROBERTO DUEÑAS"
+                        />
+                      </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fecha de Inscripción
+                        </label>
+                        <input
+                          type="date"
+                          value={historiaFormulario.causanteFechaInscripcion}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteFechaInscripcion: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           />
@@ -858,7 +1578,25 @@ const GenerarMinutaPage = () => {
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cantón de la Notaría
+                  </label>
+                  <input
+                    type="text"
+                    value={declaratoriaFormulario.cantonNotaria}
+                    onChange={(e) =>
+                      setDeclaratoriaFormulario({
+                        ...declaratoriaFormulario,
+                        cantonNotaria: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ej: Quito"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Notario/Notaria
                   </label>
