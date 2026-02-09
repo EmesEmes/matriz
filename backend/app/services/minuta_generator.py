@@ -1,8 +1,8 @@
 from docxtpl import DocxTemplate
 from datetime import datetime
 import os
-from app.utils.number_to_words import numero_a_letras
 from app.utils.html_to_richtext import html_to_richtext
+from app.utils.number_to_words import numero_a_letras, numero_a_digitos, calcular_edad
 
 def generate_minuta_compraventa(data: dict, current_user) -> str:
     """
@@ -60,20 +60,49 @@ def build_minuta_context(data: dict, current_user) -> dict:
     context['vendedores'] = []
     
     for idx, v in enumerate(vendedores, start=1):
+        # Construir dirección completa
+        direccion_partes = []
+        
+        if v.get('mainStreet'):
+            direccion_partes.append(v.get('mainStreet'))
+        
+        if v.get('numberStreet'):
+            if direccion_partes:
+                direccion_partes[-1] += f" {v.get('numberStreet')}"
+            else:
+                direccion_partes.append(v.get('numberStreet'))
+        
+        if v.get('secondaryStreet'):
+            if direccion_partes:
+                direccion_partes.append(f"y {v.get('secondaryStreet')}")
+            else:
+                direccion_partes.append(v.get('secondaryStreet'))
+        
+        if v.get('sector'):
+            direccion_partes.append(v.get('sector'))
+        
+        if v.get('parroquia'):
+            direccion_partes.append(f"Parroquia {v.get('parroquia')}")
+        
+        if v.get('canton'):
+            direccion_partes.append(f"cantón {v.get('canton')}")
+        
+        direccion_completa = ", ".join(direccion_partes) if direccion_partes else "Sin dirección registrada"
+        
         vendedor = {
             'numero': numero_a_letras(idx),
-            'nombres_completos': f"{v.get('names', '')} {v.get('lastNames', '')}".upper(),
+            'nombres_completos': f"{v.get('names', '')} {v.get('lastNames', '')}".upper().strip(),
             'nacionalidad': v.get('nationality', 'ecuatoriana'),
             'cedula': v.get('documentNumber', ''),
-            'cedula_palabras': numero_a_letras(v.get('documentNumber', '')),
-            'edad': numero_a_letras(v.get('age', 0)),
-            'edad_numeros': v.get('age', 0),
+            'cedula_palabras': numero_a_digitos(v.get('documentNumber', '')),
+            'edad': numero_a_letras(calcular_edad(v.get('birthDate', ''))),
+            'edad_numeros': calcular_edad(v.get('birthDate', '')),
             'profesion': v.get('profession', ''),
             'ocupacion': v.get('occupation', ''),
             'telefono': v.get('phone', ''),
-            'telefono_palabras': numero_a_letras(v.get('phone', '').replace('+', '')),
+            'telefono_palabras': numero_a_digitos(v.get('phone', '').replace('+', '').replace(' ', '').replace('-', '')),
             'email': v.get('email', ''),
-            'direccion': v.get('address', '')
+            'direccion': direccion_completa
         }
         context['vendedores'].append(vendedor)
     
@@ -87,20 +116,49 @@ def build_minuta_context(data: dict, current_user) -> dict:
     context['compradores'] = []
     
     for idx, c in enumerate(compradores, start=1):
+        # Construir dirección completa
+        direccion_partes = []
+        
+        if c.get('mainStreet'):
+            direccion_partes.append(c.get('mainStreet'))
+        
+        if c.get('numberStreet'):
+            if direccion_partes:
+                direccion_partes[-1] += f" {c.get('numberStreet')}"
+            else:
+                direccion_partes.append(c.get('numberStreet'))
+        
+        if c.get('secondaryStreet'):
+            if direccion_partes:
+                direccion_partes.append(f"y {c.get('secondaryStreet')}")
+            else:
+                direccion_partes.append(c.get('secondaryStreet'))
+        
+        if c.get('sector'):
+            direccion_partes.append(c.get('sector'))
+        
+        if c.get('parroquia'):
+            direccion_partes.append(f"Parroquia {c.get('parroquia')}")
+        
+        if c.get('canton'):
+            direccion_partes.append(f"cantón {c.get('canton')}")
+        
+        direccion_completa = ", ".join(direccion_partes) if direccion_partes else "Sin dirección registrada"
+        
         comprador = {
             'numero': numero_a_letras(len(vendedores) + idx),
-            'nombres_completos': f"{c.get('names', '')} {c.get('lastNames', '')}".upper(),
+            'nombres_completos': f"{c.get('names', '')} {c.get('lastNames', '')}".upper().strip(),
             'nacionalidad': c.get('nationality', 'ecuatoriana'),
             'cedula': c.get('documentNumber', ''),
-            'cedula_palabras': numero_a_letras(c.get('documentNumber', '')),
-            'edad': numero_a_letras(c.get('age', 0)),
-            'edad_numeros': c.get('age', 0),
+            'cedula_palabras': numero_a_digitos(c.get('documentNumber', '')),
+            'edad': numero_a_letras(calcular_edad(c.get('birthDate', ''))),
+            'edad_numeros': calcular_edad(c.get('birthDate', '')),
             'profesion': c.get('profession', ''),
             'ocupacion': c.get('occupation', ''),
             'telefono': c.get('phone', ''),
-            'telefono_palabras': numero_a_letras(c.get('phone', '').replace('+', '')),
+            'telefono_palabras': numero_a_digitos(c.get('phone', '').replace('+', '').replace(' ', '').replace('-', '')),
             'email': c.get('email', ''),
-            'direccion': c.get('address', '')
+            'direccion': direccion_completa
         }
         context['compradores'].append(comprador)
     

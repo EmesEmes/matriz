@@ -1,11 +1,26 @@
 def numero_a_digitos(numero):
-    """Convierte número a dígitos en letras: 123 -> 'uno dos tres'"""
+    """
+    Convierte número a dígitos en letras: 123 -> 'uno dos tres'
+    Maneja strings y números
+    """
+    if not numero:
+        return ""
+    
+    # Convertir a string y limpiar
+    numero_str = str(numero).strip()
+    
     unidades = [
         "cero", "uno", "dos", "tres", "cuatro", "cinco",
         "seis", "siete", "ocho", "nueve"
     ]
-    return " ".join(unidades[int(d)] for d in str(numero) if d.isdigit())
-
+    
+    # Convertir cada dígito
+    digitos_letras = []
+    for char in numero_str:
+        if char.isdigit():
+            digitos_letras.append(unidades[int(char)])
+    
+    return " ".join(digitos_letras)
 
 def dia_mes_letras(n):
     """Convierte día/mes a letras (1-31)"""
@@ -160,3 +175,29 @@ def formatear_fecha_notarial(fecha_str):
     anio = numero_a_letras(fecha.year)
     
     return f"{dia_semana} {dia} de {mes} del año {anio}"
+
+def calcular_edad(fecha_nacimiento_str):
+    """
+    Calcula la edad a partir de fecha de nacimiento (formato YYYY-MM-DD)
+    
+    Args:
+        fecha_nacimiento_str: Fecha en formato ISO (YYYY-MM-DD)
+    
+    Returns:
+        int: Edad en años
+    """
+    if not fecha_nacimiento_str:
+        return 0
+    
+    from datetime import datetime
+    try:
+        fecha_nacimiento = datetime.strptime(fecha_nacimiento_str, '%Y-%m-%d')
+        hoy = datetime.now()
+        edad = hoy.year - fecha_nacimiento.year
+        # Ajustar si aún no ha cumplido años este año
+        if (hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day):
+            edad -= 1
+        return edad
+    except Exception as e:
+        print(f"⚠️ Error calculando edad de '{fecha_nacimiento_str}': {e}")
+        return 0
