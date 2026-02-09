@@ -2,40 +2,62 @@ import { useState } from "react";
 import { Button, Card, RichTextEditor } from "../components/shared";
 import { ComparecienteInline } from "../components/comparecientes";
 import { SeccionFormularioRedactar } from "../components/minutas";
-import { FileText, Plus, Trash2 } from "lucide-react";
+import { useToast } from "../hooks/useToast";
+import { apiFetch } from "../config/api";
+import API_CONFIG from "../config/api";
 
 const GenerarMinutaPage = () => {
+  const toast = useToast();
+
+  // ============================================
+  // ESTADOS PRINCIPALES
+  // ============================================
+  const [loading, setLoading] = useState(false);
   const [tipoContrato, setTipoContrato] = useState("compraventa");
   const [vendedores, setVendedores] = useState([]);
   const [compradores, setCompradores] = useState([]);
 
-  // Antecedentes
+  // ============================================
+  // ANTECEDENTES
+  // ============================================
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [nombreConjunto, setNombreConjunto] = useState("");
   const [predios, setPredios] = useState([]);
 
-  // Construido en
+  // ============================================
+  // UBICACIÓN (CONSTRUIDO EN)
+  // ============================================
   const [ubicacion, setUbicacion] = useState({
     lote: "",
     numero: "",
     parroquia: "",
     canton: "",
     provincia: "",
+    // Para propiedad común
+    tipoBienComun: "",
+    tipoBienComunOtro: "",
+    superficieBienComun: "",
+    numeroPredio: "",
+    descripcionBienComun: "",
   });
 
-  // Historia de dominio
+  // ============================================
+  // HISTORIA DE DOMINIO
+  // ============================================
   const [modoHistoria, setModoHistoria] = useState("formulario");
   const [historiaManual, setHistoriaManual] = useState("");
   const [historiaFormulario, setHistoriaFormulario] = useState({
     titulo: "",
     tituloOtro: "",
+    tipoSucesion: "",
+    adquiridoDe: "",
     fechaOtorgamiento: "",
     numeroNotaria: "",
     cantonNotaria: "",
     notario: "",
     fechaInscripcion: "",
-
-    // Solo si es sucesión
+    cantonInscripcion: "",
+    // Datos del causante (solo si es sucesión)
     nombreCausante: "",
     causanteAdquiridoDe: "",
     causanteTitulo: "",
@@ -45,9 +67,12 @@ const GenerarMinutaPage = () => {
     causanteCantonNotaria: "",
     causanteNotario: "",
     causanteFechaInscripcion: "",
+    causanteCantonInscripcion: "",
   });
 
-  // Declaratoria de propiedad horizontal
+  // ============================================
+  // DECLARATORIA (SOLO HORIZONTAL)
+  // ============================================
   const [modoDeclaratoria, setModoDeclaratoria] = useState("formulario");
   const [declaratoriaManual, setDeclaratoriaManual] = useState("");
   const [declaratoriaFormulario, setDeclaratoriaFormulario] = useState({
@@ -56,13 +81,12 @@ const GenerarMinutaPage = () => {
     cantonNotaria: "",
     notario: "",
     fechaInscripcion: "",
+    cantonInscripcion: "",
   });
 
-  // Sujeto del contrato
-  const [modoSujeto, setModoSujeto] = useState("auto");
-  const [sujetoManual, setSujetoManual] = useState("");
-
-  // Linderos generales
+  // ============================================
+  // LINDEROS GENERALES
+  // ============================================
   const [linderosGenerales, setLinderosGenerales] = useState({
     norte: { metros: "", colindancia: "" },
     sur: { metros: "", colindancia: "" },
@@ -71,9 +95,17 @@ const GenerarMinutaPage = () => {
     superficie: "",
   });
 
-  // Precio y forma de pago
+  // ============================================
+  // OBJETO DEL CONTRATO
+  // ============================================
+  const [modoSujeto, setModoSujeto] = useState("auto");
+  const [sujetoManual, setSujetoManual] = useState("");
+
+  // ============================================
+  // PRECIO Y FORMA DE PAGO
+  // ============================================
   const [precioTotal, setPrecioTotal] = useState("");
-  const [modoPrecio, setModoPrecio] = useState("formulario"); // 'formulario' | 'manual'
+  const [modoPrecio, setModoPrecio] = useState("formulario");
   const [precioManual, setPrecioManual] = useState("");
   const [partesPago, setPartesPago] = useState([
     {
@@ -95,36 +127,20 @@ const GenerarMinutaPage = () => {
     },
   ]);
 
-  // Administrador
+  // ============================================
+  // ADMINISTRADOR Y ABOGADO
+  // ============================================
   const [hayAdministrador, setHayAdministrador] = useState(false);
-
-  // Abogado
   const [abogado, setAbogado] = useState({
     nombre: "",
     numeroMatricula: "",
-    tipoMatricula: "cj", // 'cj' | 'colegio'
+    tipoMatricula: "cj",
     provincia: "",
   });
 
-  // Opciones de bienes según tipo de propiedad
-  const bienesHorizontal = [
-    "Departamento",
-    "Suite",
-    "Casa",
-    "Loft",
-    "Estacionamiento",
-    "Oficina",
-    "Bodega",
-    "Almacén",
-    "Porche",
-    "Terraza",
-    "Jardín Delantero",
-    "Jardín Trasero",
-  ];
-
-  const bienesComun = ["Casa", "Terreno", "Solares", "Fincas", "Haciendas"];
-
-  // Opciones de tipos para predios
+  // ============================================
+  // OPCIONES
+  // ============================================
   const tiposPredios = [
     "Departamento",
     "Suite",
@@ -142,41 +158,50 @@ const GenerarMinutaPage = () => {
     "Otro",
   ];
 
-  // Opciones de tipos para inmuebles (solo en predios compuestos)
   const tiposInmuebles = [
     "Planta",
     "Planta Baja",
     "Planta Alta",
-    "Departamento",
-    "Suite",
-    "Casa",
-    "Loft",
-    "Estacionamiento",
-    "Oficina",
-    "Bodega",
-    "Almacén",
-    "Porche",
-    "Terraza",
-    "Jardín Delantero",
-    "Jardín Trasero",
-    "Secadero",
-    "Otro",
+    ...tiposPredios,
   ];
 
-  // Agregar predio
+  // ============================================
+  // FUNCIONES - COMPARECIENTES
+  // ============================================
+  const handleAgregarVendedor = () => setVendedores([...vendedores, null]);
+  const handleVendedorReady = (index, data) => {
+    const newVendedores = [...vendedores];
+    newVendedores[index] = data;
+    setVendedores(newVendedores);
+  };
+  const handleEliminarVendedor = (index) =>
+    setVendedores(vendedores.filter((_, i) => i !== index));
+
+  const handleAgregarComprador = () => setCompradores([...compradores, null]);
+  const handleCompradorReady = (index, data) => {
+    const newCompradores = [...compradores];
+    newCompradores[index] = data;
+    setCompradores(newCompradores);
+  };
+  const handleEliminarComprador = (index) =>
+    setCompradores(compradores.filter((_, i) => i !== index));
+
+  // ============================================
+  // FUNCIONES - PREDIOS
+  // ============================================
   const handleAgregarPredio = (esCompuesto) => {
     setPredios([
       ...predios,
       {
         id: Date.now(),
-        esCompuesto: esCompuesto, // true o false
+        esCompuesto,
         tipo: "",
         tipoOtro: "",
         numero: "",
         inmuebles: [
           {
             id: Date.now() + Math.random(),
-            tipo: "", // Solo se usa si esCompuesto === true
+            tipo: "",
             tipoOtro: "",
             nivel: "",
             areaCubierta: "",
@@ -185,172 +210,94 @@ const GenerarMinutaPage = () => {
           },
         ],
         alicuotaTotal: 0,
+        alicuotaTotalManual: "",
+        usarAlicuotaManual: false,
       },
     ]);
   };
 
-  // Eliminar predio
-  const handleEliminarPredio = (predioId) => {
+  const handleEliminarPredio = (predioId) =>
     setPredios(predios.filter((p) => p.id !== predioId));
-  };
 
-  // Actualizar campo de predio
   const handlePredioChange = (predioId, field, value) => {
     setPredios(
-      predios.map((predio) => {
-        if (predio.id === predioId) {
-          return { ...predio, [field]: value };
-        }
-        return predio;
-      }),
+      predios.map((predio) =>
+        predio.id === predioId ? { ...predio, [field]: value } : predio,
+      ),
     );
   };
 
-  // Agregar inmueble a un predio compuesto
   const handleAgregarInmueble = (predioId) => {
     setPredios(
-      predios.map((predio) => {
-        if (predio.id === predioId && predio.esCompuesto) {
-          return {
-            ...predio,
-            inmuebles: [
-              ...predio.inmuebles,
-              {
-                id: Date.now() + Math.random(),
-                tipo: "",
-                tipoOtro: "",
-                nivel: "",
-                areaCubierta: "",
-                areaDescubierta: "",
-                alicuotaParcial: "",
-              },
-            ],
-          };
-        }
-        return predio;
-      }),
+      predios.map((predio) =>
+        predio.id === predioId && predio.esCompuesto
+          ? {
+              ...predio,
+              inmuebles: [
+                ...predio.inmuebles,
+                {
+                  id: Date.now() + Math.random(),
+                  tipo: "",
+                  tipoOtro: "",
+                  nivel: "",
+                  areaCubierta: "",
+                  areaDescubierta: "",
+                  alicuotaParcial: "",
+                },
+              ],
+            }
+          : predio,
+      ),
     );
   };
 
-  // Eliminar inmueble de un predio
   const handleEliminarInmueble = (predioId, inmuebleId) => {
     setPredios(
-      predios.map((predio) => {
-        if (predio.id === predioId) {
-          return {
-            ...predio,
-            inmuebles: predio.inmuebles.filter((i) => i.id !== inmuebleId),
-          };
-        }
-        return predio;
-      }),
+      predios.map((predio) =>
+        predio.id === predioId
+          ? {
+              ...predio,
+              inmuebles: predio.inmuebles.filter((i) => i.id !== inmuebleId),
+            }
+          : predio,
+      ),
     );
   };
 
-  // Actualizar campo de inmueble
   const handleInmuebleChange = (predioId, inmuebleId, field, value) => {
     setPredios(
       predios.map((predio) => {
         if (predio.id === predioId) {
-          const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
-            if (inmueble.id === inmuebleId) {
-              return { ...inmueble, [field]: value };
-            }
-            return inmueble;
-          });
+          const nuevosInmuebles = predio.inmuebles.map((inmueble) =>
+            inmueble.id === inmuebleId
+              ? { ...inmueble, [field]: value }
+              : inmueble,
+          );
 
-          // Calcular alícuota total del predio
-          const alicuotaTotal = nuevosInmuebles.reduce((sum, inm) => {
-            return sum + (parseFloat(inm.alicuotaParcial) || 0);
-          }, 0);
+          const alicuotaTotal = nuevosInmuebles.reduce(
+            (sum, inm) => sum + (parseFloat(inm.alicuotaParcial) || 0),
+            0,
+          );
 
-          return {
-            ...predio,
-            inmuebles: nuevosInmuebles,
-            alicuotaTotal: alicuotaTotal,
-          };
+          return { ...predio, inmuebles: nuevosInmuebles, alicuotaTotal };
         }
         return predio;
       }),
     );
   };
 
-  // Manejar vendedores
-  const handleAgregarVendedor = () => {
-    setVendedores([...vendedores, null]);
-  };
-
-  const handleVendedorReady = (index, data) => {
-    const newVendedores = [...vendedores];
-    newVendedores[index] = data;
-    setVendedores(newVendedores);
-  };
-
-  const handleEliminarVendedor = (index) => {
-    setVendedores(vendedores.filter((_, i) => i !== index));
-  };
-
-  // Manejar compradores
-  const handleAgregarComprador = () => {
-    setCompradores([...compradores, null]);
-  };
-
-  const handleCompradorReady = (index, data) => {
-    const newCompradores = [...compradores];
-    newCompradores[index] = data;
-    setCompradores(newCompradores);
-  };
-
-  const handleEliminarComprador = (index) => {
-    setCompradores(compradores.filter((_, i) => i !== index));
-  };
-
-  // Agregar bien
-  const handleAgregarBien = (tipoBien) => {
-    const id = Date.now() + Math.random();
-    setBienesSeleccionados([...bienesSeleccionados, { tipo: tipoBien, id }]);
-    setDatosBienes({
-      ...datosBienes,
-      [id]: {
-        numero: "",
-        nivel: "",
-        alicuotaParcial: "",
-        alicuotaTotal: "",
-        areaCubierta: "",
-        areaDescubierta: "",
-      },
-    });
-  };
-
-  // Eliminar bien
-  const handleEliminarBien = (id) => {
-    setBienesSeleccionados(bienesSeleccionados.filter((b) => b.id !== id));
-    const newDatos = { ...datosBienes };
-    delete newDatos[id];
-    setDatosBienes(newDatos);
-  };
-
-  // Actualizar datos de un bien
-  const handleDatosBienChange = (id, field, value) => {
-    setDatosBienes({
-      ...datosBienes,
-      [id]: {
-        ...datosBienes[id],
-        [field]: value,
-      },
-    });
-  };
-
-  // Calcular saldo restante
+  // ============================================
+  // FUNCIONES - PRECIO Y FORMA DE PAGO
+  // ============================================
   const calcularSaldoRestante = () => {
     const total = parseFloat(precioTotal) || 0;
-    const sumaPagos = partesPago.reduce((sum, parte) => {
-      return sum + (parseFloat(parte.monto) || 0);
-    }, 0);
+    const sumaPagos = partesPago.reduce(
+      (sum, parte) => sum + (parseFloat(parte.monto) || 0),
+      0,
+    );
     return total - sumaPagos;
   };
 
-  // Agregar nueva parte de pago
   const handleAgregarPartePago = () => {
     const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
     const nuevaLetra = letras[partesPago.length] || `${partesPago.length + 1}`;
@@ -377,10 +324,8 @@ const GenerarMinutaPage = () => {
     ]);
   };
 
-  // Eliminar parte de pago
   const handleEliminarPartePago = (id) => {
     const nuevasPartes = partesPago.filter((p) => p.id !== id);
-    // Re-asignar letras
     const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
     nuevasPartes.forEach((parte, index) => {
       parte.letra = letras[index] || `${index + 1}`;
@@ -388,7 +333,6 @@ const GenerarMinutaPage = () => {
     setPartesPago(nuevasPartes);
   };
 
-  // Actualizar campo de una parte
   const handlePartePagoChange = (id, field, value) => {
     setPartesPago(
       partesPago.map((parte) => {
@@ -407,7 +351,7 @@ const GenerarMinutaPage = () => {
             }
           }
 
-          // Si cambia a 'unico', limpiar campos de cuotas
+          // Limpiar campos según condiciones
           if (field === "tipoPago" && value === "unico") {
             updated.numeroCuotas = "";
             updated.valorCuota = 0;
@@ -415,17 +359,14 @@ const GenerarMinutaPage = () => {
             updated.periodicidadOtra = "";
           }
 
-          // Si no es cheque, limpiar tipo de cheque
           if (field === "medioPago" && value !== "cheque") {
             updated.tipoCheque = "";
           }
 
-          // Si no es "otro" momento, limpiar momentoOtro
           if (field === "momentoPago" && value !== "otro") {
             updated.momentoOtro = "";
           }
 
-          // Si no es crédito bancario, limpiar campos
           if (field === "esCreditoBancario" && !value) {
             updated.nombreBanco = "";
             updated.cuentaDestino = "";
@@ -436,6 +377,119 @@ const GenerarMinutaPage = () => {
         return parte;
       }),
     );
+  };
+
+  // ============================================
+  // FUNCIÓN - GENERAR MINUTA
+  // ============================================
+  const handleGenerarMinuta = async () => {
+    // Validaciones
+    if (!tipoContrato) {
+      toast.error("Debe seleccionar un tipo de contrato");
+      return;
+    }
+
+    if (vendedores.length === 0 || compradores.length === 0) {
+      toast.error("Debe agregar al menos un vendedor y un comprador");
+      return;
+    }
+
+    if (!tipoPropiedad) {
+      toast.error("Debe seleccionar un tipo de propiedad");
+      return;
+    }
+
+    if (tipoPropiedad === "horizontal" && predios.length === 0) {
+      toast.error("Debe agregar al menos un predio");
+      return;
+    }
+
+    if (!abogado.nombre || !abogado.numeroMatricula) {
+      toast.error("Debe completar los datos del abogado");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        tipoContrato,
+        vendedores: vendedores.filter((v) => v !== null),
+        compradores: compradores.filter((c) => c !== null),
+        tipoPropiedad,
+        nombreConjunto: tipoPropiedad === "horizontal" ? nombreConjunto : null,
+        predios: tipoPropiedad === "horizontal" ? predios : null,
+        bienComun:
+          tipoPropiedad === "comun"
+            ? {
+                tipoBienComun: ubicacion.tipoBienComun,
+                tipoBienComunOtro: ubicacion.tipoBienComunOtro,
+                superficieBienComun: ubicacion.superficieBienComun,
+                numeroPredio: ubicacion.numeroPredio,
+                descripcionBienComun: ubicacion.descripcionBienComun,
+              }
+            : null,
+        ubicacion: {
+          lote: ubicacion.lote,
+          numero: ubicacion.numero,
+          parroquia: ubicacion.parroquia,
+          canton: ubicacion.canton,
+          provincia: ubicacion.provincia,
+        },
+        modoHistoria,
+        historiaManual: modoHistoria === "redactar" ? historiaManual : null,
+        historiaFormulario:
+          modoHistoria === "formulario" ? historiaFormulario : null,
+        modoDeclaratoria:
+          tipoPropiedad === "horizontal" ? modoDeclaratoria : null,
+        declaratoriaManual:
+          tipoPropiedad === "horizontal" && modoDeclaratoria === "redactar"
+            ? declaratoriaManual
+            : null,
+        declaratoriaFormulario:
+          tipoPropiedad === "horizontal" && modoDeclaratoria === "formulario"
+            ? declaratoriaFormulario
+            : null,
+        linderosGenerales,
+        modoSujeto,
+        sujetoManual: modoSujeto === "manual" ? sujetoManual : null,
+        modoPrecio,
+        precioTotal,
+        partesPago: modoPrecio === "formulario" ? partesPago : null,
+        precioManual: modoPrecio === "manual" ? precioManual : null,
+        hayAdministrador:
+          tipoPropiedad === "horizontal" ? hayAdministrador : null,
+        abogado,
+      };
+
+      console.log("📦 Payload:", payload);
+
+      const response = await apiFetch(API_CONFIG.ENDPOINTS.GENERATE_MINUTA, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `minuta_${Date.now()}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        toast.success("Minuta generada exitosamente");
+      } else {
+        const data = await response.json();
+        toast.error(data.detail || "Error al generar minuta");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("Error al generar minuta: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -553,8 +607,6 @@ const GenerarMinutaPage = () => {
             value={tipoPropiedad}
             onChange={(e) => {
               setTipoPropiedad(e.target.value);
-              setBienesSeleccionados([]);
-              setDatosBienes({});
               setNombreConjunto("");
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
@@ -910,14 +962,63 @@ const GenerarMinutaPage = () => {
                     )}
 
                     {/* Alícuota total del predio */}
-                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium text-green-900">
-                          Alícuota Total del Predio:
-                        </span>
-                        <span className="text-lg font-bold text-green-700">
-                          {predio.alicuotaTotal.toFixed(4)}%
-                        </span>
+                    {/* Alícuota total del predio */}
+                    <div className="mt-4 space-y-3">
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-green-900">
+                            Alícuota Total Calculada:
+                          </span>
+                          <span className="text-lg font-bold text-green-700">
+                            {predio.alicuotaTotal.toFixed(4)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={predio.usarAlicuotaManual}
+                            onChange={(e) =>
+                              handlePredioChange(
+                                predio.id,
+                                "usarAlicuotaManual",
+                                e.target.checked,
+                              )
+                            }
+                            className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
+                          />
+                          <span className="text-sm font-medium text-yellow-900">
+                            Usar alícuota total diferente (según Registro de la
+                            Propiedad)
+                          </span>
+                        </label>
+
+                        {predio.usarAlicuotaManual && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Alícuota Total Manual (%)
+                            </label>
+                            <input
+                              type="text"
+                              value={predio.alicuotaTotalManual}
+                              onChange={(e) =>
+                                handlePredioChange(
+                                  predio.id,
+                                  "alicuotaTotalManual",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Ej: 31.2217"
+                            />
+                            <p className="text-xs text-yellow-700 mt-1">
+                              Use este valor si difiere del calculado
+                              automáticamente
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1221,14 +1322,38 @@ const GenerarMinutaPage = () => {
                     </div>
                   )}
 
-                  {/* SI ES SUCESIÓN - Mostrar causante */}
+                  {/* SI ES SUCESIÓN - Tipo de Sucesión */}
                   {historiaFormulario.titulo === "sucesion" && (
                     <div className="col-span-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                      <h4 className="font-semibold text-blue-900 mb-3">
-                        Datos del Causante
-                      </h4>
-
                       <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Tipo de Sucesión
+                          </label>
+                          <select
+                            value={historiaFormulario.tipoSucesion}
+                            onChange={(e) =>
+                              setHistoriaFormulario({
+                                ...historiaFormulario,
+                                tipoSucesion: e.target.value,
+                              })
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          >
+                            <option value="">
+                              Seleccione tipo de sucesión
+                            </option>
+                            <option value="testamento">Testamento</option>
+                            <option value="posesion_efectiva">
+                              Posesión Efectiva
+                            </option>
+                          </select>
+                        </div>
+
+                        <h4 className="font-semibold text-blue-900 pt-3 border-t border-blue-300">
+                          Datos del Causante
+                        </h4>
+
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Nombre completo del Causante (de quien heredaron)
@@ -1357,6 +1482,24 @@ const GenerarMinutaPage = () => {
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cantón de Inscripción
+                    </label>
+                    <input
+                      type="text"
+                      value={historiaFormulario.cantonInscripcion}
+                      onChange={(e) =>
+                        setHistoriaFormulario({
+                          ...historiaFormulario,
+                          cantonInscripcion: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: Quito"
                     />
                   </div>
                 </div>
@@ -1527,6 +1670,24 @@ const GenerarMinutaPage = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
+
+                      <div className="col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cantón de Inscripción
+                        </label>
+                        <input
+                          type="text"
+                          value={historiaFormulario.causanteCantonInscripcion}
+                          onChange={(e) =>
+                            setHistoriaFormulario({
+                              ...historiaFormulario,
+                              causanteCantonInscripcion: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Quito"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
@@ -1614,7 +1775,7 @@ const GenerarMinutaPage = () => {
                   />
                 </div>
 
-                <div className="col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha de Inscripción
                   </label>
@@ -1628,6 +1789,24 @@ const GenerarMinutaPage = () => {
                       })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cantón de Inscripción
+                  </label>
+                  <input
+                    type="text"
+                    value={declaratoriaFormulario.cantonInscripcion}
+                    onChange={(e) =>
+                      setDeclaratoriaFormulario({
+                        ...declaratoriaFormulario,
+                        cantonInscripcion: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    placeholder="Ej: Quito"
                   />
                 </div>
               </div>
@@ -1954,7 +2133,7 @@ const GenerarMinutaPage = () => {
                 {/* PARTES DE PAGO */}
                 <Card title="Forma de Pago">
                   <div className="space-y-6">
-                    {partesPago.map((parte, index) => (
+                    {partesPago.map((parte) => (
                       <div
                         key={parte.id}
                         className="border-2 border-gray-300 rounded-lg p-6 bg-gray-50"
@@ -2539,9 +2718,10 @@ const GenerarMinutaPage = () => {
           <Button
             variant="primary"
             size="lg"
-            onClick={() => alert("Próximamente: Generar Minuta")}
+            onClick={handleGenerarMinuta}
+            disabled={loading}
           >
-            Generar Minuta
+            {loading ? "Generando..." : "Generar Minuta"}
           </Button>
         </div>
       </div>

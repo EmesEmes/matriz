@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, Enum, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 import enum
@@ -20,3 +21,4 @@ class SystemUser(Base):
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    minutes = relationship("Minute", back_populates="creator")

@@ -27,7 +27,41 @@ def dia_mes_letras(n):
 
 
 def numero_a_letras(n):
-    """Convierte número a letras completo"""
+    """
+    Convierte número a letras completo
+    Maneja: int, float, str (con conversión automática)
+    """
+    # Manejar None, vacío o 0
+    if n is None or n == "" or n == 0:
+        return "cero"
+    
+    # Si es string, convertir a número
+    if isinstance(n, str):
+        try:
+            n = n.strip().replace(',', '.')
+            # Si tiene punto decimal, convertir a float
+            if '.' in n:
+                n = float(n)
+            else:
+                n = int(n)
+        except (ValueError, AttributeError):
+            print(f"⚠️ No se pudo convertir '{n}' a número, devolviendo como está")
+            return str(n)
+    
+    # Si es float, manejar parte decimal
+    if isinstance(n, float):
+        parte_entera = int(n)
+        parte_decimal = round((n - parte_entera) * 10000)  # 4 decimales
+        
+        if parte_decimal == 0:
+            return numero_a_letras(parte_entera)
+        
+        # Retornar "parte entera punto parte decimal"
+        return f"{numero_a_letras(parte_entera)} punto {numero_a_letras(parte_decimal)}"
+    
+    # Convertir a int para evitar problemas con comparaciones
+    n = int(n)
+    
     if n == 0:
         return "cero"
     
@@ -59,7 +93,9 @@ def numero_a_letras(n):
     
     if n < 200:
         resto = n - 100
-        return f"ciento {numero_a_letras(resto)}".strip()
+        if resto == 0:
+            return "cien"
+        return f"ciento {numero_a_letras(resto)}"
     
     centenas = {
         200: "doscientos", 300: "trescientos", 400: "cuatrocientos",
@@ -98,7 +134,6 @@ def numero_a_letras(n):
     if resto == 0:
         return f"{numero_a_letras(millones)} millones"
     return f"{numero_a_letras(millones)} millones {numero_a_letras(resto)}"
-
 
 def formatear_fecha_notarial(fecha_str):
     """
