@@ -46,6 +46,51 @@ def generate_minuta_compraventa(data: dict, current_user) -> str:
         print(f"❌ Error generando minuta: {str(e)}")
         raise e
 
+def agrupar_por_conyuges(personas):
+    """
+    Agrupa personas por cónyuges y solteros
+    Retorna lista de grupos: [{'tipo': 'conyuges'/'soltero', 'personas': [...]}]
+    """
+    procesados = set()
+    grupos = []
+    
+    for idx, persona in enumerate(personas):
+        if idx in procesados:
+            continue
+        
+        # Si está casado, buscar su cónyuge
+        if persona.get('maritalStatus') == 'casado' and persona.get('partner'):
+            # Buscar el cónyuge en la lista
+            conyuge_idx = None
+            for j, otra_persona in enumerate(personas):
+                if j != idx and otra_persona.get('documentNumber') == persona.get('partner', {}).get('documentNumber'):
+                    conyuge_idx = j
+                    break
+            
+            if conyuge_idx is not None:
+                # Encontró cónyuge, agrupar
+                grupos.append({
+                    'tipo': 'conyuges',
+                    'personas': [persona, personas[conyuge_idx]]
+                })
+                procesados.add(idx)
+                procesados.add(conyuge_idx)
+            else:
+                # No encontró cónyuge, tratar como soltero
+                grupos.append({
+                    'tipo': 'soltero',
+                    'personas': [persona]
+                })
+                procesados.add(idx)
+        else:
+            # Soltero o sin pareja
+            grupos.append({
+                'tipo': 'soltero',
+                'personas': [persona]
+            })
+            procesados.add(idx)
+    
+    return grupos
 
 def build_minuta_context(data: dict, current_user) -> dict:
     """
@@ -57,114 +102,142 @@ def build_minuta_context(data: dict, current_user) -> dict:
     # 1. COMPARECIENTES - VENDEDORES
     # ============================================
     vendedores = data.get('vendedores', [])
-    context['vendedores'] = []
-    
-    for idx, v in enumerate(vendedores, start=1):
-        # Construir dirección completa
+    grupos_vendedores = agrupar_por_conyuges(vendedores)
+
+    context['grupos_vendedores'] = []
+    contador_global = 1
+
+    for grupo in grupos_vendedores:
+        grupo_data = {
+            'tipo': grupo['tipo'],  # 'conyuges' o 'soltero'
+            'personas': []
+        }
+        
+        # Construir dirección (la misma para el grupo)
+        primera_persona = grupo['personas'][0]
         direccion_partes = []
         
-        if v.get('mainStreet'):
-            direccion_partes.append(v.get('mainStreet'))
+        if primera_persona.get('mainStreet'):
+            direccion_partes.append(primera_persona.get('mainStreet'))
         
-        if v.get('numberStreet'):
+        if primera_persona.get('numberStreet'):
             if direccion_partes:
-                direccion_partes[-1] += f" {v.get('numberStreet')}"
+                direccion_partes[-1] += f" {primera_persona.get('numberStreet')}"
             else:
-                direccion_partes.append(v.get('numberStreet'))
+                direccion_partes.append(primera_persona.get('numberStreet'))
         
-        if v.get('secondaryStreet'):
+        if primera_persona.get('secondaryStreet'):
             if direccion_partes:
-                direccion_partes.append(f"y {v.get('secondaryStreet')}")
+                direccion_partes.append(f"y {primera_persona.get('secondaryStreet')}")
             else:
-                direccion_partes.append(v.get('secondaryStreet'))
+                direccion_partes.append(primera_persona.get('secondaryStreet'))
         
-        if v.get('sector'):
-            direccion_partes.append(v.get('sector'))
+        if primera_persona.get('sector'):
+            direccion_partes.append(primera_persona.get('sector'))
         
-        if v.get('parroquia'):
-            direccion_partes.append(f"Parroquia {v.get('parroquia')}")
+        if primera_persona.get('parroquia'):
+            direccion_partes.append(f"Parroquia {primera_persona.get('parroquia')}")
         
-        if v.get('canton'):
-            direccion_partes.append(f"cantón {v.get('canton')}")
+        if primera_persona.get('canton'):
+            direccion_partes.append(f"cantón {primera_persona.get('canton')}")
         
         direccion_completa = ", ".join(direccion_partes) if direccion_partes else "Sin dirección registrada"
+        grupo_data['direccion'] = direccion_completa
         
-        vendedor = {
-            'numero': numero_a_letras(idx),
-            'nombres_completos': f"{v.get('names', '')} {v.get('lastNames', '')}".upper().strip(),
-            'nacionalidad': v.get('nationality', 'ecuatoriana'),
-            'cedula': v.get('documentNumber', ''),
-            'cedula_palabras': numero_a_digitos(v.get('documentNumber', '')),
-            'edad': numero_a_letras(calcular_edad(v.get('birthDate', ''))),
-            'edad_numeros': calcular_edad(v.get('birthDate', '')),
-            'profesion': v.get('profession', ''),
-            'ocupacion': v.get('occupation', ''),
-            'telefono': v.get('phone', ''),
-            'telefono_palabras': numero_a_digitos(v.get('phone', '').replace('+', '').replace(' ', '').replace('-', '')),
-            'email': v.get('email', ''),
-            'direccion': direccion_completa
-        }
-        context['vendedores'].append(vendedor)
-    
+        # Procesar cada persona del grupo
+        for persona in grupo['personas']:
+            persona_data = {
+                'numero': numero_a_letras(contador_global),
+                'numero_numerico': contador_global,
+                'nombres_completos': f"{persona.get('names', '')} {persona.get('lastNames', '')}".upper().strip(),
+                'nacionalidad': persona.get('nationality', 'ecuatoriana'),
+                'estado_civil': persona.get('maritalStatus', 'soltero'),
+                'cedula': persona.get('documentNumber', ''),
+                'cedula_palabras': numero_a_digitos(persona.get('documentNumber', '')),
+                'edad': numero_a_letras(calcular_edad(persona.get('birthDate', ''))),
+                'edad_numeros': calcular_edad(persona.get('birthDate', '')),
+                'profesion': persona.get('profession', ''),
+                'ocupacion': persona.get('occupation', ''),
+                'telefono': persona.get('phone', ''),
+                'telefono_palabras': numero_a_digitos(persona.get('phone', '').replace('+', '').replace(' ', '').replace('-', '')),
+                'email': persona.get('email', '')
+            }
+            grupo_data['personas'].append(persona_data)
+            contador_global += 1
+        
+        context['grupos_vendedores'].append(grupo_data)
+
     context['num_vendedores'] = len(vendedores)
-    context['vendedores_plural'] = len(vendedores) > 1
-    
+
     # ============================================
     # 2. COMPARECIENTES - COMPRADORES
     # ============================================
     compradores = data.get('compradores', [])
-    context['compradores'] = []
-    
-    for idx, c in enumerate(compradores, start=1):
-        # Construir dirección completa
+    grupos_compradores = agrupar_por_conyuges(compradores)
+
+    context['grupos_compradores'] = []
+
+    for grupo in grupos_compradores:
+        grupo_data = {
+            'tipo': grupo['tipo'],
+            'personas': []
+        }
+        
+        # Construir dirección (la misma para el grupo)
+        primera_persona = grupo['personas'][0]
         direccion_partes = []
         
-        if c.get('mainStreet'):
-            direccion_partes.append(c.get('mainStreet'))
+        if primera_persona.get('mainStreet'):
+            direccion_partes.append(primera_persona.get('mainStreet'))
         
-        if c.get('numberStreet'):
+        if primera_persona.get('numberStreet'):
             if direccion_partes:
-                direccion_partes[-1] += f" {c.get('numberStreet')}"
+                direccion_partes[-1] += f" {primera_persona.get('numberStreet')}"
             else:
-                direccion_partes.append(c.get('numberStreet'))
+                direccion_partes.append(primera_persona.get('numberStreet'))
         
-        if c.get('secondaryStreet'):
+        if primera_persona.get('secondaryStreet'):
             if direccion_partes:
-                direccion_partes.append(f"y {c.get('secondaryStreet')}")
+                direccion_partes.append(f"y {primera_persona.get('secondaryStreet')}")
             else:
-                direccion_partes.append(c.get('secondaryStreet'))
+                direccion_partes.append(primera_persona.get('secondaryStreet'))
         
-        if c.get('sector'):
-            direccion_partes.append(c.get('sector'))
+        if primera_persona.get('sector'):
+            direccion_partes.append(primera_persona.get('sector'))
         
-        if c.get('parroquia'):
-            direccion_partes.append(f"Parroquia {c.get('parroquia')}")
+        if primera_persona.get('parroquia'):
+            direccion_partes.append(f"Parroquia {primera_persona.get('parroquia')}")
         
-        if c.get('canton'):
-            direccion_partes.append(f"cantón {c.get('canton')}")
+        if primera_persona.get('canton'):
+            direccion_partes.append(f"cantón {primera_persona.get('canton')}")
         
         direccion_completa = ", ".join(direccion_partes) if direccion_partes else "Sin dirección registrada"
+        grupo_data['direccion'] = direccion_completa
         
-        comprador = {
-            'numero': numero_a_letras(len(vendedores) + idx),
-            'nombres_completos': f"{c.get('names', '')} {c.get('lastNames', '')}".upper().strip(),
-            'nacionalidad': c.get('nationality', 'ecuatoriana'),
-            'cedula': c.get('documentNumber', ''),
-            'cedula_palabras': numero_a_digitos(c.get('documentNumber', '')),
-            'edad': numero_a_letras(calcular_edad(c.get('birthDate', ''))),
-            'edad_numeros': calcular_edad(c.get('birthDate', '')),
-            'profesion': c.get('profession', ''),
-            'ocupacion': c.get('occupation', ''),
-            'telefono': c.get('phone', ''),
-            'telefono_palabras': numero_a_digitos(c.get('phone', '').replace('+', '').replace(' ', '').replace('-', '')),
-            'email': c.get('email', ''),
-            'direccion': direccion_completa
-        }
-        context['compradores'].append(comprador)
-    
-    context['num_compradores'] = len(compradores)
-    context['compradores_plural'] = len(compradores) > 1
-    
+        # Procesar cada persona del grupo
+        for persona in grupo['personas']:
+            persona_data = {
+                'numero': numero_a_letras(contador_global),
+                'numero_numerico': contador_global,
+                'nombres_completos': f"{persona.get('names', '')} {persona.get('lastNames', '')}".upper().strip(),
+                'nacionalidad': persona.get('nationality', 'ecuatoriana'),
+                'estado_civil': persona.get('maritalStatus', 'soltero'),
+                'cedula': persona.get('documentNumber', ''),
+                'cedula_palabras': numero_a_digitos(persona.get('documentNumber', '')),
+                'edad': numero_a_letras(calcular_edad(persona.get('birthDate', ''))),
+                'edad_numeros': calcular_edad(persona.get('birthDate', '')),
+                'profesion': persona.get('profession', ''),
+                'ocupacion': persona.get('occupation', ''),
+                'telefono': persona.get('phone', ''),
+                'telefono_palabras': numero_a_digitos(persona.get('phone', '').replace('+', '').replace(' ', '').replace('-', '')),
+                'email': persona.get('email', '')
+            }
+            grupo_data['personas'].append(persona_data)
+            contador_global += 1
+        
+        context['grupos_compradores'].append(grupo_data)
+
+    context['num_compradores'] = len(compradores) 
     # ============================================
     # 3. ANTECEDENTES - TIPO DE PROPIEDAD
     # ============================================
@@ -259,6 +332,7 @@ def build_minuta_context(data: dict, current_user) -> dict:
             'notario': historia.get('notario', ''),
             'fecha_inscripcion': formato_fecha(historia.get('fechaInscripcion', '')),
             'canton_inscripcion': historia.get('cantonInscripcion', ''),
+            'mismo_canton': historia.get('cantonNotaria', '').lower() == historia.get('cantonInscripcion', '').lower(),
             
             # Datos del causante (si es sucesión)
             'es_sucesion': historia.get('titulo') == 'sucesion',
@@ -271,7 +345,8 @@ def build_minuta_context(data: dict, current_user) -> dict:
             'causante_canton_notaria': historia.get('causanteCantonNotaria', ''),
             'causante_notario': historia.get('causanteNotario', ''),
             'causante_fecha_inscripcion': formato_fecha(historia.get('causanteFechaInscripcion', '')),
-            'causante_canton_inscripcion': historia.get('causanteCantonInscripcion', '')
+            'causante_canton_inscripcion': historia.get('causanteCantonInscripcion', ''),
+            'causante_mismo_canton': historia.get('causanteCantonNotaria', '').lower() == historia.get('causanteCantonInscripcion', '').lower(),
         }
     
     # ============================================
@@ -292,7 +367,8 @@ def build_minuta_context(data: dict, current_user) -> dict:
                 'canton_notaria': declaratoria.get('cantonNotaria', ''),
                 'notario': declaratoria.get('notario', ''),
                 'fecha_inscripcion': formato_fecha(declaratoria.get('fechaInscripcion', '')),
-                'canton_inscripcion': declaratoria.get('cantonInscripcion', '')
+                'canton_inscripcion': declaratoria.get('cantonInscripcion', ''),
+                'mismo_canton': declaratoria.get('cantonNotaria', '').lower() == declaratoria.get('cantonInscripcion', '').lower(),
             }
     
     # ============================================
@@ -319,6 +395,40 @@ def build_minuta_context(data: dict, current_user) -> dict:
         'superficie': linderos.get('superficie', ''),
         'superficie_palabras': numero_a_letras(linderos.get('superficie', ''))
     }
+    
+    # LINDEROS ESPECÍFICOS (solo si es horizontal y están habilitados)
+    context['tiene_linderos_especificos'] = data.get('tieneLInderosEspecificos', False)
+
+    if context['es_horizontal'] and context['tiene_linderos_especificos']:
+        linderos_esp = data.get('linderosEspecificos', {})
+        context['linderos_especificos'] = {
+            'norte_metros': linderos_esp.get('norte', {}).get('metros', ''),
+            'norte_metros_palabras': numero_a_letras(linderos_esp.get('norte', {}).get('metros', '')),
+            'norte_colindancia': linderos_esp.get('norte', {}).get('colindancia', ''),
+            
+            'sur_metros': linderos_esp.get('sur', {}).get('metros', ''),
+            'sur_metros_palabras': numero_a_letras(linderos_esp.get('sur', {}).get('metros', '')),
+            'sur_colindancia': linderos_esp.get('sur', {}).get('colindancia', ''),
+            
+            'este_metros': linderos_esp.get('este', {}).get('metros', ''),
+            'este_metros_palabras': numero_a_letras(linderos_esp.get('este', {}).get('metros', '')),
+            'este_colindancia': linderos_esp.get('este', {}).get('colindancia', ''),
+            
+            'oeste_metros': linderos_esp.get('oeste', {}).get('metros', ''),
+            'oeste_metros_palabras': numero_a_letras(linderos_esp.get('oeste', {}).get('metros', '')),
+            'oeste_colindancia': linderos_esp.get('oeste', {}).get('colindancia', ''),
+            
+            'arriba_metros': linderos_esp.get('arriba', {}).get('metros', ''),
+            'arriba_metros_palabras': numero_a_letras(linderos_esp.get('arriba', {}).get('metros', '')),
+            'arriba_colindancia': linderos_esp.get('arriba', {}).get('colindancia', ''),
+            
+            'abajo_metros': linderos_esp.get('abajo', {}).get('metros', ''),
+            'abajo_metros_palabras': numero_a_letras(linderos_esp.get('abajo', {}).get('metros', '')),
+            'abajo_colindancia': linderos_esp.get('abajo', {}).get('colindancia', ''),
+            
+            'superficie': linderos_esp.get('superficie', ''),
+            'superficie_palabras': numero_a_letras(linderos_esp.get('superficie', ''))
+        }
     
     # ============================================
     # 10. OBJETO DEL CONTRATO

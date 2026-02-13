@@ -96,6 +96,21 @@ const GenerarMinutaPage = () => {
   });
 
   // ============================================
+  // LINDEROS ESPECIFICOS
+  // ============================================
+  const [tieneLInderosEspecificos, setTieneLInderosEspecificos] =
+    useState(false);
+  const [linderosEspecificos, setLinderosEspecificos] = useState({
+    norte: { metros: "", colindancia: "" },
+    sur: { metros: "", colindancia: "" },
+    este: { metros: "", colindancia: "" },
+    oeste: { metros: "", colindancia: "" },
+    arriba: { metros: "", colindancia: "" },
+    abajo: { metros: "", colindancia: "" },
+    superficie: "",
+  });
+
+  // ============================================
   // OBJETO DEL CONTRATO
   // ============================================
   const [modoSujeto, setModoSujeto] = useState("auto");
@@ -451,6 +466,12 @@ const GenerarMinutaPage = () => {
             ? declaratoriaFormulario
             : null,
         linderosGenerales,
+        tieneLInderosEspecificos:
+          tipoPropiedad === "horizontal" ? tieneLInderosEspecificos : false,
+        linderosEspecificos:
+          tipoPropiedad === "horizontal" && tieneLInderosEspecificos
+            ? linderosEspecificos
+            : null,
         modoSujeto,
         sujetoManual: modoSujeto === "manual" ? sujetoManual : null,
         modoPrecio,
@@ -2023,8 +2044,320 @@ const GenerarMinutaPage = () => {
                 </div>
               </div>
             </Card>
+
+            {/* LINDEROS ESPECÍFICOS - SOLO PARA HORIZONTAL */}
+            {tipoPropiedad === "horizontal" && (
+              <Card title="Linderos Específicos (Opcional)">
+                <label className="flex items-center gap-2 cursor-pointer mb-4">
+                  <input
+                    type="checkbox"
+                    checked={tieneLInderosEspecificos}
+                    onChange={(e) =>
+                      setTieneLInderosEspecificos(e.target.checked)
+                    }
+                    className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
+                  />
+                  <span className="text-sm font-medium text-gray-700">
+                    ¿Los inmuebles tienen linderos específicos diferentes a los
+                    generales?
+                  </span>
+                </label>
+
+                {tieneLInderosEspecificos && (
+                  <div className="space-y-4 border-t pt-4">
+                    {/* Norte */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Norte - Metros
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.norte.metros}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              norte: {
+                                ...linderosEspecificos.norte,
+                                metros: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: 10.50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Norte - Colindancia
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.norte.colindancia}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              norte: {
+                                ...linderosEspecificos.norte,
+                                colindancia: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: con área comunal"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Sur */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Sur - Metros
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.sur.metros}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              sur: {
+                                ...linderosEspecificos.sur,
+                                metros: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: 10.50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Sur - Colindancia
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.sur.colindancia}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              sur: {
+                                ...linderosEspecificos.sur,
+                                colindancia: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: con pasillo"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Este */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Este - Metros
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.este.metros}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              este: {
+                                ...linderosEspecificos.este,
+                                metros: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: 8.20"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Este - Colindancia
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.este.colindancia}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              este: {
+                                ...linderosEspecificos.este,
+                                colindancia: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: con departamento 3"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Oeste */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Oeste - Metros
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.oeste.metros}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              oeste: {
+                                ...linderosEspecificos.oeste,
+                                metros: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: 8.20"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Oeste - Colindancia
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.oeste.colindancia}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              oeste: {
+                                ...linderosEspecificos.oeste,
+                                colindancia: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: con fachada principal"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Arriba - NUEVO */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Arriba - Metros
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.arriba.metros}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              arriba: {
+                                ...linderosEspecificos.arriba,
+                                metros: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: 2.80"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Arriba - Colindancia
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.arriba.colindancia}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              arriba: {
+                                ...linderosEspecificos.arriba,
+                                colindancia: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: con losa del departamento superior"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Abajo - NUEVO */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Abajo - Metros
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.abajo.metros}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              abajo: {
+                                ...linderosEspecificos.abajo,
+                                metros: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: 2.80"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Abajo - Colindancia
+                        </label>
+                        <input
+                          type="text"
+                          value={linderosEspecificos.abajo.colindancia}
+                          onChange={(e) =>
+                            setLinderosEspecificos({
+                              ...linderosEspecificos,
+                              abajo: {
+                                ...linderosEspecificos.abajo,
+                                colindancia: e.target.value,
+                              },
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: con contrapiso del departamento inferior"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Superficie específica */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Superficie Específica
+                      </label>
+                      <input
+                        type="text"
+                        value={linderosEspecificos.superficie}
+                        onChange={(e) =>
+                          setLinderosEspecificos({
+                            ...linderosEspecificos,
+                            superficie: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ej: 85.50"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Superficie específica del inmueble (si difiere de la
+                        general)
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
           </>
         )}
+
         {/* 11. SUJETO DEL CONTRATO (OPCIONAL - MANUAL) */}
         {tipoPropiedad && (
           <>
