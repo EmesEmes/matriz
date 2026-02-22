@@ -19,11 +19,57 @@ def numero_a_digitos(numero):
     for char in numero_str:
         if char.isdigit():
             digitos_letras.append(unidades[int(char)])
+        elif char == '-':
+            digitos_letras.append("guión")
     
     return " ".join(digitos_letras)
 
+
+def numero_casa_a_letras(numero_str):
+    """
+    Convierte número de casa dígito por dígito: E13-51 → E uno tres guión cinco uno
+    """
+    if not numero_str:
+        return ""
+    
+    numero_str = str(numero_str).strip()
+    
+    unidades = [
+        "cero", "uno", "dos", "tres", "cuatro", "cinco",
+        "seis", "siete", "ocho", "nueve"
+    ]
+    
+    resultado = []
+    for char in numero_str:
+        if char.isdigit():
+            resultado.append(unidades[int(char)])
+        elif char == '-':
+            resultado.append("guión")
+        elif char.isalpha():
+            resultado.append(char.upper())
+    
+    return " ".join(resultado)
+
+
 def dia_mes_letras(n):
     """Convierte día/mes a letras (1-31)"""
+    # Casos especiales para 20-29
+    especiales_veinte = {
+        20: "veinte",
+        21: "veintiuno",
+        22: "veintidós",
+        23: "veintitrés",
+        24: "veinticuatro",
+        25: "veinticinco",
+        26: "veintiséis",
+        27: "veintisiete",
+        28: "veintiocho",
+        29: "veintinueve"
+    }
+    
+    if n in especiales_veinte:
+        return especiales_veinte[n]
+    
     menores_veinte = [
         "cero", "uno", "dos", "tres", "cuatro", "cinco", "seis",
         "siete", "ocho", "nueve", "diez", "once", "doce", "trece",
@@ -32,8 +78,6 @@ def dia_mes_letras(n):
     
     if n < 20:
         return menores_veinte[n]
-    if n <= 29:
-        return f"veinte y {dia_mes_letras(n - 20)}"
     if n == 30:
         return "treinta"
     if n == 31:
@@ -47,7 +91,7 @@ def numero_a_letras(n):
     Maneja: int, float, str (con conversión automática)
     """
     # Manejar None, vacío o 0
-    if n is None or n == "" or n == 0:
+    if n is None or n == "":
         return "cero"
     
     # Si es string, convertir a número
@@ -63,16 +107,24 @@ def numero_a_letras(n):
             print(f"⚠️ No se pudo convertir '{n}' a número, devolviendo como está")
             return str(n)
     
+    # Manejar cero explícitamente
+    if n == 0:
+        return "cero"
+    
     # Si es float, manejar parte decimal
     if isinstance(n, float):
         parte_entera = int(n)
-        parte_decimal = round((n - parte_entera) * 10000)  # 4 decimales
+        # Manejar hasta 10 decimales
+        parte_decimal = round((n - parte_entera) * 10000000000)
         
         if parte_decimal == 0:
             return numero_a_letras(parte_entera)
         
-        # Retornar "parte entera punto parte decimal"
-        return f"{numero_a_letras(parte_entera)} punto {numero_a_letras(parte_decimal)}"
+        # Convertir parte decimal a dígitos
+        parte_decimal_str = str(parte_decimal).rstrip('0')
+        digitos_decimales = numero_a_digitos(parte_decimal_str)
+        
+        return f"{numero_a_letras(parte_entera)} coma {digitos_decimales}"
     
     # Convertir a int para evitar problemas con comparaciones
     n = int(n)
@@ -80,8 +132,25 @@ def numero_a_letras(n):
     if n == 0:
         return "cero"
     
+    # Casos especiales para 20-29
+    especiales_veinte = {
+        20: "veinte",
+        21: "veintiuno",
+        22: "veintidós",
+        23: "veintitrés",
+        24: "veinticuatro",
+        25: "veinticinco",
+        26: "veintidós",
+        27: "veintisiete",
+        28: "veintiocho",
+        29: "veintinueve"
+    }
+    
+    if n in especiales_veinte:
+        return especiales_veinte[n]
+    
     especiales = {
-        20: "veinte", 30: "treinta", 40: "cuarenta", 50: "cincuenta",
+        30: "treinta", 40: "cuarenta", 50: "cincuenta",
         60: "sesenta", 70: "setenta", 80: "ochenta", 90: "noventa",
         100: "cien"
     }
@@ -94,9 +163,6 @@ def numero_a_letras(n):
     
     if n < 20:
         return menores_veinte[n]
-    
-    if n <= 29:
-        return f"veinti{numero_a_letras(n - 20)}"
     
     if n in especiales:
         return especiales[n]
@@ -150,6 +216,59 @@ def numero_a_letras(n):
         return f"{numero_a_letras(millones)} millones"
     return f"{numero_a_letras(millones)} millones {numero_a_letras(resto)}"
 
+
+def numero_a_ordinal_notaria(numero):
+    """
+    Convierte número a ordinal femenino para notarías
+    1 -> Primera, 2 -> Segunda, 14 -> Décimo Cuarta, 22 -> Vigésimo Segunda
+    """
+    if isinstance(numero, str):
+        # Si viene como texto, intentar extraer el número
+        import re
+        match = re.search(r'\d+', numero)
+        if match:
+            numero = int(match.group())
+        else:
+            return numero  # Devolver como está si no tiene número
+    
+    numero = int(numero)
+    
+    # Ordinales especiales (1-19)
+    ordinales_especiales = {
+        1: "Primera", 2: "Segunda", 3: "Tercera", 4: "Cuarta", 5: "Quinta",
+        6: "Sexta", 7: "Séptima", 8: "Octava", 9: "Novena", 10: "Décima",
+        11: "Undécima", 12: "Duodécima", 13: "Décimo Tercera", 14: "Décimo Cuarta",
+        15: "Décimo Quinta", 16: "Décimo Sexta", 17: "Décimo Séptima",
+        18: "Décimo Octava", 19: "Décimo Novena"
+    }
+    
+    if numero in ordinales_especiales:
+        return ordinales_especiales[numero]
+    
+    # Para 20-99
+    decenas = {
+        20: "Vigésima", 30: "Trigésima", 40: "Cuadragésima", 50: "Quincuagésima",
+        60: "Sexagésima", 70: "Septuagésima", 80: "Octogésima", 90: "Nonagésima"
+    }
+    
+    unidades_ordinal = {
+        1: "Primera", 2: "Segunda", 3: "Tercera", 4: "Cuarta", 5: "Quinta",
+        6: "Sexta", 7: "Séptima", 8: "Octava", 9: "Novena"
+    }
+    
+    if 20 <= numero < 100:
+        decena = (numero // 10) * 10
+        unidad = numero % 10
+        
+        if unidad == 0:
+            return decenas[decena]
+        else:
+            return f"{decenas[decena].replace('a', 'o')} {unidades_ordinal[unidad]}"
+    
+    # Para números mayores a 99, usar formato "Notaría No. X"
+    return f"Notaría No. {numero}"
+
+
 def formatear_fecha_notarial(fecha_str):
     """
     Convierte fecha ISO (YYYY-MM-DD) a formato notarial
@@ -175,6 +294,7 @@ def formatear_fecha_notarial(fecha_str):
     anio = numero_a_letras(fecha.year)
     
     return f"{dia_semana} {dia} de {mes} del año {anio}"
+
 
 def calcular_edad(fecha_nacimiento_str):
     """

@@ -68,6 +68,8 @@ const GenerarMinutaPage = () => {
     causanteNotario: "",
     causanteFechaInscripcion: "",
     causanteCantonInscripcion: "",
+    // NUEVO: Aclaratorias
+    aclaratorias: [],
   });
 
   // ============================================
@@ -82,31 +84,33 @@ const GenerarMinutaPage = () => {
     notario: "",
     fechaInscripcion: "",
     cantonInscripcion: "",
+    // NUEVO: Aclaratorias
+    aclaratorias: [],
   });
 
   // ============================================
-  // LINDEROS GENERALES
+  // LINDEROS GENERALES (NUEVO: Arrays para múltiples linderos)
   // ============================================
   const [linderosGenerales, setLinderosGenerales] = useState({
-    norte: { metros: "", colindancia: "" },
-    sur: { metros: "", colindancia: "" },
-    este: { metros: "", colindancia: "" },
-    oeste: { metros: "", colindancia: "" },
+    norte: [{ metros: "", colindancia: "" }],
+    sur: [{ metros: "", colindancia: "" }],
+    este: [{ metros: "", colindancia: "" }],
+    oeste: [{ metros: "", colindancia: "" }],
     superficie: "",
   });
 
   // ============================================
-  // LINDEROS ESPECIFICOS
+  // LINDEROS ESPECIFICOS (NUEVO: Con arriba/abajo)
   // ============================================
   const [tieneLInderosEspecificos, setTieneLInderosEspecificos] =
     useState(false);
   const [linderosEspecificos, setLinderosEspecificos] = useState({
-    norte: { metros: "", colindancia: "" },
-    sur: { metros: "", colindancia: "" },
-    este: { metros: "", colindancia: "" },
-    oeste: { metros: "", colindancia: "" },
-    arriba: { metros: "", colindancia: "" },
-    abajo: { metros: "", colindancia: "" },
+    norte: [{ metros: "", colindancia: "" }],
+    sur: [{ metros: "", colindancia: "" }],
+    este: [{ metros: "", colindancia: "" }],
+    oeste: [{ metros: "", colindancia: "" }],
+    arriba: [{ metros: "", colindancia: "" }],
+    abajo: [{ metros: "", colindancia: "" }],
     superficie: "",
   });
 
@@ -139,6 +143,16 @@ const GenerarMinutaPage = () => {
       valorCuota: 0,
       periodicidad: "",
       periodicidadOtra: "",
+      // NUEVO: Detalle de transferencia/depósito
+      tieneDetalle: false,
+      detalle: {
+        bancoOrigen: "",
+        cuentaOrigen: "",
+        tipoCuentaOrigen: "",
+        bancoDestino: "",
+        cuentaDestino: "",
+        tipoCuentaDestino: "",
+      },
     },
   ]);
 
@@ -236,9 +250,22 @@ const GenerarMinutaPage = () => {
 
   const handlePredioChange = (predioId, field, value) => {
     setPredios(
-      predios.map((predio) =>
-        predio.id === predioId ? { ...predio, [field]: value } : predio,
-      ),
+      predios.map((predio) => {
+        if (predio.id === predioId) {
+          const updated = { ...predio, [field]: value };
+
+          // Si cambia usarAlicuotaManual a false, recalcular
+          if (field === "usarAlicuotaManual" && !value) {
+            const suma = updated.inmuebles.reduce((acc, inm) => {
+              return acc + (parseFloat(inm.alicuotaParcial) || 0);
+            }, 0);
+            updated.alicuotaTotal = parseFloat(suma.toFixed(10));
+          }
+
+          return updated;
+        }
+        return predio;
+      }),
     );
   };
 
@@ -268,14 +295,29 @@ const GenerarMinutaPage = () => {
 
   const handleEliminarInmueble = (predioId, inmuebleId) => {
     setPredios(
-      predios.map((predio) =>
-        predio.id === predioId
-          ? {
-              ...predio,
-              inmuebles: predio.inmuebles.filter((i) => i.id !== inmuebleId),
-            }
-          : predio,
-      ),
+      predios.map((predio) => {
+        if (predio.id === predioId) {
+          const nuevosInmuebles = predio.inmuebles.filter(
+            (i) => i.id !== inmuebleId,
+          );
+
+          // Recalcular alícuota total si no es manual
+          let nuevaAlicuotaTotal = predio.alicuotaTotal;
+          if (!predio.usarAlicuotaManual) {
+            const suma = nuevosInmuebles.reduce((acc, inm) => {
+              return acc + (parseFloat(inm.alicuotaParcial) || 0);
+            }, 0);
+            nuevaAlicuotaTotal = parseFloat(suma.toFixed(10));
+          }
+
+          return {
+            ...predio,
+            inmuebles: nuevosInmuebles,
+            alicuotaTotal: nuevaAlicuotaTotal,
+          };
+        }
+        return predio;
+      }),
     );
   };
 
@@ -283,22 +325,269 @@ const GenerarMinutaPage = () => {
     setPredios(
       predios.map((predio) => {
         if (predio.id === predioId) {
-          const nuevosInmuebles = predio.inmuebles.map((inmueble) =>
-            inmueble.id === inmuebleId
-              ? { ...inmueble, [field]: value }
-              : inmueble,
-          );
+          const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
+            if (inmueble.id === inmuebleId) {
+              let newValue = value;
 
-          const alicuotaTotal = nuevosInmuebles.reduce(
-            (sum, inm) => sum + (parseFloat(inm.alicuotaParcial) || 0),
-            0,
-          );
+              // NUEVO: Convertir a decimal con 2 decimales para áreas
+              if (
+                (field === "areaCubierta" || field === "areaDescubierta") &&
+                value
+              ) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) {
+                  newValue = num.toFixed(2);
+                }
+              }
 
-          return { ...predio, inmuebles: nuevosInmuebles, alicuotaTotal };
+              // NUEVO: Convertir a decimal con 10 decimales para alícuotas
+              if (field === "alicuotaParcial" && value) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) {
+                  newValue = num.toFixed(10);
+                }
+              }
+
+              return { ...inmueble, [field]: newValue };
+            }
+            return inmueble;
+          });
+
+          // Recalcular alícuota total si no es manual
+          let nuevaAlicuotaTotal = predio.alicuotaTotal;
+          if (!predio.usarAlicuotaManual) {
+            const suma = nuevosInmuebles.reduce((acc, inm) => {
+              return acc + (parseFloat(inm.alicuotaParcial) || 0);
+            }, 0);
+            nuevaAlicuotaTotal = parseFloat(suma.toFixed(10));
+          }
+
+          return {
+            ...predio,
+            inmuebles: nuevosInmuebles,
+            alicuotaTotal: nuevaAlicuotaTotal,
+          };
         }
         return predio;
       }),
     );
+  };
+
+  // ============================================
+  // FUNCIONES - LINDEROS (NUEVO: Múltiples por dirección)
+  // ============================================
+  const handleAgregarLindero = (direccion, esEspecifico = false) => {
+    if (esEspecifico) {
+      setLinderosEspecificos({
+        ...linderosEspecificos,
+        [direccion]: [
+          ...linderosEspecificos[direccion],
+          { metros: "", colindancia: "" },
+        ],
+      });
+    } else {
+      setLinderosGenerales({
+        ...linderosGenerales,
+        [direccion]: [
+          ...linderosGenerales[direccion],
+          { metros: "", colindancia: "" },
+        ],
+      });
+    }
+  };
+
+  const handleEliminarLindero = (direccion, index, esEspecifico = false) => {
+    if (esEspecifico) {
+      const nuevosLinderos = linderosEspecificos[direccion].filter(
+        (_, i) => i !== index,
+      );
+      setLinderosEspecificos({
+        ...linderosEspecificos,
+        [direccion]:
+          nuevosLinderos.length > 0
+            ? nuevosLinderos
+            : [{ metros: "", colindancia: "" }],
+      });
+    } else {
+      const nuevosLinderos = linderosGenerales[direccion].filter(
+        (_, i) => i !== index,
+      );
+      setLinderosGenerales({
+        ...linderosGenerales,
+        [direccion]:
+          nuevosLinderos.length > 0
+            ? nuevosLinderos
+            : [{ metros: "", colindancia: "" }],
+      });
+    }
+  };
+
+  const handleLinderoChange = (
+    direccion,
+    index,
+    field,
+    value,
+    esEspecifico = false,
+  ) => {
+    if (esEspecifico) {
+      const nuevosLinderos = [...linderosEspecificos[direccion]];
+      nuevosLinderos[index][field] = value;
+      setLinderosEspecificos({
+        ...linderosEspecificos,
+        [direccion]: nuevosLinderos,
+      });
+    } else {
+      const nuevosLinderos = [...linderosGenerales[direccion]];
+      nuevosLinderos[index][field] = value;
+      setLinderosGenerales({
+        ...linderosGenerales,
+        [direccion]: nuevosLinderos,
+      });
+    }
+  };
+
+  // ============================================
+  // FUNCIONES - ACLARATORIAS HISTORIA (NUEVO: Recursivas)
+  // ============================================
+  const handleAgregarAclaratoriaHistoria = (path = []) => {
+    const nuevaAclaratoria = {
+      id: Date.now(),
+      titulo: "",
+      tituloOtro: "",
+      adquiridoDe: "",
+      fechaOtorgamiento: "",
+      numeroNotaria: "",
+      cantonNotaria: "",
+      notario: "",
+      fechaInscripcion: "",
+      cantonInscripcion: "",
+      aclaratorias: [],
+    };
+
+    if (path.length === 0) {
+      setHistoriaFormulario({
+        ...historiaFormulario,
+        aclaratorias: [...historiaFormulario.aclaratorias, nuevaAclaratoria],
+      });
+    } else {
+      const newHistoria = { ...historiaFormulario };
+      let current = newHistoria;
+
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current.aclaratorias[path[i]];
+      }
+
+      const lastIndex = path[path.length - 1];
+      current.aclaratorias[lastIndex].aclaratorias.push(nuevaAclaratoria);
+
+      setHistoriaFormulario(newHistoria);
+    }
+  };
+
+  const handleEliminarAclaratoriaHistoria = (path) => {
+    const newHistoria = { ...historiaFormulario };
+
+    if (path.length === 1) {
+      newHistoria.aclaratorias = newHistoria.aclaratorias.filter(
+        (_, i) => i !== path[0],
+      );
+    } else {
+      let current = newHistoria;
+      for (let i = 0; i < path.length - 2; i++) {
+        current = current.aclaratorias[path[i]];
+      }
+      current.aclaratorias[path[path.length - 2]].aclaratorias =
+        current.aclaratorias[path[path.length - 2]].aclaratorias.filter(
+          (_, i) => i !== path[path.length - 1],
+        );
+    }
+
+    setHistoriaFormulario(newHistoria);
+  };
+
+  const handleAclaratoriaHistoriaChange = (path, field, value) => {
+    const newHistoria = { ...historiaFormulario };
+    let current = newHistoria;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      current = current.aclaratorias[path[i]];
+    }
+
+    current.aclaratorias[path[path.length - 1]][field] = value;
+
+    setHistoriaFormulario(newHistoria);
+  };
+
+  // ============================================
+  // FUNCIONES - ACLARATORIAS DECLARATORIA (NUEVO: Recursivas)
+  // ============================================
+  const handleAgregarAclaratoriaDeclaratoria = (path = []) => {
+    const nuevaAclaratoria = {
+      id: Date.now(),
+      fechaOtorgamiento: "",
+      numeroNotaria: "",
+      cantonNotaria: "",
+      notario: "",
+      fechaInscripcion: "",
+      cantonInscripcion: "",
+      aclaratorias: [],
+    };
+
+    if (path.length === 0) {
+      setDeclaratoriaFormulario({
+        ...declaratoriaFormulario,
+        aclaratorias: [
+          ...declaratoriaFormulario.aclaratorias,
+          nuevaAclaratoria,
+        ],
+      });
+    } else {
+      const newDeclaratoria = { ...declaratoriaFormulario };
+      let current = newDeclaratoria;
+
+      for (let i = 0; i < path.length - 1; i++) {
+        current = current.aclaratorias[path[i]];
+      }
+
+      const lastIndex = path[path.length - 1];
+      current.aclaratorias[lastIndex].aclaratorias.push(nuevaAclaratoria);
+
+      setDeclaratoriaFormulario(newDeclaratoria);
+    }
+  };
+
+  const handleEliminarAclaratoriaDeclaratoria = (path) => {
+    const newDeclaratoria = { ...declaratoriaFormulario };
+
+    if (path.length === 1) {
+      newDeclaratoria.aclaratorias = newDeclaratoria.aclaratorias.filter(
+        (_, i) => i !== path[0],
+      );
+    } else {
+      let current = newDeclaratoria;
+      for (let i = 0; i < path.length - 2; i++) {
+        current = current.aclaratorias[path[i]];
+      }
+      current.aclaratorias[path[path.length - 2]].aclaratorias =
+        current.aclaratorias[path[path.length - 2]].aclaratorias.filter(
+          (_, i) => i !== path[path.length - 1],
+        );
+    }
+
+    setDeclaratoriaFormulario(newDeclaratoria);
+  };
+
+  const handleAclaratoriaDeclaratoriaChange = (path, field, value) => {
+    const newDeclaratoria = { ...declaratoriaFormulario };
+    let current = newDeclaratoria;
+
+    for (let i = 0; i < path.length - 1; i++) {
+      current = current.aclaratorias[path[i]];
+    }
+
+    current.aclaratorias[path[path.length - 1]][field] = value;
+
+    setDeclaratoriaFormulario(newDeclaratoria);
   };
 
   // ============================================
@@ -335,6 +624,16 @@ const GenerarMinutaPage = () => {
         valorCuota: 0,
         periodicidad: "",
         periodicidadOtra: "",
+        // NUEVO
+        tieneDetalle: false,
+        detalle: {
+          bancoOrigen: "",
+          cuentaOrigen: "",
+          tipoCuentaOrigen: "",
+          bancoDestino: "",
+          cuentaDestino: "",
+          tipoCuentaDestino: "",
+        },
       },
     ]);
   };
@@ -393,6 +692,416 @@ const GenerarMinutaPage = () => {
       }),
     );
   };
+
+  // NUEVO: Manejo de detalle de transferencia/depósito
+  const handleDetallePartePagoChange = (id, field, value) => {
+    setPartesPago(
+      partesPago.map((p) => {
+        if (p.id === id) {
+          return {
+            ...p,
+            detalle: {
+              ...p.detalle,
+              [field]: value,
+            },
+          };
+        }
+        return p;
+      }),
+    );
+  };
+
+  // ============================================
+  // COMPONENTES RECURSIVOS - ACLARATORIAS
+  // ============================================
+  const AclaratoriaHistoriaItem = ({ aclaratoria, path, nivel = 0 }) => (
+    <div
+      className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
+    >
+      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+        <div className="flex justify-between items-center">
+          <h5 className="font-medium text-gray-900">
+            Aclaratoria {path.map((i) => i + 1).join(".")}
+          </h5>
+          <button
+            onClick={() => handleEliminarAclaratoriaHistoria(path)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            Eliminar
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Título de adquisición
+            </label>
+            <select
+              value={aclaratoria.titulo}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(path, "titulo", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Seleccionar</option>
+              <option value="compraventa">Compraventa</option>
+              <option value="donacion">Donación</option>
+              <option value="permuta">Permuta</option>
+              <option value="adjudicacion">Adjudicación</option>
+              <option value="sucesion">Sucesión</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          {aclaratoria.titulo === "otro" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Especificar título
+              </label>
+              <input
+                type="text"
+                value={aclaratoria.tituloOtro}
+                onChange={(e) =>
+                  handleAclaratoriaHistoriaChange(
+                    path,
+                    "tituloOtro",
+                    e.target.value,
+                  )
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Adquirido de
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.adquiridoDe}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "adquiridoDe",
+                  e.target.value.toUpperCase(),
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de otorgamiento
+            </label>
+            <input
+              type="date"
+              value={aclaratoria.fechaOtorgamiento}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "fechaOtorgamiento",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Número de notaría
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.numeroNotaria}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "numeroNotaria",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Ej: primera, 14, 22"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Se convertirá automáticamente
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantón de la notaría
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.cantonNotaria}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "cantonNotaria",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notario
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.notario}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "notario",
+                  e.target.value.toUpperCase(),
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de inscripción
+            </label>
+            <input
+              type="date"
+              value={aclaratoria.fechaInscripcion}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "fechaInscripcion",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantón de inscripción
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.cantonInscripcion}
+              onChange={(e) =>
+                handleAclaratoriaHistoriaChange(
+                  path,
+                  "cantonInscripcion",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Si es igual, se mostrará "del mismo cantón"
+            </p>
+          </div>
+        </div>
+
+        {/* Aclaratorias anidadas */}
+        {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
+          <div className="space-y-2">
+            {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
+              <AclaratoriaHistoriaItem
+                key={subAclaratoria.id}
+                aclaratoria={subAclaratoria}
+                path={[...path, index]}
+                nivel={nivel + 1}
+              />
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={() =>
+            handleAgregarAclaratoriaHistoria([
+              ...path,
+              path.length > 0
+                ? path[path.length - 1]
+                : historiaFormulario.aclaratorias.indexOf(aclaratoria),
+            ])
+          }
+          className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
+        >
+          + Agregar aclaratoria a esta entrada
+        </button>
+      </div>
+    </div>
+  );
+
+  const AclaratoriaDeclaratoriaItem = ({ aclaratoria, path, nivel = 0 }) => (
+    <div
+      className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
+    >
+      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+        <div className="flex justify-between items-center">
+          <h5 className="font-medium text-gray-900">
+            Aclaratoria {path.map((i) => i + 1).join(".")}
+          </h5>
+          <button
+            onClick={() => handleEliminarAclaratoriaDeclaratoria(path)}
+            className="text-red-600 hover:text-red-800 font-medium text-sm"
+          >
+            Eliminar
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de otorgamiento
+            </label>
+            <input
+              type="date"
+              value={aclaratoria.fechaOtorgamiento}
+              onChange={(e) =>
+                handleAclaratoriaDeclaratoriaChange(
+                  path,
+                  "fechaOtorgamiento",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Número de notaría
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.numeroNotaria}
+              onChange={(e) =>
+                handleAclaratoriaDeclaratoriaChange(
+                  path,
+                  "numeroNotaria",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Ej: primera, 14, 22"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Se convertirá automáticamente
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantón de la notaría
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.cantonNotaria}
+              onChange={(e) =>
+                handleAclaratoriaDeclaratoriaChange(
+                  path,
+                  "cantonNotaria",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notario
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.notario}
+              onChange={(e) =>
+                handleAclaratoriaDeclaratoriaChange(
+                  path,
+                  "notario",
+                  e.target.value.toUpperCase(),
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de inscripción
+            </label>
+            <input
+              type="date"
+              value={aclaratoria.fechaInscripcion}
+              onChange={(e) =>
+                handleAclaratoriaDeclaratoriaChange(
+                  path,
+                  "fechaInscripcion",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantón de inscripción
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.cantonInscripcion}
+              onChange={(e) =>
+                handleAclaratoriaDeclaratoriaChange(
+                  path,
+                  "cantonInscripcion",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Si es igual, se mostrará "del mismo cantón"
+            </p>
+          </div>
+        </div>
+
+        {/* Aclaratorias anidadas */}
+        {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
+          <div className="space-y-2">
+            {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
+              <AclaratoriaDeclaratoriaItem
+                key={subAclaratoria.id}
+                aclaratoria={subAclaratoria}
+                path={[...path, index]}
+                nivel={nivel + 1}
+              />
+            ))}
+          </div>
+        )}
+
+        <button
+          onClick={() =>
+            handleAgregarAclaratoriaDeclaratoria([
+              ...path,
+              path.length > 0
+                ? path[path.length - 1]
+                : declaratoriaFormulario.aclaratorias.indexOf(aclaratoria),
+            ])
+          }
+          className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
+        >
+          + Agregar aclaratoria a esta entrada
+        </button>
+      </div>
+    </div>
+  );
 
   // ============================================
   // FUNCIÓN - GENERAR MINUTA
@@ -913,7 +1622,8 @@ const GenerarMinutaPage = () => {
                                 Área Cubierta (m²)
                               </label>
                               <input
-                                type="text"
+                                type="number"
+                                step="0.01"
                                 value={inmueble.areaCubierta}
                                 onChange={(e) =>
                                   handleInmuebleChange(
@@ -926,6 +1636,9 @@ const GenerarMinutaPage = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 placeholder="Ej: 217.49"
                               />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Se guardará con 2 decimales (.00)
+                              </p>
                             </div>
 
                             <div>
@@ -933,7 +1646,8 @@ const GenerarMinutaPage = () => {
                                 Área Descubierta (m²)
                               </label>
                               <input
-                                type="text"
+                                type="number"
+                                step="0.01"
                                 value={inmueble.areaDescubierta}
                                 onChange={(e) =>
                                   handleInmuebleChange(
@@ -946,6 +1660,9 @@ const GenerarMinutaPage = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 placeholder="Ej: 166.04"
                               />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Se guardará con 2 decimales (.00)
+                              </p>
                             </div>
 
                             <div>
@@ -953,7 +1670,8 @@ const GenerarMinutaPage = () => {
                                 Alícuota Parcial (%)
                               </label>
                               <input
-                                type="text"
+                                type="number"
+                                step="0.0000000001"
                                 value={inmueble.alicuotaParcial}
                                 onChange={(e) =>
                                   handleInmuebleChange(
@@ -964,8 +1682,11 @@ const GenerarMinutaPage = () => {
                                   )
                                 }
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Ej: 11.4013"
+                                placeholder="Ej: 11.4013256789"
                               />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Hasta 10 decimales
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -983,7 +1704,6 @@ const GenerarMinutaPage = () => {
                     )}
 
                     {/* Alícuota total del predio */}
-                    {/* Alícuota total del predio */}
                     <div className="mt-4 space-y-3">
                       <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                         <div className="flex justify-between items-center">
@@ -991,7 +1711,7 @@ const GenerarMinutaPage = () => {
                             Alícuota Total Calculada:
                           </span>
                           <span className="text-lg font-bold text-green-700">
-                            {predio.alicuotaTotal.toFixed(4)}%
+                            {predio.alicuotaTotal.toFixed(10)}%
                           </span>
                         </div>
                       </div>
@@ -1022,7 +1742,8 @@ const GenerarMinutaPage = () => {
                               Alícuota Total Manual (%)
                             </label>
                             <input
-                              type="text"
+                              type="number"
+                              step="0.0000000001"
                               value={predio.alicuotaTotalManual}
                               onChange={(e) =>
                                 handlePredioChange(
@@ -1032,11 +1753,11 @@ const GenerarMinutaPage = () => {
                                 )
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Ej: 31.2217"
+                              placeholder="Ej: 31.2217256789"
                             />
                             <p className="text-xs text-yellow-700 mt-1">
-                              Use este valor si difiere del calculado
-                              automáticamente
+                              Hasta 10 decimales. Use este valor si difiere del
+                              calculado automáticamente
                             </p>
                           </div>
                         )}
@@ -1048,6 +1769,7 @@ const GenerarMinutaPage = () => {
             </div>
           </Card>
         )}
+
         {/* 6B. BIENES PARA PROPIEDAD COMÚN */}
         {tipoPropiedad === "comun" && (
           <Card title="Descripción del Bien (Propiedad Común)">
@@ -1168,7 +1890,7 @@ const GenerarMinutaPage = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Lote
+                    Inmueble
                   </label>
                   <input
                     type="text"
@@ -1177,7 +1899,7 @@ const GenerarMinutaPage = () => {
                       setUbicacion({ ...ubicacion, lote: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Ej: Lote de terreno número Dos"
+                    placeholder="Ej: Lote de terreno"
                   />
                 </div>
 
@@ -1449,8 +2171,11 @@ const GenerarMinutaPage = () => {
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: Vigésimo Segunda"
+                      placeholder="Ej: primera, 14, 22"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Se convertirá automáticamente (14 → Décimo Cuarta)
+                    </p>
                   </div>
 
                   <div>
@@ -1522,6 +2247,10 @@ const GenerarMinutaPage = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: Quito"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Si es igual al cantón de la notaría, se mostrará "del
+                      mismo cantón"
+                    </p>
                   </div>
                 </div>
 
@@ -1635,8 +2364,11 @@ const GenerarMinutaPage = () => {
                             })
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: Trigésimo Séptima"
+                          placeholder="Ej: primera, 14, 22"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Se convertirá automáticamente
+                        </p>
                       </div>
 
                       <div>
@@ -1708,10 +2440,36 @@ const GenerarMinutaPage = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                           placeholder="Ej: Quito"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Si es igual, se mostrará "del mismo cantón"
+                        </p>
                       </div>
                     </div>
                   </div>
                 )}
+
+                {/* NUEVO: ACLARATORIAS */}
+                {historiaFormulario.aclaratorias.length > 0 && (
+                  <div className="border-t pt-4 mt-4 space-y-4">
+                    <h4 className="font-medium text-gray-900">Aclaratorias</h4>
+                    {historiaFormulario.aclaratorias.map(
+                      (aclaratoria, index) => (
+                        <AclaratoriaHistoriaItem
+                          key={aclaratoria.id}
+                          aclaratoria={aclaratoria}
+                          path={[index]}
+                        />
+                      ),
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={() => handleAgregarAclaratoriaHistoria()}
+                  className="w-full px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium"
+                >
+                  + Agregar Aclaratoria
+                </button>
               </div>
             )}
           />
@@ -1724,116 +2482,150 @@ const GenerarMinutaPage = () => {
             onTextoManualChange={setDeclaratoriaManual}
             placeholderTexto="Escriba aquí la declaratoria de propiedad horizontal..."
             renderFormulario={() => (
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Otorgamiento
-                  </label>
-                  <input
-                    type="date"
-                    value={declaratoriaFormulario.fechaOtorgamiento}
-                    onChange={(e) =>
-                      setDeclaratoriaFormulario({
-                        ...declaratoriaFormulario,
-                        fechaOtorgamiento: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha de Otorgamiento
+                    </label>
+                    <input
+                      type="date"
+                      value={declaratoriaFormulario.fechaOtorgamiento}
+                      onChange={(e) =>
+                        setDeclaratoriaFormulario({
+                          ...declaratoriaFormulario,
+                          fechaOtorgamiento: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Número de Notaría
+                    </label>
+                    <input
+                      type="text"
+                      value={declaratoriaFormulario.numeroNotaria}
+                      onChange={(e) =>
+                        setDeclaratoriaFormulario({
+                          ...declaratoriaFormulario,
+                          numeroNotaria: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: primera, 14, 22"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Se convertirá automáticamente (22 → Vigésimo Segunda)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cantón de la Notaría
+                    </label>
+                    <input
+                      type="text"
+                      value={declaratoriaFormulario.cantonNotaria}
+                      onChange={(e) =>
+                        setDeclaratoriaFormulario({
+                          ...declaratoriaFormulario,
+                          cantonNotaria: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: Quito"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notario/Notaria
+                    </label>
+                    <input
+                      type="text"
+                      value={declaratoriaFormulario.notario}
+                      onChange={(e) =>
+                        setDeclaratoriaFormulario({
+                          ...declaratoriaFormulario,
+                          notario: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                      placeholder="Ej: PAOLA ANDRADE TORRES"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha de Inscripción
+                    </label>
+                    <input
+                      type="date"
+                      value={declaratoriaFormulario.fechaInscripcion}
+                      onChange={(e) =>
+                        setDeclaratoriaFormulario({
+                          ...declaratoriaFormulario,
+                          fechaInscripcion: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Cantón de Inscripción
+                    </label>
+                    <input
+                      type="text"
+                      value={declaratoriaFormulario.cantonInscripcion}
+                      onChange={(e) =>
+                        setDeclaratoriaFormulario({
+                          ...declaratoriaFormulario,
+                          cantonInscripcion: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: Quito"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Si es igual al cantón de la notaría, se mostrará "del
+                      mismo cantón"
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Número de Notaría
-                  </label>
-                  <input
-                    type="text"
-                    value={declaratoriaFormulario.numeroNotaria}
-                    onChange={(e) =>
-                      setDeclaratoriaFormulario({
-                        ...declaratoriaFormulario,
-                        numeroNotaria: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Ej: Cuadragésima"
-                  />
-                </div>
+                {/* NUEVO: ACLARATORIAS */}
+                {declaratoriaFormulario.aclaratorias.length > 0 && (
+                  <div className="border-t pt-4 mt-4 space-y-4">
+                    <h4 className="font-medium text-gray-900">Aclaratorias</h4>
+                    {declaratoriaFormulario.aclaratorias.map(
+                      (aclaratoria, index) => (
+                        <AclaratoriaDeclaratoriaItem
+                          key={aclaratoria.id}
+                          aclaratoria={aclaratoria}
+                          path={[index]}
+                        />
+                      ),
+                    )}
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cantón de la Notaría
-                  </label>
-                  <input
-                    type="text"
-                    value={declaratoriaFormulario.cantonNotaria}
-                    onChange={(e) =>
-                      setDeclaratoriaFormulario({
-                        ...declaratoriaFormulario,
-                        cantonNotaria: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Ej: Quito"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Notario/Notaria
-                  </label>
-                  <input
-                    type="text"
-                    value={declaratoriaFormulario.notario}
-                    onChange={(e) =>
-                      setDeclaratoriaFormulario({
-                        ...declaratoriaFormulario,
-                        notario: e.target.value.toUpperCase(),
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-                    placeholder="Ej: PAOLA ANDRADE TORRES"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Fecha de Inscripción
-                  </label>
-                  <input
-                    type="date"
-                    value={declaratoriaFormulario.fechaInscripcion}
-                    onChange={(e) =>
-                      setDeclaratoriaFormulario({
-                        ...declaratoriaFormulario,
-                        fechaInscripcion: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cantón de Inscripción
-                  </label>
-                  <input
-                    type="text"
-                    value={declaratoriaFormulario.cantonInscripcion}
-                    onChange={(e) =>
-                      setDeclaratoriaFormulario({
-                        ...declaratoriaFormulario,
-                        cantonInscripcion: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    placeholder="Ej: Quito"
-                  />
-                </div>
+                <button
+                  onClick={() => handleAgregarAclaratoriaDeclaratoria()}
+                  className="w-full px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium"
+                >
+                  + Agregar Aclaratoria
+                </button>
               </div>
             )}
           />
         )}
+
+        {/* Continúa con Linderos en la siguiente parte... */}
         {/* 10. LINDEROS GENERALES */}
         {tipoPropiedad && (
           <>
@@ -1844,181 +2636,245 @@ const GenerarMinutaPage = () => {
             </div>
 
             <Card>
-              <div className="space-y-4">
-                {/* Norte */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Norte - Metros
+              <div className="space-y-6">
+                {/* NORTE */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Norte
                     </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.norte.metros}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          norte: {
-                            ...linderosGenerales.norte,
-                            metros: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: 37.84"
-                    />
+                    <button
+                      onClick={() => handleAgregarLindero("norte")}
+                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                    >
+                      + Agregar lindero norte
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Norte - Colindancia
-                    </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.norte.colindancia}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          norte: {
-                            ...linderosGenerales.norte,
-                            colindancia: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: con propiedad del señor Carlos Vicente Reyes"
-                    />
-                  </div>
+                  {linderosGenerales.norte.map((lindero, index) => (
+                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <input
+                          type="text"
+                          value={lindero.metros}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "norte",
+                              index,
+                              "metros",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Metros (ej: 37.84)"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={lindero.colindancia}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "norte",
+                              index,
+                              "colindancia",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Colindancia (ej: con propiedad del señor...)"
+                        />
+                        {linderosGenerales.norte.length > 1 && (
+                          <button
+                            onClick={() =>
+                              handleEliminarLindero("norte", index)
+                            }
+                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Sur */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Sur - Metros
+                {/* SUR */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Sur
                     </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.sur.metros}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          sur: {
-                            ...linderosGenerales.sur,
-                            metros: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: 27.05"
-                    />
+                    <button
+                      onClick={() => handleAgregarLindero("sur")}
+                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                    >
+                      + Agregar lindero sur
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Sur - Colindancia
-                    </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.sur.colindancia}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          sur: {
-                            ...linderosGenerales.sur,
-                            colindancia: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: con propiedad del señor José Ayala"
-                    />
-                  </div>
+                  {linderosGenerales.sur.map((lindero, index) => (
+                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <input
+                          type="text"
+                          value={lindero.metros}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "sur",
+                              index,
+                              "metros",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Metros"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={lindero.colindancia}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "sur",
+                              index,
+                              "colindancia",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Colindancia"
+                        />
+                        {linderosGenerales.sur.length > 1 && (
+                          <button
+                            onClick={() => handleEliminarLindero("sur", index)}
+                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Este */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Este - Metros
+                {/* ESTE */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Este
                     </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.este.metros}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          este: {
-                            ...linderosGenerales.este,
-                            metros: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: 35.86"
-                    />
+                    <button
+                      onClick={() => handleAgregarLindero("este")}
+                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                    >
+                      + Agregar lindero este
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Este - Colindancia
-                    </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.este.colindancia}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          este: {
-                            ...linderosGenerales.este,
-                            colindancia: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: con calle interna de la Urbanización"
-                    />
-                  </div>
+                  {linderosGenerales.este.map((lindero, index) => (
+                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <input
+                          type="text"
+                          value={lindero.metros}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "este",
+                              index,
+                              "metros",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Metros"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={lindero.colindancia}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "este",
+                              index,
+                              "colindancia",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Colindancia"
+                        />
+                        {linderosGenerales.este.length > 1 && (
+                          <button
+                            onClick={() => handleEliminarLindero("este", index)}
+                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Oeste */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Oeste - Metros
+                {/* OESTE */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Oeste
                     </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.oeste.metros}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          oeste: {
-                            ...linderosGenerales.oeste,
-                            metros: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: 27.28"
-                    />
+                    <button
+                      onClick={() => handleAgregarLindero("oeste")}
+                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                    >
+                      + Agregar lindero oeste
+                    </button>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Oeste - Colindancia
-                    </label>
-                    <input
-                      type="text"
-                      value={linderosGenerales.oeste.colindancia}
-                      onChange={(e) =>
-                        setLinderosGenerales({
-                          ...linderosGenerales,
-                          oeste: {
-                            ...linderosGenerales.oeste,
-                            colindancia: e.target.value,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: con propiedad del señor José Tituaña"
-                    />
-                  </div>
+                  {linderosGenerales.oeste.map((lindero, index) => (
+                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
+                      <div>
+                        <input
+                          type="text"
+                          value={lindero.metros}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "oeste",
+                              index,
+                              "metros",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Metros"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={lindero.colindancia}
+                          onChange={(e) =>
+                            handleLinderoChange(
+                              "oeste",
+                              index,
+                              "colindancia",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Colindancia"
+                        />
+                        {linderosGenerales.oeste.length > 1 && (
+                          <button
+                            onClick={() =>
+                              handleEliminarLindero("oeste", index)
+                            }
+                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Superficie */}
@@ -2064,269 +2920,401 @@ const GenerarMinutaPage = () => {
                 </label>
 
                 {tieneLInderosEspecificos && (
-                  <div className="space-y-4 border-t pt-4">
-                    {/* Norte */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Norte - Metros
+                  <div className="space-y-6 border-t pt-4">
+                    {/* NORTE */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Norte
                         </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.norte.metros}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              norte: {
-                                ...linderosEspecificos.norte,
-                                metros: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: 10.50"
-                        />
+                        <button
+                          onClick={() => handleAgregarLindero("norte", true)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero norte
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Norte - Colindancia
-                        </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.norte.colindancia}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              norte: {
-                                ...linderosEspecificos.norte,
-                                colindancia: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: con área comunal"
-                        />
-                      </div>
+                      {linderosEspecificos.norte.map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <div>
+                            <input
+                              type="text"
+                              value={lindero.metros}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "norte",
+                                  index,
+                                  "metros",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Metros"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "norte",
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Colindancia"
+                            />
+                            {linderosEspecificos.norte.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero("norte", index, true)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Sur */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Sur - Metros
+                    {/* SUR */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Sur
                         </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.sur.metros}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              sur: {
-                                ...linderosEspecificos.sur,
-                                metros: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: 10.50"
-                        />
+                        <button
+                          onClick={() => handleAgregarLindero("sur", true)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero sur
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Sur - Colindancia
-                        </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.sur.colindancia}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              sur: {
-                                ...linderosEspecificos.sur,
-                                colindancia: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: con pasillo"
-                        />
-                      </div>
+                      {linderosEspecificos.sur.map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <div>
+                            <input
+                              type="text"
+                              value={lindero.metros}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "sur",
+                                  index,
+                                  "metros",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Metros"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "sur",
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Colindancia"
+                            />
+                            {linderosEspecificos.sur.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero("sur", index, true)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Este */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Este - Metros
+                    {/* ESTE */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Este
                         </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.este.metros}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              este: {
-                                ...linderosEspecificos.este,
-                                metros: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: 8.20"
-                        />
+                        <button
+                          onClick={() => handleAgregarLindero("este", true)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero este
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Este - Colindancia
-                        </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.este.colindancia}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              este: {
-                                ...linderosEspecificos.este,
-                                colindancia: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: con departamento 3"
-                        />
-                      </div>
+                      {linderosEspecificos.este.map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <div>
+                            <input
+                              type="text"
+                              value={lindero.metros}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "este",
+                                  index,
+                                  "metros",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Metros"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "este",
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Colindancia"
+                            />
+                            {linderosEspecificos.este.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero("este", index, true)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Oeste */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Oeste - Metros
+                    {/* OESTE */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Oeste
                         </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.oeste.metros}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              oeste: {
-                                ...linderosEspecificos.oeste,
-                                metros: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: 8.20"
-                        />
+                        <button
+                          onClick={() => handleAgregarLindero("oeste", true)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero oeste
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Oeste - Colindancia
-                        </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.oeste.colindancia}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              oeste: {
-                                ...linderosEspecificos.oeste,
-                                colindancia: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: con fachada principal"
-                        />
-                      </div>
+                      {linderosEspecificos.oeste.map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <div>
+                            <input
+                              type="text"
+                              value={lindero.metros}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "oeste",
+                                  index,
+                                  "metros",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Metros"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "oeste",
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Colindancia"
+                            />
+                            {linderosEspecificos.oeste.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero("oeste", index, true)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Arriba - NUEVO */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Arriba - Metros
+                    {/* ARRIBA - NUEVO */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Arriba
                         </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.arriba.metros}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              arriba: {
-                                ...linderosEspecificos.arriba,
-                                metros: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: 2.80"
-                        />
+                        <button
+                          onClick={() => handleAgregarLindero("arriba", true)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero arriba
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Arriba - Colindancia
-                        </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.arriba.colindancia}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              arriba: {
-                                ...linderosEspecificos.arriba,
-                                colindancia: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: con losa del departamento superior"
-                        />
-                      </div>
+                      {linderosEspecificos.arriba.map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <div>
+                            <input
+                              type="text"
+                              value={lindero.metros}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "arriba",
+                                  index,
+                                  "metros",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Metros"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "arriba",
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Ej: con losa del departamento superior"
+                            />
+                            {linderosEspecificos.arriba.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero("arriba", index, true)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Abajo - NUEVO */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Abajo - Metros
+                    {/* ABAJO - NUEVO */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Abajo
                         </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.abajo.metros}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              abajo: {
-                                ...linderosEspecificos.abajo,
-                                metros: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: 2.80"
-                        />
+                        <button
+                          onClick={() => handleAgregarLindero("abajo", true)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero abajo
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Abajo - Colindancia
-                        </label>
-                        <input
-                          type="text"
-                          value={linderosEspecificos.abajo.colindancia}
-                          onChange={(e) =>
-                            setLinderosEspecificos({
-                              ...linderosEspecificos,
-                              abajo: {
-                                ...linderosEspecificos.abajo,
-                                colindancia: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Ej: con contrapiso del departamento inferior"
-                        />
-                      </div>
+                      {linderosEspecificos.abajo.map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <div>
+                            <input
+                              type="text"
+                              value={lindero.metros}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "abajo",
+                                  index,
+                                  "metros",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Metros"
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  "abajo",
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                  true,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Ej: con contrapiso del departamento inferior"
+                            />
+                            {linderosEspecificos.abajo.length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero("abajo", index, true)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Superficie específica */}
@@ -2358,7 +3346,8 @@ const GenerarMinutaPage = () => {
           </>
         )}
 
-        {/* 11. SUJETO DEL CONTRATO (OPCIONAL - MANUAL) */}
+        {/* Continúa con Objeto del Contrato, Precio, etc. en la siguiente parte... */}
+        {/* 11. OBJETO DEL CONTRATO */}
         {tipoPropiedad && (
           <>
             <div className="border-t-4 border-primary-500 pt-6">
@@ -2410,6 +3399,7 @@ const GenerarMinutaPage = () => {
             )}
           </>
         )}
+
         {/* 12. PRECIO Y FORMA DE PAGO */}
         {tipoPropiedad && (
           <>
@@ -2568,6 +3558,253 @@ const GenerarMinutaPage = () => {
                                   <option value="efectivo">Efectivo</option>
                                 </select>
                               </div>
+
+                              {/* NUEVO: Detalle de Transferencia */}
+                              {parte.medioPago === "transferencia" && (
+                                <div className="border-t pt-4 mt-4">
+                                  <label className="flex items-center gap-2 cursor-pointer mb-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={parte.tieneDetalle}
+                                      onChange={(e) =>
+                                        handlePartePagoChange(
+                                          parte.id,
+                                          "tieneDetalle",
+                                          e.target.checked,
+                                        )
+                                      }
+                                      className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                      ¿Agregar detalle de transferencia?
+                                    </span>
+                                  </label>
+
+                                  {parte.tieneDetalle && (
+                                    <div className="grid grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Banco de origen
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={parte.detalle.bancoOrigen}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "bancoOrigen",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                          placeholder="Ej: Banco Pichincha"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Cuenta de origen
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={parte.detalle.cuentaOrigen}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "cuentaOrigen",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                          placeholder="Ej: 2100123456"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Tipo de cuenta de origen
+                                        </label>
+                                        <select
+                                          value={parte.detalle.tipoCuentaOrigen}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "tipoCuentaOrigen",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                        >
+                                          <option value="">Seleccionar</option>
+                                          <option value="ahorros">
+                                            Ahorros
+                                          </option>
+                                          <option value="corriente">
+                                            Corriente
+                                          </option>
+                                        </select>
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Banco de destino
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={parte.detalle.bancoDestino}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "bancoDestino",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                          placeholder="Ej: Banco Guayaquil"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Cuenta de destino
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={parte.detalle.cuentaDestino}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "cuentaDestino",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                          placeholder="Ej: 3200654321"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Tipo de cuenta de destino
+                                        </label>
+                                        <select
+                                          value={
+                                            parte.detalle.tipoCuentaDestino
+                                          }
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "tipoCuentaDestino",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                        >
+                                          <option value="">Seleccionar</option>
+                                          <option value="ahorros">
+                                            Ahorros
+                                          </option>
+                                          <option value="corriente">
+                                            Corriente
+                                          </option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* NUEVO: Detalle de Depósito */}
+                              {parte.medioPago === "deposito" && (
+                                <div className="border-t pt-4 mt-4">
+                                  <label className="flex items-center gap-2 cursor-pointer mb-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={parte.tieneDetalle}
+                                      onChange={(e) =>
+                                        handlePartePagoChange(
+                                          parte.id,
+                                          "tieneDetalle",
+                                          e.target.checked,
+                                        )
+                                      }
+                                      className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                      ¿Agregar detalle de depósito?
+                                    </span>
+                                  </label>
+
+                                  {parte.tieneDetalle && (
+                                    <div className="grid grid-cols-2 gap-4 bg-green-50 p-4 rounded-lg border border-green-200">
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Banco de destino
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={parte.detalle.bancoDestino}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "bancoDestino",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                          placeholder="Ej: Banco Pacífico"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Número de cuenta de destino
+                                        </label>
+                                        <input
+                                          type="text"
+                                          value={parte.detalle.cuentaDestino}
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "cuentaDestino",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                          placeholder="Ej: 4500987654"
+                                        />
+                                      </div>
+
+                                      <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                          Tipo de cuenta de destino
+                                        </label>
+                                        <select
+                                          value={
+                                            parte.detalle.tipoCuentaDestino
+                                          }
+                                          onChange={(e) =>
+                                            handleDetallePartePagoChange(
+                                              parte.id,
+                                              "tipoCuentaDestino",
+                                              e.target.value,
+                                            )
+                                          }
+                                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                        >
+                                          <option value="">Seleccionar</option>
+                                          <option value="ahorros">
+                                            Ahorros
+                                          </option>
+                                          <option value="corriente">
+                                            Corriente
+                                          </option>
+                                        </select>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Si es Cheque - Tipo de Cheque */}
                               {parte.medioPago === "cheque" && (
@@ -2932,6 +4169,7 @@ const GenerarMinutaPage = () => {
             )}
           </>
         )}
+
         {/* 13. ADMINISTRADOR */}
         {tipoPropiedad === "horizontal" && (
           <Card title="Administrador del Condominio">
@@ -2959,8 +4197,8 @@ const GenerarMinutaPage = () => {
             {hayAdministrador && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm text-yellow-800">
-                  ⚠️ Si existe administrador, deberá incluir la información
-                  correspondiente manualmente en el documento final
+                  ⚠️ Si existe administrador, NO se incluirá la cláusula de
+                  declaración
                 </p>
               </div>
             )}
