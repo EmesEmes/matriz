@@ -274,7 +274,7 @@ def limpiar_html(html_content):
     return text.strip()
 
 
-def generate_minuta(data: dict, template_path: str) -> BytesIO:
+def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     """
     Genera una minuta en formato .docx basándose en los datos proporcionados.
     

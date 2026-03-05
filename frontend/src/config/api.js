@@ -12,6 +12,9 @@ const API_CONFIG = {
     // Comparecientes
     PARTIES: "/api/users",
 
+    // Empresas
+    COMPANIES: "/api/companies",
+
     // Documents
     GENERATE_MATRIZ: "/api/documents/generate-matriz",
     GENERATE_MINUTA: "/api/minutes/generate-minuta",

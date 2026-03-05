@@ -1,50 +1,61 @@
-import { useState } from 'react';
-import { Search } from 'lucide-react';
-import { Button, FormField } from '../shared';
-import { validarCedula } from '../../utils/validarCedula';
+import { useState } from "react";
+import { Search } from "lucide-react";
+import { Button, FormField } from "../shared";
+import { validarCedula } from "../../utils/validarCedula";
 
-const ComparecienteSearch = ({ onSearch, loading }) => {
-  const [documentNumber, setDocumentNumber] = useState('');
-  const [error, setError] = useState('');
+const ComparecienteSearch = ({
+  onSearch,
+  loading,
+  placeholder = "Ej: 1234567890",
+  label = "Número de Cédula",
+  mode = "cedula", // 'cedula' | 'ruc'
+}) => {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+
+  const validate = (val) => {
+    if (!val.trim()) return "Ingrese un valor para buscar";
+
+    if (mode === "cedula") {
+      if (!validarCedula(val)) return "Cédula inválida";
+    } else {
+      // RUC: 13 dígitos numéricos terminados en 001
+      if (!/^\d{13}$/.test(val))
+        return "El RUC debe tener 13 dígitos numéricos";
+      if (!val.endsWith("001")) return "El RUC de empresa debe terminar en 001";
+    }
+
+    return "";
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    setError('');
-
-    if (!documentNumber.trim()) {
-      setError('Ingrese un número de cédula');
+    const validationError = validate(value);
+    if (validationError) {
+      setError(validationError);
       return;
     }
-
-    if (!validarCedula(documentNumber)) {
-      setError('Cédula inválida');
-      return;
-    }
-
-    onSearch(documentNumber);
+    setError("");
+    onSearch(value.trim());
   };
 
   return (
     <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-      <FormField 
-        label="Número de Cédula" 
-        error={error}
-        className="flex-1"
-      >
+      <FormField label={label} error={error} className="flex-1">
         <input
           type="text"
-          value={documentNumber}
+          value={value}
           onChange={(e) => {
-            setDocumentNumber(e.target.value);
-            setError('');
+            setValue(e.target.value);
+            setError("");
           }}
           className="input-field"
-          placeholder="Ej: 1234567890"
-          maxLength="10"
+          placeholder={placeholder}
+          maxLength={mode === "cedula" ? 10 : 13}
           disabled={loading}
         />
       </FormField>
-      
+
       <Button
         type="submit"
         variant="primary"

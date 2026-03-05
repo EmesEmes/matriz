@@ -1,0 +1,61 @@
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum
+from sqlalchemy.sql import func
+from app.database import Base
+import enum
+
+
+class DocumentType(enum.Enum):
+    cedula = "cedula"
+    pasaporte = "pasaporte"
+
+
+class Gender(enum.Enum):
+    masculino = "masculino"
+    femenino = "femenino"
+
+
+class Company(Base):
+    """Modelo para empresas que participan en actos notariales"""
+    __tablename__ = "companies"
+
+    # Identificación empresa
+    ruc = Column(String(13), primary_key=True)
+    razon_social = Column(String(200), nullable=False)
+
+    # Contacto empresa
+    email = Column(String(100), nullable=False)
+    phone = Column(String(15), nullable=False)
+
+    # Dirección empresa
+    province = Column(String(50), nullable=False)
+    canton = Column(String(50), nullable=False)
+    parroquia = Column(String(50), nullable=False)
+    sector = Column(String(100), nullable=False)
+    main_street = Column(String(150), nullable=False)
+    secondary_street = Column(String(150), nullable=False)
+    number_street = Column(String(20), nullable=False)
+
+    # Representante legal - datos propios, independiente de comparecientes
+    rep_document_type = Column(SQLEnum(DocumentType), nullable=False)
+    rep_document_number = Column(String(20), nullable=False)
+    rep_names = Column(String(100), nullable=False)
+    rep_last_names = Column(String(100), nullable=False)
+    rep_gender = Column(SQLEnum(Gender), nullable=False)
+    rep_nationality = Column(String(50), nullable=False)
+    rep_birth_date = Column(String(10), nullable=False)  # formato YYYY-MM-DD
+    rep_email = Column(String(100), nullable=False)
+    rep_phone = Column(String(15), nullable=False)
+    rep_province = Column(String(50), nullable=False)
+    rep_canton = Column(String(50), nullable=False)
+    rep_parroquia = Column(String(50), nullable=False)
+    rep_sector = Column(String(100), nullable=False)
+    rep_main_street = Column(String(150), nullable=False)
+    rep_secondary_street = Column(String(150), nullable=False)
+    rep_number_street = Column(String(20), nullable=False)
+    rep_occupation = Column(String(100), nullable=False)
+    rep_profession = Column(String(100), nullable=True)
+    rep_position = Column(String(100), nullable=False)  # cargo
+
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
