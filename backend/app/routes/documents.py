@@ -54,6 +54,12 @@ def generate_matriz(
         file_path = generate_matriz_compraventa(datos_para_docx)
         
         # Guardar registro en BD
+        def identificador(p):
+            """Devuelve RUC para empresas o cédula para personas"""
+            if p.get('esEmpresa'):
+                return p.get('ruc', '')
+            return p.get('cedula', '')
+
         document = Document(
             document_type=request.tipo_contrato,
             protocol_number=request.numero_protocolo,
@@ -62,8 +68,8 @@ def generate_matriz(
             notario=request.notario.nombre,
             matrizador=request.matrizador,
             parties_data={
-                "vendedores": [v.cedula if hasattr(v, 'cedula') else v.get('cedula') for v in request.vendedores_list],
-                "compradores": [c.cedula if hasattr(c, 'cedula') else c.get('cedula') for c in request.compradores_list]
+                "vendedores": [identificador(v) for v in request.vendedores_list],
+                "compradores": [identificador(c) for c in request.compradores_list]
             },
             file_path=file_path
         )

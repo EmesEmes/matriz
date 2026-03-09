@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Button, Card, RichTextEditor } from "../components/shared";
-import { ComparecienteInline } from "../components/comparecientes";
-import { SeccionFormularioRedactar } from "../components/minutas";
-import { useToast } from "../hooks/useToast";
-import { apiFetch } from "../config/api";
-import API_CONFIG from "../config/api";
+import { Button, Card, RichTextEditor } from "../../../components/shared";
+import { ComparecienteInline } from "../../../components/comparecientes";
+import { SeccionFormularioRedactar } from "../../../components/minutas";
+import { useToast } from "../../../hooks/useToast";
+import { apiFetch } from "../../../config/api";
+import API_CONFIG from "../../../config/api";
 
-const GenerarMinutaPage = () => {
+const FormularioCompraventa = () => {
   const toast = useToast();
 
   // ============================================
@@ -4300,4 +4300,4 @@ const GenerarMinutaPage = () => {
   );
 };
 
-export default GenerarMinutaPage;
+export default FormularioCompraventa;

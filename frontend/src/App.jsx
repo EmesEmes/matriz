@@ -7,8 +7,10 @@ import GestionUsuariosPage from "./pages/GestionUsuariosPage";
 import ComparecientesPage from "./pages/ComparecientesPage";
 import { useAuth } from "./context/AuthContext";
 import TestInlinePage from "./pages/TestInlinePage";
-import GenerarMatrizPage from "./pages/GenerarMatrizPage";
-import GenerarMinutaPage from "./pages/GenerarMinutaPage";
+import MatricesIndexPage from "./pages/matrices/MatricesIndexPage";
+import FormularioMatrizCompraventa from "./pages/matrices/compraventa/FormularioCompraventa";
+import MinutasIndexPage from "./pages/minutas/MinutasIndexPage";
+import FormularioCompraventa from "./pages/minutas/compraventa/FormularioCompraventa";
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -80,21 +82,41 @@ function App() {
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route
-          path="/matrices/nueva"
+          path="/matrices"
           element={
             <ProtectedRoute>
               <MainLayout>
-                <GenerarMatrizPage />
+                <MatricesIndexPage />
               </MainLayout>
             </ProtectedRoute>
           }
         />
         <Route
-          path="/minutas/nueva"
+          path="/matrices/compraventa"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <FormularioMatrizCompraventa />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minutas"
           element={
             <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
               <MainLayout>
-                <GenerarMinutaPage />
+                <MinutasIndexPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minutas/compraventa"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
+              <MainLayout>
+                <FormularioCompraventa />
               </MainLayout>
             </ProtectedRoute>
           }

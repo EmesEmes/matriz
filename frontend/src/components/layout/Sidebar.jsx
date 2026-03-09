@@ -1,65 +1,65 @@
-import { Link, useLocation } from 'react-router';
-import { 
-  Home, 
-  FileText, 
-  Users, 
-  UserCircle, 
+import { Link, useLocation } from "react-router";
+import {
+  Home,
+  FileText,
+  Users,
+  UserCircle,
   History,
   FileEdit,
-  LogOut 
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+  LogOut,
+} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
-  const { user, logout, hasLexdataAccess, isAdmin } = useAuth();
+  const { user, logout } = useAuth();
 
   const menuItems = [
     {
-      name: 'Inicio',
-      path: '/',
+      name: "Inicio",
+      path: "/",
       icon: Home,
-      roles: ['admin', 'notaria', 'lexdata']
+      roles: ["admin", "notaria", "lexdata"],
     },
-     {
-      name: 'Comparecientes',
-      path: '/comparecientes',
+    {
+      name: "Comparecientes",
+      path: "/comparecientes",
       icon: UserCircle,
-      roles: ['admin', 'notaria', 'lexdata']
+      roles: ["admin", "notaria", "lexdata"],
     },
     {
-      name: 'Generar Matriz',
-      path: '/matrices/nueva',
+      name: "Generar Matriz",
+      path: "/matrices",
       icon: FileText,
-      roles: ['admin', 'notaria', 'lexdata']
+      roles: ["admin", "notaria", "lexdata"],
     },
     {
-      name: 'Generar Minuta',
-      path: '/minutas/nueva',
+      name: "Generar Minuta",
+      path: "/minutas",
       icon: FileEdit,
-      roles: ['admin', 'lexdata']
+      roles: ["admin", "lexdata"],
     },
     {
-      name: 'Historial',
-      path: '/historial',
+      name: "Historial",
+      path: "/historial",
       icon: History,
-      roles: ['admin', 'notaria', 'lexdata']
+      roles: ["admin", "notaria", "lexdata"],
     },
     {
-      name: 'Gestión de Usuarios',
-      path: '/usuarios',
+      name: "Gestión de Usuarios",
+      path: "/usuarios",
       icon: Users,
-      roles: ['admin']
-    }
+      roles: ["admin"],
+    },
   ];
 
-  const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(user?.rol)
+  const filteredMenuItems = menuItems.filter((item) =>
+    item.roles.includes(user?.rol),
   );
 
   const isActive = (path) => {
-    if (path === '/') {
-      return location.pathname === '/';
+    if (path === "/") {
+      return location.pathname === "/";
     }
     return location.pathname.startsWith(path);
   };
@@ -68,12 +68,8 @@ const Sidebar = () => {
     <div className="w-64 bg-white h-screen shadow-lg flex flex-col fixed left-0 top-0">
       {/* Logo / Header */}
       <div className="p-6 border-b">
-        <h1 className="text-2xl font-bold text-primary-600">
-          MáTriz
-        </h1>
-        <p className="text-xs text-gray-500 mt-1">
-          Sistema Notarial
-        </p>
+        <h1 className="text-2xl font-bold text-primary-600">MáTriz</h1>
+        <p className="text-xs text-gray-500 mt-1">Sistema Notarial</p>
       </div>
 
       {/* User Info */}
@@ -86,9 +82,7 @@ const Sidebar = () => {
             <p className="text-sm font-medium text-gray-900 truncate">
               {user?.nombre}
             </p>
-            <p className="text-xs text-gray-500 capitalize">
-              {user?.rol}
-            </p>
+            <p className="text-xs text-gray-500 capitalize">{user?.rol}</p>
           </div>
         </div>
       </div>
@@ -99,7 +93,7 @@ const Sidebar = () => {
           {filteredMenuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
-            
+
             return (
               <li key={item.path}>
                 <Link
@@ -107,16 +101,15 @@ const Sidebar = () => {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-lg
                     transition-all duration-200
-                    ${active 
-                      ? 'bg-primary-600 text-white shadow-md' 
-                      : 'text-gray-700 hover:bg-gray-100'
+                    ${
+                      active
+                        ? "bg-primary-600 text-white shadow-md"
+                        : "text-gray-700 hover:bg-gray-100"
                     }
                   `}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span className="font-medium text-sm">
-                    {item.name}
-                  </span>
+                  <Icon className="w-5 h-5 shrink-0" />
+                  <span className="font-medium text-sm">{item.name}</span>
                 </Link>
               </li>
             );
@@ -132,9 +125,7 @@ const Sidebar = () => {
                      text-red-600 hover:bg-red-50 transition-colors"
         >
           <LogOut className="w-5 h-5" />
-          <span className="font-medium text-sm">
-            Cerrar Sesión
-          </span>
+          <span className="font-medium text-sm">Cerrar Sesión</span>
         </button>
       </div>
     </div>

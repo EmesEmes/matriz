@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
 
+
 class LawyerData(BaseModel):
     nombre_abogado: str
     genero_abogado: str
@@ -9,9 +10,11 @@ class LawyerData(BaseModel):
     numero_matricula: str
     minuta_texto: str
 
+
 class NotarioData(BaseModel):
     nombre: str
     titulo: str
+
 
 class ConcuerdoData(BaseModel):
     numero_protocolo: str
@@ -20,8 +23,10 @@ class ConcuerdoData(BaseModel):
     document_number: str
     fecha: str
 
-class ParticipanteExtended(BaseModel):
-    """Datos extendidos de participante con opciones especiales"""
+
+class ParticipantePersona(BaseModel):
+    """Datos de una persona natural con opciones especiales"""
+    esEmpresa: bool = False
     cedula: str
     nombres: str
     apellidos: str
@@ -41,8 +46,7 @@ class ParticipanteExtended(BaseModel):
     ocupacion: str
     profesion: Optional[str] = None
     conyuge: Optional[Dict[str, Any]] = None
-    
-    # Opciones especiales (no se guardan en BD)
+    # Opciones especiales
     needsInterpreter: bool = False
     nombreInterprete: Optional[str] = None
     generoInterprete: Optional[str] = None
@@ -56,6 +60,40 @@ class ParticipanteExtended(BaseModel):
     tipoDiscapacidad: Optional[str] = None
     razonExclusionConyugue: Optional[str] = None
 
+
+class ParticipanteEmpresa(BaseModel):
+    """Datos de una empresa con su representante legal"""
+    esEmpresa: bool = True
+    ruc: str
+    razonSocial: str
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    provincia: str
+    canton: str
+    parroquia: str
+    sector: Optional[str] = None
+    callePrincipal: str
+    calleSecundaria: Optional[str] = None
+    numeroCalle: Optional[str] = None
+    # Representante legal
+    repDocumentNumber: str
+    repNames: str
+    repLastNames: str
+    repGenero: str
+    repNationality: str
+    repFechaNacimiento: str
+    repOccupation: str
+    repProfession: Optional[str] = None
+    repPosition: str
+    repProvincia: str
+    repCanton: str
+    repParroquia: str
+    repSector: Optional[str] = None
+    repCallePrincipal: str
+    repCalleSecundaria: Optional[str] = None
+    repNumeroCalle: Optional[str] = None
+
+
 class GenerateMatrizRequest(BaseModel):
     # Datos administrativos
     numero_protocolo: str
@@ -64,21 +102,22 @@ class GenerateMatrizRequest(BaseModel):
     fecha_escritura: str
     notario: NotarioData
     matrizador: str
-    
+
     # Concuerdo (opcional)
     needs_concuerdo: bool = False
     datos_concuerdo: Optional[ConcuerdoData] = None
-    
-    # Participantes con datos extendidos
-    participantes_list: List[ParticipanteExtended]
-    vendedores_list: List[ParticipanteExtended]
-    compradores_list: List[ParticipanteExtended]
-    
+
+    # Participantes — lista genérica que acepta personas y empresas
+    participantes_list: List[Dict[str, Any]]
+    vendedores_list: List[Dict[str, Any]]
+    compradores_list: List[Dict[str, Any]]
+
     # Abogado y minuta
     abogado: LawyerData
-    
+
     # Flags
     is_any_tercera_edad: bool = False
+
 
 class GenerateMatrizResponse(BaseModel):
     message: str

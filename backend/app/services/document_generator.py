@@ -116,6 +116,93 @@ def procesar_compareciente(comp, index):
         'conyuge': comp.get('conyuge')
     }
 
+def procesar_empresa(comp, index):
+    """Procesa datos de una empresa para la plantilla"""
+
+    from datetime import datetime
+
+    # Calcular edad del representante
+    edad_rep = calcular_edad(comp['repFechaNacimiento'])
+
+    # Construir dirección del representante
+    direccion_parts = []
+    if comp.get('repCallePrincipal'):
+        direccion_parts.append(comp['repCallePrincipal'])
+    if comp.get('repNumeroCalle'):
+        direccion_parts.append(f"número {comp['repNumeroCalle']}")
+    if comp.get('repCalleSecundaria'):
+        direccion_parts.append(f"y {comp['repCalleSecundaria']}")
+    if comp.get('repSector'):
+        direccion_parts.append(f"sector {comp['repSector']}")
+    if comp.get('repParroquia'):
+        direccion_parts.append(f"parroquia {comp['repParroquia']}")
+    if comp.get('repCanton'):
+        direccion_parts.append(f"cantón {comp['repCanton']}")
+    if comp.get('repProvincia'):
+        direccion_parts.append(f"provincia de {comp['repProvincia']}")
+    direccion_rep = ", ".join(direccion_parts)
+
+    # Dirección de la empresa
+    empresa_direccion_parts = []
+    if comp.get('callePrincipal'):
+        empresa_direccion_parts.append(comp['callePrincipal'])
+    if comp.get('numeroCalle'):
+        empresa_direccion_parts.append(f"número {comp['numeroCalle']}")
+    if comp.get('calleSecundaria'):
+        empresa_direccion_parts.append(f"y {comp['calleSecundaria']}")
+    if comp.get('sector'):
+        empresa_direccion_parts.append(f"sector {comp['sector']}")
+    if comp.get('parroquia'):
+        empresa_direccion_parts.append(f"parroquia {comp['parroquia']}")
+    if comp.get('canton'):
+        empresa_direccion_parts.append(f"cantón {comp['canton']}")
+    if comp.get('provincia'):
+        empresa_direccion_parts.append(f"provincia de {comp['provincia']}")
+    empresa_direccion = ", ".join(empresa_direccion_parts)
+
+    # Artículo del representante
+    genero_rep = comp.get('repGenero', '').lower()
+    articulo_rep = "el señor" if genero_rep == "masculino" else "la señora"
+
+    # Profesión/ocupación del representante
+    profesion_ocupacion_rep = ""
+    if comp.get('repProfession') and comp.get('repOccupation'):
+        profesion_ocupacion_rep = f"profesión {comp['repProfession']}, ocupación {comp['repOccupation']}"
+    elif comp.get('repOccupation'):
+        profesion_ocupacion_rep = f"ocupación {comp['repOccupation']}"
+    elif comp.get('repProfession'):
+        profesion_ocupacion_rep = f"profesión {comp['repProfession']}"
+
+    return {
+        'numero': index,
+        'esEmpresa': True,
+        # Datos empresa
+        'ruc': comp['ruc'],
+        'rucEnLetras': numero_a_digitos(comp['ruc']),
+        'razonSocial': comp['razonSocial'].upper(),
+        'direccionEmpresa': empresa_direccion,
+        'email': comp.get('email', ''),
+        'telefono': comp.get('telefono', ''),
+        # Representante legal
+        'repArticulo': articulo_rep,
+        'repNombres': comp.get('repNames', ''),
+        'repApellidos': comp.get('repLastNames', ''),
+        'repNombreCompleto': f"{comp.get('repNames', '')} {comp.get('repLastNames', '')}".upper(),
+        'repCargo': comp.get('repPosition', ''),
+        'repNacionalidad': comp.get('repNationality', 'ecuatoriana'),
+        'repCedula': comp.get('repDocumentNumber', ''),
+        'repCedulaEnLetras': numero_a_digitos(comp.get('repDocumentNumber', '')),
+        'repEdad': edad_rep,
+        'repEdadEnLetras': numero_a_letras(edad_rep),
+        'repGenero': genero_rep,
+        'repProfesionOcupacion': profesion_ocupacion_rep,
+        'repDireccion': direccion_rep,
+        'repProvincia': comp.get('repProvincia', ''),
+        'repCanton': comp.get('repCanton', ''),
+        'repParroquia': comp.get('repParroquia', ''),
+    }
+
+
 def generate_matriz_compraventa(data: dict) -> str:
     """
     Genera matriz de compraventa usando docxtpl
@@ -152,25 +239,31 @@ def generate_matriz_compraventa(data: dict) -> str:
     # Procesar vendedores
     vendedores_procesados = []
     for i, vendedor in enumerate(vendedores_dict, start=1):
-        vendedor_proc = procesar_compareciente(vendedor, i)
+        if vendedor.get('esEmpresa'):
+            vendedor_proc = procesar_empresa(vendedor, i)
+        else:
+            vendedor_proc = procesar_compareciente(vendedor, i)
         vendedores_procesados.append(vendedor_proc)
-    
+
     # Procesar compradores (continuar numeración)
     compradores_procesados = []
     start_index = len(vendedores_procesados) + 1
     for i, comprador in enumerate(compradores_dict, start=start_index):
-        comprador_proc = procesar_compareciente(comprador, i)
+        if comprador.get('esEmpresa'):
+            comprador_proc = procesar_empresa(comprador, i)
+        else:
+            comprador_proc = procesar_compareciente(comprador, i)
         compradores_procesados.append(comprador_proc)
-    
+
     # Todos los participantes
     todos_participantes = vendedores_procesados + compradores_procesados
-    
-    # Verificar si hay alguien con necesidades especiales
-    hay_interprete = any(p['needsInterpreter'] for p in todos_participantes)
-    hay_no_vidente = any(p['isNoVidente'] for p in todos_participantes)
-    hay_analfabeta = any(p['isAnalfabeta'] for p in todos_participantes)
-    hay_discapacidad_intelectual = any(p['hasDiscapacidadIntelectual'] for p in todos_participantes)
-    hay_tercera_edad = any(p['esTerceraEdad'] for p in todos_participantes)
+
+    # Verificar si hay alguien con necesidades especiales (solo aplica a personas naturales)
+    hay_interprete = any(p.get('needsInterpreter', False) for p in todos_participantes)
+    hay_no_vidente = any(p.get('isNoVidente', False) for p in todos_participantes)
+    hay_analfabeta = any(p.get('isAnalfabeta', False) for p in todos_participantes)
+    hay_discapacidad_intelectual = any(p.get('hasDiscapacidadIntelectual', False) for p in todos_participantes)
+    hay_tercera_edad = any(p.get('esTerceraEdad', False) for p in todos_participantes)
     
     # Formatear fecha notarial
     fecha_notarial = formatear_fecha_notarial(data.get('fechaActual'))

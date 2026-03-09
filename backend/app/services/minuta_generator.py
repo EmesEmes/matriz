@@ -12,6 +12,93 @@ from bs4 import BeautifulSoup
 import re
 
 
+def procesar_empresa_data(empresa, numero_global):
+    """
+    Procesa los datos de una empresa para la plantilla de minuta.
+    Los campos llegan en camelCase tal como los envía el frontend.
+    """
+    ruc = empresa.get('ruc', '')
+    razon_social = empresa.get('razonSocial', '').upper()
+
+    # Construir dirección de la empresa
+    empresa_parts = []
+    if empresa.get('mainStreet'):
+        empresa_parts.append(empresa['mainStreet'])
+    if empresa.get('numberStreet'):
+        empresa_parts.append(f"número {empresa['numberStreet']}")
+    if empresa.get('secondaryStreet'):
+        empresa_parts.append(f"y {empresa['secondaryStreet']}")
+    if empresa.get('sector'):
+        empresa_parts.append(f"sector {empresa['sector']}")
+    if empresa.get('parroquia'):
+        empresa_parts.append(f"parroquia {empresa['parroquia']}")
+    if empresa.get('canton'):
+        empresa_parts.append(f"cantón {empresa['canton']}")
+    if empresa.get('province'):
+        empresa_parts.append(f"provincia de {empresa['province']}")
+    direccion_empresa = ", ".join(empresa_parts)
+
+    # Construir dirección del representante
+    rep_parts = []
+    if empresa.get('repMainStreet'):
+        rep_parts.append(empresa['repMainStreet'])
+    if empresa.get('repNumberStreet'):
+        rep_parts.append(f"número {empresa['repNumberStreet']}")
+    if empresa.get('repSecondaryStreet'):
+        rep_parts.append(f"y {empresa['repSecondaryStreet']}")
+    if empresa.get('repSector'):
+        rep_parts.append(f"sector {empresa['repSector']}")
+    if empresa.get('repParroquia'):
+        rep_parts.append(f"parroquia {empresa['repParroquia']}")
+    if empresa.get('repCanton'):
+        rep_parts.append(f"cantón {empresa['repCanton']}")
+    if empresa.get('repProvince'):
+        rep_parts.append(f"provincia de {empresa['repProvince']}")
+    direccion_rep = ", ".join(rep_parts)
+
+    # Calcular edad del representante
+    edad_rep = calcular_edad(empresa.get('repBirthDate', ''))
+
+    # Profesión/ocupación representante
+    rep_profesion = empresa.get('repProfession', '')
+    rep_ocupacion = empresa.get('repOccupation', '')
+    if rep_profesion and rep_ocupacion:
+        rep_prof_ocup = f"profesión {rep_profesion}, ocupación {rep_ocupacion}"
+    elif rep_ocupacion:
+        rep_prof_ocup = f"ocupación {rep_ocupacion}"
+    elif rep_profesion:
+        rep_prof_ocup = f"profesión {rep_profesion}"
+    else:
+        rep_prof_ocup = ''
+
+    # Artículo según género del representante
+    genero_rep = empresa.get('repGender', '').lower()
+    articulo_rep = 'el señor' if genero_rep == 'masculino' else 'la señora'
+
+    return {
+        'numero': numero_a_letras(numero_global),
+        'numero_numerico': numero_global,
+        'es_empresa': True,
+        # Empresa
+        'ruc': ruc,
+        'ruc_palabras': numero_a_digitos(ruc),
+        'razon_social': razon_social,
+        'direccion_empresa': direccion_empresa,
+        'email': empresa.get('email', ''),
+        'telefono': empresa.get('phone', ''),
+        # Representante legal
+        'rep_cargo': empresa.get('repPosition', ''),
+        'rep_articulo': articulo_rep,
+        'rep_nombres_completos': f"{empresa.get('repNames', '')} {empresa.get('repLastNames', '')}".strip().upper(),
+        'rep_nacionalidad': empresa.get('repNationality', 'ecuatoriana'),
+        'rep_cedula': empresa.get('repDocumentNumber', ''),
+        'rep_cedula_palabras': numero_a_digitos(empresa.get('repDocumentNumber', '')),
+        'rep_edad': edad_rep,
+        'rep_prof_ocup': rep_prof_ocup,
+        'rep_direccion': direccion_rep,
+    }
+
+
 def agrupar_por_conyuges(personas):
     """
     Agrupa personas por cónyuges y solteros.
@@ -295,58 +382,87 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     # ============================================
     vendedores = data.get('vendedores', [])
     compradores = data.get('compradores', [])
-    
-    # Agrupar por cónyuges
-    grupos_vendedores = agrupar_por_conyuges(vendedores)
-    grupos_compradores = agrupar_por_conyuges(compradores)
-    
-    # Procesar grupos de vendedores
+
+    def separar_personas_empresas(lista):
+        """Separa personas naturales de empresas"""
+        personas = [p for p in lista if not p.get('esEmpresa')]
+        empresas = [e for e in lista if e.get('esEmpresa')]
+        return personas, empresas
+
+    vendedores_personas, vendedores_empresas = separar_personas_empresas(vendedores)
+    compradores_personas, compradores_empresas = separar_personas_empresas(compradores)
+
+    # Agrupar personas por cónyuges
+    grupos_vendedores = agrupar_por_conyuges(vendedores_personas)
+    grupos_compradores = agrupar_por_conyuges(compradores_personas)
+
+    # Procesar grupos de vendedores (personas naturales)
     contador_global = 1
     grupos_vendedores_procesados = []
-    
+
     for grupo in grupos_vendedores:
         grupo_procesado = {
             'tipo': grupo['tipo'],
+            'es_empresa': False,
             'direccion': grupo['direccion'],
             'personas': []
         }
-        
         for persona in grupo['personas']:
             persona_data = procesar_persona_data(persona, contador_global)
             grupo_procesado['personas'].append(persona_data)
             contador_global += 1
-        
         grupos_vendedores_procesados.append(grupo_procesado)
-    
-    # Procesar grupos de compradores
+
+    # Agregar empresas vendedoras como grupos independientes
+    for empresa in vendedores_empresas:
+        empresa_data = procesar_empresa_data(empresa, contador_global)
+        grupos_vendedores_procesados.append({
+            'tipo': 'empresa',
+            'es_empresa': True,
+            'direccion': empresa_data['direccion_empresa'],
+            'personas': [empresa_data]
+        })
+        contador_global += 1
+
+    # Procesar grupos de compradores (personas naturales)
     grupos_compradores_procesados = []
-    
+
     for grupo in grupos_compradores:
         grupo_procesado = {
             'tipo': grupo['tipo'],
+            'es_empresa': False,
             'direccion': grupo['direccion'],
             'personas': []
         }
-        
         for persona in grupo['personas']:
             persona_data = procesar_persona_data(persona, contador_global)
             grupo_procesado['personas'].append(persona_data)
             contador_global += 1
-        
         grupos_compradores_procesados.append(grupo_procesado)
-    
+
+    # Agregar empresas compradoras como grupos independientes
+    for empresa in compradores_empresas:
+        empresa_data = procesar_empresa_data(empresa, contador_global)
+        grupos_compradores_procesados.append({
+            'tipo': 'empresa',
+            'es_empresa': True,
+            'direccion': empresa_data['direccion_empresa'],
+            'personas': [empresa_data]
+        })
+        contador_global += 1
+
     context['grupos_vendedores'] = grupos_vendedores_procesados
     context['grupos_compradores'] = grupos_compradores_procesados
-    
-    # Mantener listas planas para compatibilidad con plantilla antigua (si es necesario)
+
+    # Listas planas para compatibilidad
     vendedores_procesados = []
     for grupo in grupos_vendedores_procesados:
         vendedores_procesados.extend(grupo['personas'])
-    
+
     compradores_procesados = []
     for grupo in grupos_compradores_procesados:
         compradores_procesados.extend(grupo['personas'])
-    
+
     context['vendedores'] = vendedores_procesados
     context['compradores'] = compradores_procesados
     context['num_vendedores'] = len(vendedores_procesados)
