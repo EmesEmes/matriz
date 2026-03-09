@@ -1,4 +1,8 @@
 import { useState } from "react";
+import {
+  BuscadorPlantillas,
+  ModalGuardarPlantilla,
+} from "../../../components/plantillas";
 import { Button } from "../../../components/shared";
 import {
   DatosAdministrativos,
@@ -18,7 +22,21 @@ const FormularioCompraventa = () => {
   const [datosAbogado, setDatosAbogado] = useState(null);
   const [minuta, setMinuta] = useState("");
   const [loading, setLoading] = useState(false);
+  const [modalPlantillaAbierto, setModalPlantillaAbierto] = useState(false);
+  const [plantillaKey, setPlantillaKey] = useState(0);
   const toast = useToast();
+
+  // ============================================
+  // FUNCIÓN - CARGAR PLANTILLA
+  // ============================================
+  const handleCargarPlantilla = (contenido) => {
+    if (contenido.vendedores !== undefined) setVendedores(contenido.vendedores);
+    if (contenido.compradores !== undefined)
+      setCompradores(contenido.compradores);
+    if (contenido.datosAbogado !== undefined)
+      setDatosAbogado(contenido.datosAbogado);
+    setPlantillaKey((k) => k + 1);
+  };
 
   const handleAgregarVendedor = () => {
     setVendedores([...vendedores, null]);
@@ -317,12 +335,29 @@ const FormularioCompraventa = () => {
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">
-          Generar Matriz de Compraventa
-        </h1>
-        <p className="text-gray-600 mt-1">
-          Complete todos los datos para generar la matriz notarial
-        </p>
+        <div className="mb-4">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Generar Matriz de Compraventa
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Complete todos los datos para generar la matriz notarial
+          </p>
+        </div>
+        {/* BUSCADOR DE PLANTILLAS */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <p className="text-sm font-medium text-amber-800 mb-2">
+            Cargar desde plantilla
+          </p>
+          <BuscadorPlantillas
+            tipoDocumento="matriz"
+            tipoContrato="compraventa"
+            onCargar={handleCargarPlantilla}
+          />
+          <p className="text-xs text-amber-600 mt-2">
+            Busca por nombre de proyecto o vendedor. Al seleccionar una
+            plantilla se cargarán todos los datos del formulario.
+          </p>
+        </div>
       </div>
 
       <div className="space-y-6">
@@ -347,10 +382,12 @@ const FormularioCompraventa = () => {
             </div>
           )}
 
-          {vendedores.map((_, index) => (
+          {vendedores.map((v, index) => (
             <div key={index} className="relative">
               <ComparecienteInline
+                key={`vendedor-${plantillaKey}-${index}`}
                 title={`Vendedor ${index + 1}`}
+                initialData={v || null}
                 onComparecienteReady={(data) =>
                   handleVendedorReady(index, data)
                 }
@@ -389,10 +426,12 @@ const FormularioCompraventa = () => {
             </div>
           )}
 
-          {compradores.map((_, index) => (
+          {compradores.map((c, index) => (
             <div key={index} className="relative">
               <ComparecienteInline
+                key={`comprador-${plantillaKey}-${index}`}
                 title={`Comprador ${index + 1}`}
+                initialData={c || null}
                 onComparecienteReady={(data) =>
                   handleCompradorReady(index, data)
                 }
@@ -418,11 +457,17 @@ const FormularioCompraventa = () => {
         </div>
 
         {/* DATOS DEL ABOGADO */}
-        <DatosAbogado onChange={setDatosAbogado} />
+        <DatosAbogado onChange={setDatosAbogado} initialData={datosAbogado} />
 
-        {/* BOTÓN GENERAR */}
+        {/* BOTONES FINALES */}
         <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 shadow-lg">
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-between items-center">
+            <button
+              onClick={() => setModalPlantillaAbierto(true)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              Guardar como plantilla
+            </button>
             <Button
               variant="primary"
               size="lg"
@@ -442,6 +487,35 @@ const FormularioCompraventa = () => {
           </div>
         </div>
       </div>
+
+      {/* MODAL GUARDAR PLANTILLA */}
+      <ModalGuardarPlantilla
+        abierto={modalPlantillaAbierto}
+        onCerrar={() => setModalPlantillaAbierto(false)}
+        onGuardado={() => {
+          setModalPlantillaAbierto(false);
+          toast.success("Plantilla guardada correctamente");
+        }}
+        tipoDocumento="matriz"
+        tipoContrato="compraventa"
+        nombreVendedor={(() => {
+          const v = vendedores[0];
+          if (!v) return "";
+          if (v.esEmpresa) return v.razonSocial || "";
+          return (
+            [v.nombres, v.apellidos].filter(Boolean).join(" ") ||
+            v.nombreCompleto ||
+            ""
+          );
+        })()}
+        contenido={{
+          vendedores,
+          compradores,
+          datosAdministrativos,
+          datosAbogado,
+          minuta,
+        }}
+      />
     </div>
   );
 };

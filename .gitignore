@@ -36,7 +36,6 @@ frontend/dist/
 
 # Documentos generados
 generated_documents/
-*.docx
 *.pdf
 
 # Base de datos

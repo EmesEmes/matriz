@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.models import party, system_user, document, minute, company  # noqa: F401
+from app.models import party, system_user, document, minute, company, template  # noqa: F401
 from app.database import engine, Base
-from app.routes import auth, users, parties, documents, minutes, companies
+from app.routes import auth, users, parties, documents, minutes, companies, templates
 
 # Crear tablas
 Base.metadata.create_all(bind=engine)
@@ -29,6 +29,7 @@ app.include_router(parties.router)
 app.include_router(documents.router)
 app.include_router(minutes.router, prefix="/api")
 app.include_router(companies.router)
+app.include_router(templates.router)
 
 @app.get("/")
 def root():

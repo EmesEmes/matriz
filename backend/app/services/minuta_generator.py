@@ -361,22 +361,36 @@ def limpiar_html(html_content):
     return text.strip()
 
 
-def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
+
+from pathlib import Path
+from datetime import datetime
+
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+OUTPUTS_DIR = Path(__file__).parent.parent.parent / "generated_documents"
+OUTPUTS_DIR.mkdir(exist_ok=True)
+
+
+def generate_minuta_compraventa(data: dict, current_user=None) -> str:
     """
-    Genera una minuta en formato .docx basándose en los datos proporcionados.
-    
+    Genera una minuta de compraventa, la guarda en disco y retorna el path.
+
     Args:
         data: Diccionario con todos los datos del formulario
-        template_path: Ruta al archivo de plantilla .docx
-        
+        current_user: Usuario actual (opcional, para nombre de archivo)
+
     Returns:
-        BytesIO con el documento generado
+        str con el path del archivo generado
     """
-    doc = DocxTemplate(template_path)
-    
+    template_path = TEMPLATES_DIR / "minuta_compraventa.docx"
+
+    if not template_path.exists():
+        raise FileNotFoundError(f"Plantilla no encontrada en: {template_path}")
+
+    doc = DocxTemplate(str(template_path))
+
     # Inicializar contexto
     context = {}
-    
+
     # ============================================
     # COMPARECIENTES - VENDEDORES Y COMPRADORES
     # ============================================
@@ -392,11 +406,9 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     vendedores_personas, vendedores_empresas = separar_personas_empresas(vendedores)
     compradores_personas, compradores_empresas = separar_personas_empresas(compradores)
 
-    # Agrupar personas por cónyuges
     grupos_vendedores = agrupar_por_conyuges(vendedores_personas)
     grupos_compradores = agrupar_por_conyuges(compradores_personas)
 
-    # Procesar grupos de vendedores (personas naturales)
     contador_global = 1
     grupos_vendedores_procesados = []
 
@@ -413,7 +425,6 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
             contador_global += 1
         grupos_vendedores_procesados.append(grupo_procesado)
 
-    # Agregar empresas vendedoras como grupos independientes
     for empresa in vendedores_empresas:
         empresa_data = procesar_empresa_data(empresa, contador_global)
         grupos_vendedores_procesados.append({
@@ -424,7 +435,6 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
         })
         contador_global += 1
 
-    # Procesar grupos de compradores (personas naturales)
     grupos_compradores_procesados = []
 
     for grupo in grupos_compradores:
@@ -440,7 +450,6 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
             contador_global += 1
         grupos_compradores_procesados.append(grupo_procesado)
 
-    # Agregar empresas compradoras como grupos independientes
     for empresa in compradores_empresas:
         empresa_data = procesar_empresa_data(empresa, contador_global)
         grupos_compradores_procesados.append({
@@ -454,7 +463,6 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     context['grupos_vendedores'] = grupos_vendedores_procesados
     context['grupos_compradores'] = grupos_compradores_procesados
 
-    # Listas planas para compatibilidad
     vendedores_procesados = []
     for grupo in grupos_vendedores_procesados:
         vendedores_procesados.extend(grupo['personas'])
@@ -466,29 +474,29 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     context['vendedores'] = vendedores_procesados
     context['compradores'] = compradores_procesados
     context['num_vendedores'] = len(vendedores_procesados)
-    
+
     # ============================================
     # TIPO DE PROPIEDAD
     # ============================================
     context['es_horizontal'] = data.get('tipoPropiedad') == 'horizontal'
     context['es_comun'] = data.get('tipoPropiedad') == 'comun'
     context['nombre_conjunto'] = data.get('nombreConjunto', '')
-    
+
     # ============================================
     # PREDIOS (solo para horizontal)
     # ============================================
     if context['es_horizontal']:
         predios = data.get('predios', [])
         predios_procesados = []
-        
+
         for predio in predios:
             inmuebles_procesados = []
-            
+
             for inmueble in predio.get('inmuebles', []):
                 area_cubierta = inmueble.get('areaCubierta', '')
                 area_descubierta = inmueble.get('areaDescubierta', '')
                 alicuota_parcial = inmueble.get('alicuotaParcial', '')
-                
+
                 inmueble_data = {
                     'tipo': inmueble.get('tipo', ''),
                     'tipo_otro': inmueble.get('tipoOtro', ''),
@@ -501,13 +509,12 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
                     'alicuota_parcial_palabras': numero_a_letras(float(alicuota_parcial)) if alicuota_parcial else '',
                 }
                 inmuebles_procesados.append(inmueble_data)
-            
-            # Alícuota total
+
             if predio.get('usarAlicuotaManual'):
                 alicuota_total = predio.get('alicuotaTotalManual', 0)
             else:
                 alicuota_total = predio.get('alicuotaTotal', 0)
-            
+
             predio_data = {
                 'es_compuesto': predio.get('esCompuesto', False),
                 'tipo': predio.get('tipo', ''),
@@ -519,9 +526,9 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
                 'alicuota_total_palabras': numero_a_letras(float(alicuota_total)) if alicuota_total else '',
             }
             predios_procesados.append(predio_data)
-        
+
         context['predios'] = predios_procesados
-    
+
     # ============================================
     # UBICACIÓN
     # ============================================
@@ -533,7 +540,7 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
         'canton': ubicacion.get('canton', ''),
         'provincia': ubicacion.get('provincia', ''),
     }
-    
+
     # ============================================
     # HISTORIA DE DOMINIO
     # ============================================
@@ -543,7 +550,7 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     else:
         context['historia_manual'] = False
         historia = data.get('historiaFormulario', {})
-        
+
         context['historia'] = {
             'titulo': historia.get('titulo', ''),
             'titulo_otro': historia.get('tituloOtro', ''),
@@ -571,10 +578,9 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
             'causante_canton_inscripcion': historia.get('causanteCantonInscripcion', ''),
             'causante_mismo_canton': historia.get('causanteCantonNotaria', '').lower() == historia.get('causanteCantonInscripcion', '').lower() if historia.get('causanteCantonNotaria') and historia.get('causanteCantonInscripcion') else False,
         }
-        
-        # Procesar aclaratorias
+
         context['historia']['aclaratorias'] = procesar_aclaratorias_historia(historia.get('aclaratorias', []))
-    
+
     # ============================================
     # DECLARATORIA (solo horizontal)
     # ============================================
@@ -585,7 +591,7 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
         else:
             context['declaratoria_manual'] = False
             declaratoria = data.get('declaratoriaFormulario', {})
-            
+
             context['declaratoria'] = {
                 'fecha_otorgamiento': formatear_fecha_notarial(declaratoria.get('fechaOtorgamiento', '')) if declaratoria.get('fechaOtorgamiento') else '',
                 'numero_notaria': declaratoria.get('numeroNotaria', ''),
@@ -596,26 +602,25 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
                 'canton_inscripcion': declaratoria.get('cantonInscripcion', ''),
                 'mismo_canton': declaratoria.get('cantonNotaria', '').lower() == declaratoria.get('cantonInscripcion', '').lower() if declaratoria.get('cantonNotaria') and declaratoria.get('cantonInscripcion') else False,
             }
-            
-            # Procesar aclaratorias
+
             context['declaratoria']['aclaratorias'] = procesar_aclaratorias_declaratoria(declaratoria.get('aclaratorias', []))
-    
+
     # ============================================
     # LINDEROS GENERALES
     # ============================================
     linderos_generales = data.get('linderosGenerales', {})
     context['linderos'] = procesar_linderos(linderos_generales, incluir_arriba_abajo=False)
-    
+
     # ============================================
     # LINDEROS ESPECÍFICOS (solo horizontal)
     # ============================================
     context['tiene_linderos_especificos'] = False
-    
+
     if context['es_horizontal'] and data.get('tieneLInderosEspecificos'):
         context['tiene_linderos_especificos'] = True
         linderos_especificos = data.get('linderosEspecificos', {})
         context['linderos_especificos'] = procesar_linderos(linderos_especificos, incluir_arriba_abajo=True)
-    
+
     # ============================================
     # OBJETO DEL CONTRATO
     # ============================================
@@ -624,7 +629,7 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
         context['sujeto_texto'] = limpiar_html(data.get('sujetoManual', ''))
     else:
         context['sujeto_manual'] = False
-    
+
     # ============================================
     # PRECIO Y FORMA DE PAGO
     # ============================================
@@ -634,17 +639,17 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
     else:
         context['precio_manual'] = False
         precio_total = data.get('precioTotal', 0)
-        
+
         context['precio'] = {
             'total': precio_total,
             'total_palabras': numero_a_letras(float(precio_total)).upper() if precio_total else '',
             'partes': []
         }
-        
+
         partes_pago = data.get('partesPago', [])
         for parte in partes_pago:
             monto = parte.get('monto', 0)
-            
+
             parte_data = {
                 'letra': parte.get('letra', ''),
                 'monto': monto,
@@ -658,19 +663,18 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
                 'nombre_banco': parte.get('nombreBanco', ''),
                 'cuenta_destino': parte.get('cuentaDestino', ''),
             }
-            
+
             if parte_data['es_cuotas']:
                 numero_cuotas = parte.get('numeroCuotas', 0)
                 valor_cuota = parte.get('valorCuota', 0)
                 periodicidad = parte.get('periodicidad', '')
-                
+
                 parte_data['numero_cuotas'] = numero_cuotas
                 parte_data['numero_cuotas_palabras'] = numero_a_letras(int(numero_cuotas)) if numero_cuotas else ''
                 parte_data['valor_cuota'] = valor_cuota
                 parte_data['valor_cuota_palabras'] = numero_a_letras(float(valor_cuota)) if valor_cuota else ''
                 parte_data['periodicidad'] = periodicidad if periodicidad != 'otro' else parte.get('periodicidadOtra', '')
-            
-            # NUEVO: Detalle de transferencia/depósito
+
             if parte.get('tieneDetalle'):
                 detalle = parte.get('detalle', {})
                 parte_data['tiene_detalle'] = True
@@ -684,15 +688,15 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
                 }
             else:
                 parte_data['tiene_detalle'] = False
-            
+
             context['precio']['partes'].append(parte_data)
-    
+
     # ============================================
     # ADMINISTRADOR (solo horizontal)
     # ============================================
     if context['es_horizontal']:
         context['hay_administrador'] = data.get('hayAdministrador', False)
-    
+
     # ============================================
     # ABOGADO
     # ============================================
@@ -703,15 +707,17 @@ def generate_minuta_compraventa(data: dict, template_path: str) -> BytesIO:
         'tipo_matricula': abogado.get('tipoMatricula', 'cj'),
         'provincia': abogado.get('provincia', ''),
     }
-    
+
     # ============================================
-    # RENDERIZAR DOCUMENTO
+    # RENDERIZAR Y GUARDAR EN DISCO
     # ============================================
     doc.render(context)
-    
-    # Guardar en BytesIO
-    file_stream = BytesIO()
-    doc.save(file_stream)
-    file_stream.seek(0)
-    
-    return file_stream
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    user_id = current_user.id if current_user else "unknown"
+    filename = f"minuta_compraventa_{user_id}_{timestamp}.docx"
+    output_path = OUTPUTS_DIR / filename
+
+    doc.save(str(output_path))
+
+    return str(output_path)

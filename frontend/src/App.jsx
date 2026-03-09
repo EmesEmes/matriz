@@ -11,6 +11,7 @@ import MatricesIndexPage from "./pages/matrices/MatricesIndexPage";
 import FormularioMatrizCompraventa from "./pages/matrices/compraventa/FormularioCompraventa";
 import MinutasIndexPage from "./pages/minutas/MinutasIndexPage";
 import FormularioCompraventa from "./pages/minutas/compraventa/FormularioCompraventa";
+import FormularioPromesa from "./pages/minutas/promesa/FormularioPromesa";
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -117,6 +118,16 @@ function App() {
             <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
               <MainLayout>
                 <FormularioCompraventa />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minutas/promesa"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
+              <MainLayout>
+                <FormularioPromesa />
               </MainLayout>
             </ProtectedRoute>
           }

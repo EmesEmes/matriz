@@ -18,6 +18,7 @@ const API_CONFIG = {
     // Documents
     GENERATE_MATRIZ: "/api/documents/generate-matriz",
     GENERATE_MINUTA: "/api/minutes/generate-minuta",
+    GENERATE_PROMESA: "/api/minutes/generate-promesa",
     DOWNLOAD_DOCUMENT: "/api/documents/download",
   },
 };

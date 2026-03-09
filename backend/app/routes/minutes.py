@@ -10,6 +10,7 @@ from app.middleware.auth import get_current_user  # Cambio aquí
 from app.models.system_user import SystemUser
 from app.models.minute import Minute, MinuteType
 from app.services.minuta_generator import generate_minuta_compraventa
+from app.services.promesa_minuta_generator import generate_promesa_minuta_compraventa
 
 router = APIRouter(prefix="/minutes", tags=["minutes"])
 
@@ -130,3 +131,47 @@ async def download_minute(
         filename=f"minuta_{minute.id}.docx",
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
+@router.post("/generate-promesa")
+async def generate_promesa(
+    data: Dict[Any, Any],
+    db: Session = Depends(get_db),
+    current_user: SystemUser = Depends(get_current_user)
+):
+    """
+    Generar minuta de promesa de compraventa
+    """
+    try:
+        import json
+        print("DEBUG PROMESA - Datos recibidos:", json.dumps(data, indent=2, ensure_ascii=False))
+
+        output_path = generate_promesa_minuta_compraventa(data, current_user)
+
+        if not output_path or not os.path.exists(output_path):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al generar el documento"
+            )
+
+        new_minute = Minute(
+            minute_type=MinuteType.COMPRAVENTA_INMUEBLE,
+            contract_data=json.dumps(data, ensure_ascii=False),
+            file_path=output_path,
+            created_by=current_user.id
+        )
+        db.add(new_minute)
+        db.commit()
+        db.refresh(new_minute)
+
+        return FileResponse(
+            path=output_path,
+            filename=f"promesa_compraventa_{new_minute.id}.docx",
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    except Exception as e:
+        print(f"ERROR al generar promesa: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al generar promesa: {str(e)}"
+        )

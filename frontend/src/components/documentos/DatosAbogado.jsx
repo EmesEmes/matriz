@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
-import { Card, FormField } from '../shared';
+import { useState, useEffect } from "react";
+import { Card, FormField } from "../shared";
 
-const DatosAbogado = ({ onChange }) => {
-  const [formData, setFormData] = useState({
-    nombreAbogado: '',
-    generoAbogado: '',
-    tipoMatricula: 'cj',
-    provinciaAbogado: '',
-    numeroMatricula: ''
-  });
+const DatosAbogado = ({ onChange, initialData = null }) => {
+  const [formData, setFormData] = useState(() => ({
+    nombreAbogado: initialData?.nombreAbogado || "",
+    generoAbogado: initialData?.generoAbogado || "",
+    tipoMatricula: initialData?.tipoMatricula || "cj",
+    provinciaAbogado: initialData?.provinciaAbogado || "",
+    numeroMatricula: initialData?.numeroMatricula || "",
+  }));
 
   const [errors, setErrors] = useState({});
 
@@ -20,32 +20,36 @@ const DatosAbogado = ({ onChange }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     let newValue = value;
-    if (name === 'nombreAbogado') {
+    if (name === "nombreAbogado") {
       newValue = value.toUpperCase();
     }
-    
-    setFormData(prev => {
+
+    setFormData((prev) => {
       const updated = { ...prev, [name]: newValue };
-      
+
       // Limpiar provincia si cambió a 'cj'
-      if (name === 'tipoMatricula' && newValue === 'cj') {
-        updated.provinciaAbogado = '';
+      if (name === "tipoMatricula" && newValue === "cj") {
+        updated.provinciaAbogado = "";
       }
-      
+
       return updated;
     });
 
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   return (
     <Card title="Datos del Abogado Patrocinador">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField label="Nombre del Abogado" required error={errors.nombreAbogado}>
+        <FormField
+          label="Nombre del Abogado"
+          required
+          error={errors.nombreAbogado}
+        >
           <input
             type="text"
             name="nombreAbogado"
@@ -81,8 +85,12 @@ const DatosAbogado = ({ onChange }) => {
           </select>
         </FormField>
 
-        {formData.tipoMatricula === 'colegio' && (
-          <FormField label="Provincia del Colegio" required error={errors.provinciaAbogado}>
+        {formData.tipoMatricula === "colegio" && (
+          <FormField
+            label="Provincia del Colegio"
+            required
+            error={errors.provinciaAbogado}
+          >
             <select
               name="provinciaAbogado"
               value={formData.provinciaAbogado}
@@ -110,7 +118,9 @@ const DatosAbogado = ({ onChange }) => {
               <option value="Pastaza">Pastaza</option>
               <option value="Pichincha">Pichincha</option>
               <option value="Santa Elena">Santa Elena</option>
-              <option value="Santo Domingo">Santo Domingo de los Tsáchilas</option>
+              <option value="Santo Domingo">
+                Santo Domingo de los Tsáchilas
+              </option>
               <option value="Sucumbíos">Sucumbíos</option>
               <option value="Tungurahua">Tungurahua</option>
               <option value="Zamora Chinchipe">Zamora Chinchipe</option>
@@ -118,7 +128,11 @@ const DatosAbogado = ({ onChange }) => {
           </FormField>
         )}
 
-        <FormField label="Número de Matrícula" required error={errors.numeroMatricula}>
+        <FormField
+          label="Número de Matrícula"
+          required
+          error={errors.numeroMatricula}
+        >
           <input
             type="text"
             name="numeroMatricula"

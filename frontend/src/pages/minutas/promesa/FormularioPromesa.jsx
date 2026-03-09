@@ -10,35 +10,27 @@ import { useToast } from "../../../hooks/useToast";
 import { apiFetch } from "../../../config/api";
 import API_CONFIG from "../../../config/api";
 
-const FormularioCompraventa = () => {
+const FormularioPromesa = () => {
   const toast = useToast();
 
-  // ============================================
-  // ESTADOS PRINCIPALES
-  // ============================================
   const [loading, setLoading] = useState(false);
   const [modalPlantillaAbierto, setModalPlantillaAbierto] = useState(false);
   const [plantillaKey, setPlantillaKey] = useState(0);
   const [vendedores, setVendedores] = useState([]);
   const [compradores, setCompradores] = useState([]);
 
-  // ============================================
   // ANTECEDENTES
-  // ============================================
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [nombreConjunto, setNombreConjunto] = useState("");
   const [predios, setPredios] = useState([]);
 
-  // ============================================
   // UBICACIÓN (CONSTRUIDO EN)
-  // ============================================
   const [ubicacion, setUbicacion] = useState({
     lote: "",
     numero: "",
     parroquia: "",
     canton: "",
     provincia: "",
-    // Para propiedad común
     tipoBienComun: "",
     tipoBienComunOtro: "",
     superficieBienComun: "",
@@ -46,10 +38,7 @@ const FormularioCompraventa = () => {
     descripcionBienComun: "",
   });
 
-  // ============================================
   // HISTORIA DE DOMINIO
-  // ============================================
-  const [modoHistoria, setModoHistoria] = useState("formulario");
   const [historiaManual, setHistoriaManual] = useState("");
   const [historiaFormulario, setHistoriaFormulario] = useState({
     titulo: "",
@@ -62,7 +51,6 @@ const FormularioCompraventa = () => {
     notario: "",
     fechaInscripcion: "",
     cantonInscripcion: "",
-    // Datos del causante (solo si es sucesión)
     nombreCausante: "",
     causanteAdquiridoDe: "",
     causanteTitulo: "",
@@ -73,14 +61,11 @@ const FormularioCompraventa = () => {
     causanteNotario: "",
     causanteFechaInscripcion: "",
     causanteCantonInscripcion: "",
-    // NUEVO: Aclaratorias
     aclaratorias: [],
   });
 
-  // ============================================
-  // DECLARATORIA (SOLO HORIZONTAL)
-  // ============================================
-  const [modoDeclaratoria, setModoDeclaratoria] = useState("formulario");
+  // DECLARATORIA
+  const [hayDeclaratoria, setHayDeclaratoria] = useState(null);
   const [declaratoriaManual, setDeclaratoriaManual] = useState("");
   const [declaratoriaFormulario, setDeclaratoriaFormulario] = useState({
     fechaOtorgamiento: "",
@@ -89,13 +74,10 @@ const FormularioCompraventa = () => {
     notario: "",
     fechaInscripcion: "",
     cantonInscripcion: "",
-    // NUEVO: Aclaratorias
     aclaratorias: [],
   });
 
-  // ============================================
-  // LINDEROS GENERALES (NUEVO: Arrays para múltiples linderos)
-  // ============================================
+  // LINDEROS
   const [linderosGenerales, setLinderosGenerales] = useState({
     norte: [{ metros: "", colindancia: "" }],
     sur: [{ metros: "", colindancia: "" }],
@@ -103,10 +85,6 @@ const FormularioCompraventa = () => {
     oeste: [{ metros: "", colindancia: "" }],
     superficie: "",
   });
-
-  // ============================================
-  // LINDEROS ESPECIFICOS (NUEVO: Con arriba/abajo)
-  // ============================================
   const [tieneLInderosEspecificos, setTieneLInderosEspecificos] =
     useState(false);
   const [linderosEspecificos, setLinderosEspecificos] = useState({
@@ -119,15 +97,7 @@ const FormularioCompraventa = () => {
     superficie: "",
   });
 
-  // ============================================
-  // OBJETO DEL CONTRATO
-  // ============================================
-  const [modoSujeto, setModoSujeto] = useState("auto");
-  const [sujetoManual, setSujetoManual] = useState("");
-
-  // ============================================
-  // PRECIO Y FORMA DE PAGO
-  // ============================================
+  // PRECIO
   const [precioTotal, setPrecioTotal] = useState("");
   const [modoPrecio, setModoPrecio] = useState("formulario");
   const [precioManual, setPrecioManual] = useState("");
@@ -148,7 +118,6 @@ const FormularioCompraventa = () => {
       valorCuota: 0,
       periodicidad: "",
       periodicidadOtra: "",
-      // NUEVO: Detalle de transferencia/depósito
       tieneDetalle: false,
       detalle: {
         bancoOrigen: "",
@@ -161,15 +130,39 @@ const FormularioCompraventa = () => {
     },
   ]);
 
-  // ============================================
-  // ADMINISTRADOR Y ABOGADO
-  // ============================================
-  const [hayAdministrador, setHayAdministrador] = useState(false);
+  // PLAZO
+  const [plazo, setPlazo] = useState({
+    esFechaFija: true,
+    fechaFija: "",
+    anios: "",
+    meses: "",
+    dias: "",
+    conProrroga: false,
+    fechaProrroga: "",
+  });
+
+  // CLÁUSULA PENAL
+  const [clausulaPenal, setClausulaPenal] = useState({
+    tipoPenal: "monto_fijo",
+    montoFijo: "",
+    porcentaje: "",
+  });
+
+  // CONDICIÓN RESOLUTORIA
+  const [hayCondicionResolutoria, setHayCondicionResolutoria] = useState(null);
+
+  // PROPIEDAD INTELECTUAL
+  const [propiedadIntelectual, setPropiedadIntelectual] = useState({
+    nombreAbogado: "",
+    generoAbogado: "femenino",
+  });
+
+  // ABOGADO
   const [abogado, setAbogado] = useState({
     nombre: "",
-    numeroMatricula: "",
     tipoMatricula: "cj",
     provincia: "",
+    numeroMatricula: "",
   });
 
   // ============================================
@@ -191,7 +184,6 @@ const FormularioCompraventa = () => {
     "Secadero",
     "Otro",
   ];
-
   const tiposInmuebles = [
     "Planta",
     "Planta Baja",
@@ -200,10 +192,7 @@ const FormularioCompraventa = () => {
   ];
 
   // ============================================
-  // FUNCIONES - COMPARECIENTES
-  // ============================================
-  // ============================================
-  // FUNCIÓN - CARGAR PLANTILLA
+  // CARGAR PLANTILLA
   // ============================================
   const handleCargarPlantilla = (contenido) => {
     if (contenido.vendedores !== undefined) setVendedores(contenido.vendedores);
@@ -215,14 +204,12 @@ const FormularioCompraventa = () => {
       setNombreConjunto(contenido.nombreConjunto);
     if (contenido.predios !== undefined) setPredios(contenido.predios);
     if (contenido.ubicacion !== undefined) setUbicacion(contenido.ubicacion);
-    if (contenido.modoHistoria !== undefined)
-      setModoHistoria(contenido.modoHistoria);
     if (contenido.historiaManual !== undefined)
       setHistoriaManual(contenido.historiaManual);
     if (contenido.historiaFormulario !== undefined)
       setHistoriaFormulario(contenido.historiaFormulario);
-    if (contenido.modoDeclaratoria !== undefined)
-      setModoDeclaratoria(contenido.modoDeclaratoria);
+    if (contenido.hayDeclaratoria !== undefined)
+      setHayDeclaratoria(contenido.hayDeclaratoria);
     if (contenido.declaratoriaManual !== undefined)
       setDeclaratoriaManual(contenido.declaratoriaManual);
     if (contenido.declaratoriaFormulario !== undefined)
@@ -233,41 +220,45 @@ const FormularioCompraventa = () => {
       setTieneLInderosEspecificos(contenido.tieneLInderosEspecificos);
     if (contenido.linderosEspecificos !== undefined)
       setLinderosEspecificos(contenido.linderosEspecificos);
-    if (contenido.modoSujeto !== undefined) setModoSujeto(contenido.modoSujeto);
-    if (contenido.sujetoManual !== undefined)
-      setSujetoManual(contenido.sujetoManual);
     if (contenido.precioTotal !== undefined)
       setPrecioTotal(contenido.precioTotal);
     if (contenido.modoPrecio !== undefined) setModoPrecio(contenido.modoPrecio);
     if (contenido.precioManual !== undefined)
       setPrecioManual(contenido.precioManual);
     if (contenido.partesPago !== undefined) setPartesPago(contenido.partesPago);
-    if (contenido.hayAdministrador !== undefined)
-      setHayAdministrador(contenido.hayAdministrador);
+    if (contenido.plazo !== undefined) setPlazo(contenido.plazo);
+    if (contenido.clausulaPenal !== undefined)
+      setClausulaPenal(contenido.clausulaPenal);
+    if (contenido.hayCondicionResolutoria !== undefined)
+      setHayCondicionResolutoria(contenido.hayCondicionResolutoria);
+    if (contenido.propiedadIntelectual !== undefined)
+      setPropiedadIntelectual(contenido.propiedadIntelectual);
     if (contenido.abogado !== undefined) setAbogado(contenido.abogado);
     setPlantillaKey((k) => k + 1);
   };
 
+  // ============================================
+  // COMPARECIENTES
+  // ============================================
   const handleAgregarVendedor = () => setVendedores([...vendedores, null]);
   const handleVendedorReady = (index, data) => {
-    const newVendedores = [...vendedores];
-    newVendedores[index] = data;
-    setVendedores(newVendedores);
+    const n = [...vendedores];
+    n[index] = data;
+    setVendedores(n);
   };
   const handleEliminarVendedor = (index) =>
     setVendedores(vendedores.filter((_, i) => i !== index));
-
   const handleAgregarComprador = () => setCompradores([...compradores, null]);
   const handleCompradorReady = (index, data) => {
-    const newCompradores = [...compradores];
-    newCompradores[index] = data;
-    setCompradores(newCompradores);
+    const n = [...compradores];
+    n[index] = data;
+    setCompradores(n);
   };
   const handleEliminarComprador = (index) =>
     setCompradores(compradores.filter((_, i) => i !== index));
 
   // ============================================
-  // FUNCIONES - PREDIOS
+  // PREDIOS — idéntico a compraventa + campo estaContruido
   // ============================================
   const handleAgregarPredio = (esCompuesto) => {
     setPredios([
@@ -287,6 +278,7 @@ const FormularioCompraventa = () => {
             areaCubierta: "",
             areaDescubierta: "",
             alicuotaParcial: "",
+            estaContruido: null,
           },
         ],
         alicuotaTotal: 0,
@@ -295,31 +287,24 @@ const FormularioCompraventa = () => {
       },
     ]);
   };
-
   const handleEliminarPredio = (predioId) =>
     setPredios(predios.filter((p) => p.id !== predioId));
-
   const handlePredioChange = (predioId, field, value) => {
     setPredios(
       predios.map((predio) => {
-        if (predio.id === predioId) {
-          const updated = { ...predio, [field]: value };
-
-          // Si cambia usarAlicuotaManual a false, recalcular
-          if (field === "usarAlicuotaManual" && !value) {
-            const suma = updated.inmuebles.reduce((acc, inm) => {
-              return acc + (parseFloat(inm.alicuotaParcial) || 0);
-            }, 0);
-            updated.alicuotaTotal = parseFloat(suma.toFixed(10));
-          }
-
-          return updated;
+        if (predio.id !== predioId) return predio;
+        const updated = { ...predio, [field]: value };
+        if (field === "usarAlicuotaManual" && !value) {
+          const suma = updated.inmuebles.reduce(
+            (acc, inm) => acc + (parseFloat(inm.alicuotaParcial) || 0),
+            0,
+          );
+          updated.alicuotaTotal = parseFloat(suma.toFixed(10));
         }
-        return predio;
+        return updated;
       }),
     );
   };
-
   const handleAgregarInmueble = (predioId) => {
     setPredios(
       predios.map((predio) =>
@@ -336,6 +321,7 @@ const FormularioCompraventa = () => {
                   areaCubierta: "",
                   areaDescubierta: "",
                   alicuotaParcial: "",
+                  estaContruido: null,
                 },
               ],
             }
@@ -343,165 +329,119 @@ const FormularioCompraventa = () => {
       ),
     );
   };
-
   const handleEliminarInmueble = (predioId, inmuebleId) => {
     setPredios(
       predios.map((predio) => {
-        if (predio.id === predioId) {
-          const nuevosInmuebles = predio.inmuebles.filter(
-            (i) => i.id !== inmuebleId,
+        if (predio.id !== predioId) return predio;
+        const nuevosInmuebles = predio.inmuebles.filter(
+          (i) => i.id !== inmuebleId,
+        );
+        let nuevaAlicuotaTotal = predio.alicuotaTotal;
+        if (!predio.usarAlicuotaManual) {
+          const suma = nuevosInmuebles.reduce(
+            (acc, inm) => acc + (parseFloat(inm.alicuotaParcial) || 0),
+            0,
           );
-
-          // Recalcular alícuota total si no es manual
-          let nuevaAlicuotaTotal = predio.alicuotaTotal;
-          if (!predio.usarAlicuotaManual) {
-            const suma = nuevosInmuebles.reduce((acc, inm) => {
-              return acc + (parseFloat(inm.alicuotaParcial) || 0);
-            }, 0);
-            nuevaAlicuotaTotal = parseFloat(suma.toFixed(10));
-          }
-
-          return {
-            ...predio,
-            inmuebles: nuevosInmuebles,
-            alicuotaTotal: nuevaAlicuotaTotal,
-          };
+          nuevaAlicuotaTotal = parseFloat(suma.toFixed(10));
         }
-        return predio;
+        return {
+          ...predio,
+          inmuebles: nuevosInmuebles,
+          alicuotaTotal: nuevaAlicuotaTotal,
+        };
       }),
     );
   };
-
   const handleInmuebleChange = (predioId, inmuebleId, field, value) => {
     setPredios(
       predios.map((predio) => {
-        if (predio.id === predioId) {
-          const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
-            if (inmueble.id === inmuebleId) {
-              let newValue = value;
-
-              // NUEVO: Convertir a decimal con 2 decimales para áreas
-              if (
-                (field === "areaCubierta" || field === "areaDescubierta") &&
-                value
-              ) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) {
-                  newValue = num.toFixed(2);
-                }
-              }
-
-              // NUEVO: Convertir a decimal con 10 decimales para alícuotas
-              if (field === "alicuotaParcial" && value) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) {
-                  newValue = num.toFixed(10);
-                }
-              }
-
-              return { ...inmueble, [field]: newValue };
-            }
-            return inmueble;
-          });
-
-          // Recalcular alícuota total si no es manual
-          let nuevaAlicuotaTotal = predio.alicuotaTotal;
-          if (!predio.usarAlicuotaManual) {
-            const suma = nuevosInmuebles.reduce((acc, inm) => {
-              return acc + (parseFloat(inm.alicuotaParcial) || 0);
-            }, 0);
-            nuevaAlicuotaTotal = parseFloat(suma.toFixed(10));
+        if (predio.id !== predioId) return predio;
+        const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
+          if (inmueble.id !== inmuebleId) return inmueble;
+          let newValue = value;
+          if (
+            (field === "areaCubierta" || field === "areaDescubierta") &&
+            value
+          ) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) newValue = num.toFixed(2);
           }
-
-          return {
-            ...predio,
-            inmuebles: nuevosInmuebles,
-            alicuotaTotal: nuevaAlicuotaTotal,
-          };
+          if (field === "alicuotaParcial" && value) {
+            const num = parseFloat(value);
+            if (!isNaN(num)) newValue = num.toFixed(10);
+          }
+          return { ...inmueble, [field]: newValue };
+        });
+        let nuevaAlicuotaTotal = predio.alicuotaTotal;
+        if (!predio.usarAlicuotaManual) {
+          const suma = nuevosInmuebles.reduce(
+            (acc, inm) => acc + (parseFloat(inm.alicuotaParcial) || 0),
+            0,
+          );
+          nuevaAlicuotaTotal = parseFloat(suma.toFixed(10));
         }
-        return predio;
+        return {
+          ...predio,
+          inmuebles: nuevosInmuebles,
+          alicuotaTotal: nuevaAlicuotaTotal,
+        };
       }),
     );
   };
 
   // ============================================
-  // FUNCIONES - LINDEROS (NUEVO: Múltiples por dirección)
+  // LINDEROS
   // ============================================
-  const handleAgregarLindero = (direccion, esEspecifico = false) => {
-    if (esEspecifico) {
+  const handleAgregarLindero = (dir, esEspecifico = false) => {
+    if (esEspecifico)
       setLinderosEspecificos({
         ...linderosEspecificos,
-        [direccion]: [
-          ...linderosEspecificos[direccion],
-          { metros: "", colindancia: "" },
-        ],
+        [dir]: [...linderosEspecificos[dir], { metros: "", colindancia: "" }],
       });
-    } else {
+    else
       setLinderosGenerales({
         ...linderosGenerales,
-        [direccion]: [
-          ...linderosGenerales[direccion],
-          { metros: "", colindancia: "" },
-        ],
+        [dir]: [...linderosGenerales[dir], { metros: "", colindancia: "" }],
+      });
+  };
+  const handleEliminarLindero = (dir, index, esEspecifico = false) => {
+    if (esEspecifico) {
+      const nuevos = linderosEspecificos[dir].filter((_, i) => i !== index);
+      setLinderosEspecificos({
+        ...linderosEspecificos,
+        [dir]: nuevos.length > 0 ? nuevos : [{ metros: "", colindancia: "" }],
+      });
+    } else {
+      const nuevos = linderosGenerales[dir].filter((_, i) => i !== index);
+      setLinderosGenerales({
+        ...linderosGenerales,
+        [dir]: nuevos.length > 0 ? nuevos : [{ metros: "", colindancia: "" }],
       });
     }
   };
-
-  const handleEliminarLindero = (direccion, index, esEspecifico = false) => {
-    if (esEspecifico) {
-      const nuevosLinderos = linderosEspecificos[direccion].filter(
-        (_, i) => i !== index,
-      );
-      setLinderosEspecificos({
-        ...linderosEspecificos,
-        [direccion]:
-          nuevosLinderos.length > 0
-            ? nuevosLinderos
-            : [{ metros: "", colindancia: "" }],
-      });
-    } else {
-      const nuevosLinderos = linderosGenerales[direccion].filter(
-        (_, i) => i !== index,
-      );
-      setLinderosGenerales({
-        ...linderosGenerales,
-        [direccion]:
-          nuevosLinderos.length > 0
-            ? nuevosLinderos
-            : [{ metros: "", colindancia: "" }],
-      });
-    }
-  };
-
   const handleLinderoChange = (
-    direccion,
+    dir,
     index,
     field,
     value,
     esEspecifico = false,
   ) => {
     if (esEspecifico) {
-      const nuevosLinderos = [...linderosEspecificos[direccion]];
-      nuevosLinderos[index][field] = value;
-      setLinderosEspecificos({
-        ...linderosEspecificos,
-        [direccion]: nuevosLinderos,
-      });
+      const nuevos = [...linderosEspecificos[dir]];
+      nuevos[index][field] = value;
+      setLinderosEspecificos({ ...linderosEspecificos, [dir]: nuevos });
     } else {
-      const nuevosLinderos = [...linderosGenerales[direccion]];
-      nuevosLinderos[index][field] = value;
-      setLinderosGenerales({
-        ...linderosGenerales,
-        [direccion]: nuevosLinderos,
-      });
+      const nuevos = [...linderosGenerales[dir]];
+      nuevos[index][field] = value;
+      setLinderosGenerales({ ...linderosGenerales, [dir]: nuevos });
     }
   };
 
   // ============================================
-  // FUNCIONES - ACLARATORIAS HISTORIA (NUEVO: Recursivas)
+  // ACLARATORIAS HISTORIA
   // ============================================
   const handleAgregarAclaratoriaHistoria = (path = []) => {
-    const nuevaAclaratoria = {
+    const nueva = {
       id: Date.now(),
       titulo: "",
       tituloOtro: "",
@@ -514,66 +454,42 @@ const FormularioCompraventa = () => {
       cantonInscripcion: "",
       aclaratorias: [],
     };
-
+    const newH = { ...historiaFormulario };
     if (path.length === 0) {
-      setHistoriaFormulario({
-        ...historiaFormulario,
-        aclaratorias: [...historiaFormulario.aclaratorias, nuevaAclaratoria],
-      });
+      newH.aclaratorias = [...newH.aclaratorias, nueva];
     } else {
-      const newHistoria = { ...historiaFormulario };
-      let current = newHistoria;
-
-      for (let i = 0; i < path.length - 1; i++) {
-        current = current.aclaratorias[path[i]];
-      }
-
-      const lastIndex = path[path.length - 1];
-      current.aclaratorias[lastIndex].aclaratorias.push(nuevaAclaratoria);
-
-      setHistoriaFormulario(newHistoria);
+      let cur = newH;
+      for (let i = 0; i < path.length - 1; i++) cur = cur.aclaratorias[path[i]];
+      cur.aclaratorias[path[path.length - 1]].aclaratorias.push(nueva);
     }
+    setHistoriaFormulario(newH);
   };
-
   const handleEliminarAclaratoriaHistoria = (path) => {
-    const newHistoria = { ...historiaFormulario };
-
+    const newH = { ...historiaFormulario };
     if (path.length === 1) {
-      newHistoria.aclaratorias = newHistoria.aclaratorias.filter(
-        (_, i) => i !== path[0],
-      );
+      newH.aclaratorias = newH.aclaratorias.filter((_, i) => i !== path[0]);
     } else {
-      let current = newHistoria;
-      for (let i = 0; i < path.length - 2; i++) {
-        current = current.aclaratorias[path[i]];
-      }
-      current.aclaratorias[path[path.length - 2]].aclaratorias =
-        current.aclaratorias[path[path.length - 2]].aclaratorias.filter(
-          (_, i) => i !== path[path.length - 1],
-        );
+      let cur = newH;
+      for (let i = 0; i < path.length - 2; i++) cur = cur.aclaratorias[path[i]];
+      cur.aclaratorias[path[path.length - 2]].aclaratorias = cur.aclaratorias[
+        path[path.length - 2]
+      ].aclaratorias.filter((_, i) => i !== path[path.length - 1]);
     }
-
-    setHistoriaFormulario(newHistoria);
+    setHistoriaFormulario(newH);
   };
-
   const handleAclaratoriaHistoriaChange = (path, field, value) => {
-    const newHistoria = { ...historiaFormulario };
-    let current = newHistoria;
-
-    for (let i = 0; i < path.length - 1; i++) {
-      current = current.aclaratorias[path[i]];
-    }
-
-    current.aclaratorias[path[path.length - 1]][field] = value;
-
-    setHistoriaFormulario(newHistoria);
+    const newH = { ...historiaFormulario };
+    let cur = newH;
+    for (let i = 0; i < path.length - 1; i++) cur = cur.aclaratorias[path[i]];
+    cur.aclaratorias[path[path.length - 1]][field] = value;
+    setHistoriaFormulario(newH);
   };
 
   // ============================================
-  // FUNCIONES - ACLARATORIAS DECLARATORIA (NUEVO: Recursivas)
+  // ACLARATORIAS DECLARATORIA
   // ============================================
   const handleAgregarAclaratoriaDeclaratoria = (path = []) => {
-    const nuevaAclaratoria = {
+    const nueva = {
       id: Date.now(),
       fechaOtorgamiento: "",
       numeroNotaria: "",
@@ -583,66 +499,39 @@ const FormularioCompraventa = () => {
       cantonInscripcion: "",
       aclaratorias: [],
     };
-
+    const newD = { ...declaratoriaFormulario };
     if (path.length === 0) {
-      setDeclaratoriaFormulario({
-        ...declaratoriaFormulario,
-        aclaratorias: [
-          ...declaratoriaFormulario.aclaratorias,
-          nuevaAclaratoria,
-        ],
-      });
+      newD.aclaratorias = [...newD.aclaratorias, nueva];
     } else {
-      const newDeclaratoria = { ...declaratoriaFormulario };
-      let current = newDeclaratoria;
-
-      for (let i = 0; i < path.length - 1; i++) {
-        current = current.aclaratorias[path[i]];
-      }
-
-      const lastIndex = path[path.length - 1];
-      current.aclaratorias[lastIndex].aclaratorias.push(nuevaAclaratoria);
-
-      setDeclaratoriaFormulario(newDeclaratoria);
+      let cur = newD;
+      for (let i = 0; i < path.length - 1; i++) cur = cur.aclaratorias[path[i]];
+      cur.aclaratorias[path[path.length - 1]].aclaratorias.push(nueva);
     }
+    setDeclaratoriaFormulario(newD);
   };
-
   const handleEliminarAclaratoriaDeclaratoria = (path) => {
-    const newDeclaratoria = { ...declaratoriaFormulario };
-
+    const newD = { ...declaratoriaFormulario };
     if (path.length === 1) {
-      newDeclaratoria.aclaratorias = newDeclaratoria.aclaratorias.filter(
-        (_, i) => i !== path[0],
-      );
+      newD.aclaratorias = newD.aclaratorias.filter((_, i) => i !== path[0]);
     } else {
-      let current = newDeclaratoria;
-      for (let i = 0; i < path.length - 2; i++) {
-        current = current.aclaratorias[path[i]];
-      }
-      current.aclaratorias[path[path.length - 2]].aclaratorias =
-        current.aclaratorias[path[path.length - 2]].aclaratorias.filter(
-          (_, i) => i !== path[path.length - 1],
-        );
+      let cur = newD;
+      for (let i = 0; i < path.length - 2; i++) cur = cur.aclaratorias[path[i]];
+      cur.aclaratorias[path[path.length - 2]].aclaratorias = cur.aclaratorias[
+        path[path.length - 2]
+      ].aclaratorias.filter((_, i) => i !== path[path.length - 1]);
     }
-
-    setDeclaratoriaFormulario(newDeclaratoria);
+    setDeclaratoriaFormulario(newD);
   };
-
   const handleAclaratoriaDeclaratoriaChange = (path, field, value) => {
-    const newDeclaratoria = { ...declaratoriaFormulario };
-    let current = newDeclaratoria;
-
-    for (let i = 0; i < path.length - 1; i++) {
-      current = current.aclaratorias[path[i]];
-    }
-
-    current.aclaratorias[path[path.length - 1]][field] = value;
-
-    setDeclaratoriaFormulario(newDeclaratoria);
+    const newD = { ...declaratoriaFormulario };
+    let cur = newD;
+    for (let i = 0; i < path.length - 1; i++) cur = cur.aclaratorias[path[i]];
+    cur.aclaratorias[path[path.length - 1]][field] = value;
+    setDeclaratoriaFormulario(newD);
   };
 
   // ============================================
-  // FUNCIONES - PRECIO Y FORMA DE PAGO
+  // PRECIO Y FORMA DE PAGO — idéntico a compraventa
   // ============================================
   const calcularSaldoRestante = () => {
     const total = parseFloat(precioTotal) || 0;
@@ -652,16 +541,13 @@ const FormularioCompraventa = () => {
     );
     return total - sumaPagos;
   };
-
   const handleAgregarPartePago = () => {
     const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-    const nuevaLetra = letras[partesPago.length] || `${partesPago.length + 1}`;
-
     setPartesPago([
       ...partesPago,
       {
         id: Date.now(),
-        letra: nuevaLetra,
+        letra: letras[partesPago.length] || `${partesPago.length + 1}`,
         monto: "",
         tipoPago: "unico",
         medioPago: "",
@@ -675,7 +561,6 @@ const FormularioCompraventa = () => {
         valorCuota: 0,
         periodicidad: "",
         periodicidadOtra: "",
-        // NUEVO
         tieneDetalle: false,
         detalle: {
           bancoOrigen: "",
@@ -688,82 +573,55 @@ const FormularioCompraventa = () => {
       },
     ]);
   };
-
   const handleEliminarPartePago = (id) => {
-    const nuevasPartes = partesPago.filter((p) => p.id !== id);
     const letras = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-    nuevasPartes.forEach((parte, index) => {
+    const nuevas = partesPago.filter((p) => p.id !== id);
+    nuevas.forEach((parte, index) => {
       parte.letra = letras[index] || `${index + 1}`;
     });
-    setPartesPago(nuevasPartes);
+    setPartesPago(nuevas);
   };
-
   const handlePartePagoChange = (id, field, value) => {
     setPartesPago(
       partesPago.map((parte) => {
-        if (parte.id === id) {
-          const updated = { ...parte, [field]: value };
-
-          // Auto-calcular valor de cuota
-          if (field === "monto" || field === "numeroCuotas") {
-            if (
-              updated.tipoPago === "cuotas" &&
-              updated.monto &&
-              updated.numeroCuotas
-            ) {
-              updated.valorCuota =
-                parseFloat(updated.monto) / parseInt(updated.numeroCuotas);
-            }
-          }
-
-          // Limpiar campos según condiciones
-          if (field === "tipoPago" && value === "unico") {
-            updated.numeroCuotas = "";
-            updated.valorCuota = 0;
-            updated.periodicidad = "";
-            updated.periodicidadOtra = "";
-          }
-
-          if (field === "medioPago" && value !== "cheque") {
-            updated.tipoCheque = "";
-          }
-
-          if (field === "momentoPago" && value !== "otro") {
-            updated.momentoOtro = "";
-          }
-
-          if (field === "esCreditoBancario" && !value) {
-            updated.nombreBanco = "";
-            updated.cuentaDestino = "";
-          }
-
-          return updated;
+        if (parte.id !== id) return parte;
+        const updated = { ...parte, [field]: value };
+        if (
+          (field === "monto" || field === "numeroCuotas") &&
+          updated.tipoPago === "cuotas" &&
+          updated.monto &&
+          updated.numeroCuotas
+        )
+          updated.valorCuota =
+            parseFloat(updated.monto) / parseInt(updated.numeroCuotas);
+        if (field === "tipoPago" && value === "unico") {
+          updated.numeroCuotas = "";
+          updated.valorCuota = 0;
+          updated.periodicidad = "";
+          updated.periodicidadOtra = "";
         }
-        return parte;
+        if (field === "medioPago" && value !== "cheque")
+          updated.tipoCheque = "";
+        if (field === "momentoPago" && value !== "otro")
+          updated.momentoOtro = "";
+        if (field === "esCreditoBancario" && !value) {
+          updated.nombreBanco = "";
+          updated.cuentaDestino = "";
+        }
+        return updated;
       }),
     );
   };
-
-  // NUEVO: Manejo de detalle de transferencia/depósito
   const handleDetallePartePagoChange = (id, field, value) => {
     setPartesPago(
-      partesPago.map((p) => {
-        if (p.id === id) {
-          return {
-            ...p,
-            detalle: {
-              ...p.detalle,
-              [field]: value,
-            },
-          };
-        }
-        return p;
-      }),
+      partesPago.map((p) =>
+        p.id === id ? { ...p, detalle: { ...p.detalle, [field]: value } } : p,
+      ),
     );
   };
 
   // ============================================
-  // COMPONENTES RECURSIVOS - ACLARATORIAS
+  // ACLARATORIA HISTORIA — componente recursivo
   // ============================================
   const AclaratoriaHistoriaItem = ({ aclaratoria, path, nivel = 0 }) => (
     <div
@@ -781,11 +639,10 @@ const FormularioCompraventa = () => {
             Eliminar
           </button>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Título de adquisición
+              Título de Adquisición
             </label>
             <select
               value={aclaratoria.titulo}
@@ -794,20 +651,19 @@ const FormularioCompraventa = () => {
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             >
-              <option value="">Seleccionar</option>
+              <option value="">Seleccione el título</option>
               <option value="compraventa">Compraventa</option>
               <option value="donacion">Donación</option>
+              <option value="sucesion">Sucesión a Causa de Muerte</option>
               <option value="permuta">Permuta</option>
-              <option value="adjudicacion">Adjudicación</option>
-              <option value="sucesion">Sucesión</option>
+              <option value="particion">Partición y Adjudicación</option>
               <option value="otro">Otro</option>
             </select>
           </div>
-
           {aclaratoria.titulo === "otro" && (
-            <div>
+            <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Especificar título
+                Especifique el título
               </label>
               <input
                 type="text"
@@ -820,10 +676,10 @@ const FormularioCompraventa = () => {
                   )
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                placeholder="Ej: Adjudicación judicial"
               />
             </div>
           )}
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Adquirido de
@@ -841,10 +697,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de otorgamiento
+              Fecha de Otorgamiento
             </label>
             <input
               type="date"
@@ -859,10 +714,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Número de notaría
+              Número de Notaría
             </label>
             <input
               type="text"
@@ -877,14 +731,10 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               placeholder="Ej: primera, 14, 22"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Se convertirá automáticamente
-            </p>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de la notaría
+              Cantón de la Notaría
             </label>
             <input
               type="text"
@@ -897,12 +747,12 @@ const FormularioCompraventa = () => {
                 )
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Ej: Quito"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notario
+              Notario/Notaria
             </label>
             <input
               type="text"
@@ -917,10 +767,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de inscripción
+              Fecha de Inscripción
             </label>
             <input
               type="date"
@@ -935,10 +784,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de inscripción
+              Cantón de Inscripción
             </label>
             <input
               type="text"
@@ -951,35 +799,29 @@ const FormularioCompraventa = () => {
                 )
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Ej: Quito"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Si es igual, se mostrará "del mismo cantón"
+              Si es igual al cantón de la notaría, se mostrará "del mismo
+              cantón"
             </p>
           </div>
         </div>
-
-        {/* Aclaratorias anidadas */}
-        {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
+        {aclaratoria.aclaratorias?.length > 0 && (
           <div className="space-y-2">
-            {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
+            {aclaratoria.aclaratorias.map((sub, index) => (
               <AclaratoriaHistoriaItem
-                key={subAclaratoria.id}
-                aclaratoria={subAclaratoria}
+                key={sub.id}
+                aclaratoria={sub}
                 path={[...path, index]}
                 nivel={nivel + 1}
               />
             ))}
           </div>
         )}
-
         <button
           onClick={() =>
-            handleAgregarAclaratoriaHistoria([
-              ...path,
-              path.length > 0
-                ? path[path.length - 1]
-                : historiaFormulario.aclaratorias.indexOf(aclaratoria),
-            ])
+            handleAgregarAclaratoriaHistoria([...path, path[path.length - 1]])
           }
           className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
         >
@@ -989,6 +831,9 @@ const FormularioCompraventa = () => {
     </div>
   );
 
+  // ============================================
+  // ACLARATORIA DECLARATORIA — componente recursivo
+  // ============================================
   const AclaratoriaDeclaratoriaItem = ({ aclaratoria, path, nivel = 0 }) => (
     <div
       className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
@@ -1005,11 +850,10 @@ const FormularioCompraventa = () => {
             Eliminar
           </button>
         </div>
-
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de otorgamiento
+              Fecha de Otorgamiento
             </label>
             <input
               type="date"
@@ -1024,10 +868,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Número de notaría
+              Número de Notaría
             </label>
             <input
               type="text"
@@ -1042,14 +885,10 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
               placeholder="Ej: primera, 14, 22"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Se convertirá automáticamente
-            </p>
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de la notaría
+              Cantón de la Notaría
             </label>
             <input
               type="text"
@@ -1062,12 +901,12 @@ const FormularioCompraventa = () => {
                 )
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Ej: Quito"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notario
+              Notario/Notaria
             </label>
             <input
               type="text"
@@ -1082,10 +921,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de inscripción
+              Fecha de Inscripción
             </label>
             <input
               type="date"
@@ -1100,10 +938,9 @@ const FormularioCompraventa = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de inscripción
+              Cantón de Inscripción
             </label>
             <input
               type="text"
@@ -1116,34 +953,31 @@ const FormularioCompraventa = () => {
                 )
               }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              placeholder="Ej: Quito"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Si es igual, se mostrará "del mismo cantón"
+              Si es igual al cantón de la notaría, se mostrará "del mismo
+              cantón"
             </p>
           </div>
         </div>
-
-        {/* Aclaratorias anidadas */}
-        {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
+        {aclaratoria.aclaratorias?.length > 0 && (
           <div className="space-y-2">
-            {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
+            {aclaratoria.aclaratorias.map((sub, index) => (
               <AclaratoriaDeclaratoriaItem
-                key={subAclaratoria.id}
-                aclaratoria={subAclaratoria}
+                key={sub.id}
+                aclaratoria={sub}
                 path={[...path, index]}
                 nivel={nivel + 1}
               />
             ))}
           </div>
         )}
-
         <button
           onClick={() =>
             handleAgregarAclaratoriaDeclaratoria([
               ...path,
-              path.length > 0
-                ? path[path.length - 1]
-                : declaratoriaFormulario.aclaratorias.indexOf(aclaratoria),
+              path[path.length - 1],
             ])
           }
           className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
@@ -1155,37 +989,31 @@ const FormularioCompraventa = () => {
   );
 
   // ============================================
-  // FUNCIÓN - GENERAR MINUTA
+  // GENERAR
   // ============================================
-  const handleGenerarMinuta = async () => {
-    // Validaciones
+  const handleGenerarPromesa = async () => {
     if (vendedores.length === 0 || compradores.length === 0) {
       toast.error("Debe agregar al menos un vendedor y un comprador");
       return;
     }
-
     if (!tipoPropiedad) {
       toast.error("Debe seleccionar un tipo de propiedad");
       return;
     }
-
     if (tipoPropiedad === "horizontal" && predios.length === 0) {
       toast.error("Debe agregar al menos un predio");
       return;
     }
-
     if (!abogado.nombre || !abogado.numeroMatricula) {
       toast.error("Debe completar los datos del abogado");
       return;
     }
-
     setLoading(true);
-
     try {
       const payload = {
-        tipoContrato: "compraventa",
-        vendedores: vendedores.filter((v) => v !== null),
-        compradores: compradores.filter((c) => c !== null),
+        tipoContrato: "promesa_compraventa",
+        vendedores: vendedores.filter(Boolean),
+        compradores: compradores.filter(Boolean),
         tipoPropiedad,
         nombreConjunto: tipoPropiedad === "horizontal" ? nombreConjunto : null,
         predios: tipoPropiedad === "horizontal" ? predios : null,
@@ -1206,18 +1034,16 @@ const FormularioCompraventa = () => {
           canton: ubicacion.canton,
           provincia: ubicacion.provincia,
         },
-        modoHistoria,
-        historiaManual: modoHistoria === "redactar" ? historiaManual : null,
-        historiaFormulario:
-          modoHistoria === "formulario" ? historiaFormulario : null,
-        modoDeclaratoria:
-          tipoPropiedad === "horizontal" ? modoDeclaratoria : null,
+        historiaManual,
+        historiaFormulario,
+        hayDeclaratoria:
+          tipoPropiedad === "horizontal" ? hayDeclaratoria : null,
         declaratoriaManual:
-          tipoPropiedad === "horizontal" && modoDeclaratoria === "redactar"
+          tipoPropiedad === "horizontal" && hayDeclaratoria
             ? declaratoriaManual
             : null,
         declaratoriaFormulario:
-          tipoPropiedad === "horizontal" && modoDeclaratoria === "formulario"
+          tipoPropiedad === "horizontal" && hayDeclaratoria
             ? declaratoriaFormulario
             : null,
         linderosGenerales,
@@ -1227,71 +1053,70 @@ const FormularioCompraventa = () => {
           tipoPropiedad === "horizontal" && tieneLInderosEspecificos
             ? linderosEspecificos
             : null,
-        modoSujeto,
-        sujetoManual: modoSujeto === "manual" ? sujetoManual : null,
         modoPrecio,
         precioTotal,
         partesPago: modoPrecio === "formulario" ? partesPago : null,
         precioManual: modoPrecio === "manual" ? precioManual : null,
-        hayAdministrador:
-          tipoPropiedad === "horizontal" ? hayAdministrador : null,
+        plazo,
+        clausulaPenal,
+        hayCondicionResolutoria,
+        propiedadIntelectual:
+          hayCondicionResolutoria === true ? propiedadIntelectual : null,
         abogado,
       };
-
-      console.log("📦 Payload:", payload);
-
-      const response = await apiFetch(API_CONFIG.ENDPOINTS.GENERATE_MINUTA, {
+      const response = await apiFetch(API_CONFIG.ENDPOINTS.GENERATE_PROMESA, {
         method: "POST",
         body: JSON.stringify(payload),
       });
-
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `minuta_${Date.now()}.docx`;
+        a.download = `promesa_compraventa_${Date.now()}.docx`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        toast.success("Minuta generada exitosamente");
+        toast.success("Promesa generada exitosamente");
       } else {
         const data = await response.json();
-        toast.error(data.detail || "Error al generar minuta");
+        toast.error(data.detail || "Error al generar promesa");
       }
     } catch (error) {
-      console.error("Error:", error);
-      toast.error("Error al generar minuta: " + error.message);
+      toast.error("Error al generar promesa: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
+  // ============================================
+  // RENDER
+  // ============================================
   return (
     <div className="max-w-7xl mx-auto">
       <div className="mb-6">
         <div className="flex items-start justify-between gap-6 mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Generar Minuta</h1>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Generar Promesa de Compraventa
+            </h1>
             <p className="text-gray-600 mt-1">
-              Complete los datos para generar la minuta
+              Complete los datos para generar la promesa
             </p>
           </div>
         </div>
-        {/* BUSCADOR DE PLANTILLAS */}
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <p className="text-sm font-medium text-amber-800 mb-2">
             Cargar desde plantilla
           </p>
           <BuscadorPlantillas
             tipoDocumento="minuta"
-            tipoContrato="compraventa"
+            tipoContrato="promesa_compraventa"
             onCargar={handleCargarPlantilla}
           />
           <p className="text-xs text-amber-600 mt-2">
-            Busca por nombre de proyecto o vendedor. Al seleccionar una
-            plantilla se cargarán todos los datos del formulario.
+            Busca por nombre de proyecto o vendedor.
           </p>
         </div>
       </div>
@@ -1300,12 +1125,13 @@ const FormularioCompraventa = () => {
         {/* VENDEDORES */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Vendedores</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Promitentes Vendedores
+            </h2>
             <Button variant="outline" size="sm" onClick={handleAgregarVendedor}>
               + Agregar Vendedor
             </Button>
           </div>
-
           {vendedores.length === 0 && (
             <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg text-center">
               <p className="text-gray-600">
@@ -1313,12 +1139,11 @@ const FormularioCompraventa = () => {
               </p>
             </div>
           )}
-
           {vendedores.map((v, index) => (
             <div key={index} className="relative">
               <ComparecienteInline
-                key={`vendedor-${plantillaKey}-${index}`}
-                title={`Vendedor ${index + 1}`}
+                key={`v-${plantillaKey}-${index}`}
+                title={`Promitente Vendedor ${index + 1}`}
                 initialData={v || null}
                 onComparecienteReady={(data) =>
                   handleVendedorReady(index, data)
@@ -1336,10 +1161,12 @@ const FormularioCompraventa = () => {
           ))}
         </div>
 
-        {/* 3. COMPRADORES */}
+        {/* COMPRADORES */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Compradores</h2>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Promitentes Compradores
+            </h2>
             <Button
               variant="outline"
               size="sm"
@@ -1348,7 +1175,6 @@ const FormularioCompraventa = () => {
               + Agregar Comprador
             </Button>
           </div>
-
           {compradores.length === 0 && (
             <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg text-center">
               <p className="text-gray-600">
@@ -1356,12 +1182,11 @@ const FormularioCompraventa = () => {
               </p>
             </div>
           )}
-
           {compradores.map((c, index) => (
             <div key={index} className="relative">
               <ComparecienteInline
-                key={`comprador-${plantillaKey}-${index}`}
-                title={`Comprador ${index + 1}`}
+                key={`c-${plantillaKey}-${index}`}
+                title={`Promitente Comprador ${index + 1}`}
                 initialData={c || null}
                 onComparecienteReady={(data) =>
                   handleCompradorReady(index, data)
@@ -1379,14 +1204,13 @@ const FormularioCompraventa = () => {
           ))}
         </div>
 
-        {/* SEPARADOR - ANTECEDENTES */}
+        {/* ANTECEDENTES */}
         <div className="border-t-4 border-primary-500 pt-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             ANTECEDENTES
           </h2>
         </div>
 
-        {/* 4. TIPO DE PROPIEDAD */}
         <Card title="Tipo de Propiedad">
           <select
             value={tipoPropiedad}
@@ -1402,7 +1226,6 @@ const FormularioCompraventa = () => {
           </select>
         </Card>
 
-        {/* 5. NOMBRE DEL CONJUNTO (solo para horizontal) */}
         {tipoPropiedad === "horizontal" && (
           <Card title="Nombre del Conjunto/Edificio">
             <input
@@ -1410,16 +1233,15 @@ const FormularioCompraventa = () => {
               value={nombreConjunto}
               onChange={(e) => setNombreConjunto(e.target.value.toUpperCase())}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-              placeholder="Ej: EDIFICIO MONTICELLO"
+              placeholder="EJ: EDIFICIO MONTICELLO"
             />
           </Card>
         )}
 
-        {/* 6. BIENES A INCLUIR (PREDIOS) */}
+        {/* BIENES A INCLUIR (PREDIOS) — igual que compraventa + estaContruido */}
         {tipoPropiedad === "horizontal" && (
           <Card title="Bienes a Incluir (Predios)">
             <div className="space-y-6">
-              {/* Botones para agregar predio */}
               <div className="flex flex-col gap-3">
                 <p className="text-sm font-medium text-gray-700">
                   ¿Qué tipo de predio desea agregar?
@@ -1436,7 +1258,6 @@ const FormularioCompraventa = () => {
                       Un solo inmueble independiente (ej: Parqueadero, Bodega)
                     </div>
                   </button>
-
                   <button
                     onClick={() => handleAgregarPredio(true)}
                     className="flex-1 p-4 border-2 border-purple-300 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors text-left"
@@ -1452,7 +1273,6 @@ const FormularioCompraventa = () => {
                 </div>
               </div>
 
-              {/* Lista de predios */}
               {predios.length === 0 && (
                 <div className="p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg text-center">
                   <p className="text-gray-600">
@@ -1465,30 +1285,17 @@ const FormularioCompraventa = () => {
               {predios.map((predio, predioIndex) => (
                 <div
                   key={predio.id}
-                  className={`border-2 rounded-lg p-6 ${
-                    predio.esCompuesto
-                      ? "border-purple-300 bg-purple-50"
-                      : "border-blue-300 bg-blue-50"
-                  }`}
+                  className={`border-2 rounded-lg p-6 ${predio.esCompuesto ? "border-purple-300 bg-purple-50" : "border-blue-300 bg-blue-50"}`}
                 >
-                  {/* Header del predio */}
                   <div className="flex justify-between items-center mb-4">
                     <div className="flex items-center gap-3">
                       <h3
-                        className={`text-lg font-bold ${
-                          predio.esCompuesto
-                            ? "text-purple-900"
-                            : "text-blue-900"
-                        }`}
+                        className={`text-lg font-bold ${predio.esCompuesto ? "text-purple-900" : "text-blue-900"}`}
                       >
                         PREDIO {predioIndex + 1}
                       </h3>
                       <span
-                        className={`text-xs px-2 py-1 rounded ${
-                          predio.esCompuesto
-                            ? "bg-purple-200 text-purple-800"
-                            : "bg-blue-200 text-blue-800"
-                        }`}
+                        className={`text-xs px-2 py-1 rounded ${predio.esCompuesto ? "bg-purple-200 text-purple-800" : "bg-blue-200 text-blue-800"}`}
                       >
                         {predio.esCompuesto ? "Compuesto" : "Simple"}
                       </span>
@@ -1501,7 +1308,6 @@ const FormularioCompraventa = () => {
                     </button>
                   </div>
 
-                  {/* Datos del predio */}
                   <div className="grid grid-cols-3 gap-4 mb-4">
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1522,7 +1328,6 @@ const FormularioCompraventa = () => {
                         ))}
                       </select>
                     </div>
-
                     {predio.tipo === "Otro" && (
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1543,7 +1348,6 @@ const FormularioCompraventa = () => {
                         />
                       </div>
                     )}
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Número
@@ -1564,14 +1368,12 @@ const FormularioCompraventa = () => {
                     </div>
                   </div>
 
-                  {/* Inmuebles del predio */}
                   <div className="border-t-2 border-gray-300 pt-4">
                     <h4 className="font-semibold text-gray-900 mb-3">
                       {predio.esCompuesto
                         ? "Inmuebles del Predio"
                         : "Datos del Inmueble"}
                     </h4>
-
                     <div className="space-y-3">
                       {predio.inmuebles.map((inmueble, inmuebleIndex) => (
                         <div
@@ -1599,156 +1401,244 @@ const FormularioCompraventa = () => {
                             </div>
                           )}
 
-                          <div className="grid grid-cols-2 gap-3">
-                            {/* Solo mostrar tipo si es compuesto */}
-                            {predio.esCompuesto && (
-                              <>
-                                <div className="col-span-2">
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Tipo de Inmueble
-                                  </label>
-                                  <select
-                                    value={inmueble.tipo}
-                                    onChange={(e) =>
-                                      handleInmuebleChange(
-                                        predio.id,
-                                        inmueble.id,
-                                        "tipo",
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                                  >
-                                    <option value="">Seleccione tipo</option>
-                                    {tiposInmuebles.map((tipo) => (
-                                      <option key={tipo} value={tipo}>
-                                        {tipo}
-                                      </option>
-                                    ))}
-                                  </select>
-                                </div>
+                          {/* ¿Ya está construido? — exclusivo de promesa */}
+                          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              ¿El inmueble ya está construido?
+                            </label>
+                            <div className="flex gap-3">
+                              <button
+                                onClick={() =>
+                                  handleInmuebleChange(
+                                    predio.id,
+                                    inmueble.id,
+                                    "estaContruido",
+                                    true,
+                                  )
+                                }
+                                className={`px-4 py-2 rounded-lg text-sm font-medium ${inmueble.estaContruido === true ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                              >
+                                Sí, ya construido
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleInmuebleChange(
+                                    predio.id,
+                                    inmueble.id,
+                                    "estaContruido",
+                                    false,
+                                  )
+                                }
+                                className={`px-4 py-2 rounded-lg text-sm font-medium ${inmueble.estaContruido === false ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                              >
+                                No, en construcción
+                              </button>
+                            </div>
+                          </div>
 
-                                {inmueble.tipo === "Otro" && (
+                          {inmueble.estaContruido !== null && (
+                            <div className="grid grid-cols-2 gap-3">
+                              {predio.esCompuesto && (
+                                <>
                                   <div className="col-span-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Especifique el tipo
+                                      Tipo de Inmueble
                                     </label>
-                                    <input
-                                      type="text"
-                                      value={inmueble.tipoOtro}
+                                    <select
+                                      value={inmueble.tipo}
                                       onChange={(e) =>
                                         handleInmuebleChange(
                                           predio.id,
                                           inmueble.id,
-                                          "tipoOtro",
+                                          "tipo",
                                           e.target.value,
                                         )
                                       }
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-                                      placeholder="Ej: Balcón"
+                                    >
+                                      <option value="">Seleccione tipo</option>
+                                      {tiposInmuebles.map((tipo) => (
+                                        <option key={tipo} value={tipo}>
+                                          {tipo}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  {inmueble.tipo === "Otro" && (
+                                    <div className="col-span-2">
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Especifique el tipo
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={inmueble.tipoOtro}
+                                        onChange={(e) =>
+                                          handleInmuebleChange(
+                                            predio.id,
+                                            inmueble.id,
+                                            "tipoOtro",
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                        placeholder="Ej: Balcón"
+                                      />
+                                    </div>
+                                  )}
+                                </>
+                              )}
+
+                              {/* Si ya construido: nivel + áreas + alícuota */}
+                              {inmueble.estaContruido === true && (
+                                <>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Nivel
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={inmueble.nivel}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "nivel",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                      placeholder="Ej: N+3.00"
                                     />
                                   </div>
-                                )}
-                              </>
-                            )}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Área Cubierta (m²)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={inmueble.areaCubierta}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "areaCubierta",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                      placeholder="Ej: 217.49"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Se guardará con 2 decimales (.00)
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Área Descubierta (m²)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={inmueble.areaDescubierta}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "areaDescubierta",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                      placeholder="Ej: 166.04"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Se guardará con 2 decimales (.00)
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Alícuota Parcial (%)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.0000000001"
+                                      value={inmueble.alicuotaParcial}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "alicuotaParcial",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                      placeholder="Ej: 11.4013256789"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Hasta 10 decimales
+                                    </p>
+                                  </div>
+                                </>
+                              )}
 
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Nivel
-                              </label>
-                              <input
-                                type="text"
-                                value={inmueble.nivel}
-                                onChange={(e) =>
-                                  handleInmuebleChange(
-                                    predio.id,
-                                    inmueble.id,
-                                    "nivel",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Ej: N+3.00"
-                              />
+                              {/* Si en construcción: solo áreas */}
+                              {inmueble.estaContruido === false && (
+                                <>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Área Cubierta (m²)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={inmueble.areaCubierta}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "areaCubierta",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                      placeholder="Ej: 217.49"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Se guardará con 2 decimales (.00)
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Área Descubierta (m²)
+                                    </label>
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={inmueble.areaDescubierta}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "areaDescubierta",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                      placeholder="Ej: 166.04"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      Se guardará con 2 decimales (.00)
+                                    </p>
+                                  </div>
+                                </>
+                              )}
                             </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Área Cubierta (m²)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={inmueble.areaCubierta}
-                                onChange={(e) =>
-                                  handleInmuebleChange(
-                                    predio.id,
-                                    inmueble.id,
-                                    "areaCubierta",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Ej: 217.49"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Se guardará con 2 decimales (.00)
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Área Descubierta (m²)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={inmueble.areaDescubierta}
-                                onChange={(e) =>
-                                  handleInmuebleChange(
-                                    predio.id,
-                                    inmueble.id,
-                                    "areaDescubierta",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Ej: 166.04"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Se guardará con 2 decimales (.00)
-                              </p>
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Alícuota Parcial (%)
-                              </label>
-                              <input
-                                type="number"
-                                step="0.0000000001"
-                                value={inmueble.alicuotaParcial}
-                                onChange={(e) =>
-                                  handleInmuebleChange(
-                                    predio.id,
-                                    inmueble.id,
-                                    "alicuotaParcial",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                                placeholder="Ej: 11.4013256789"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Hasta 10 decimales
-                              </p>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       ))}
                     </div>
 
-                    {/* Botón agregar inmueble (solo para compuestos) */}
                     {predio.esCompuesto && (
                       <button
                         onClick={() => handleAgregarInmueble(predio.id)}
@@ -1758,66 +1648,66 @@ const FormularioCompraventa = () => {
                       </button>
                     )}
 
-                    {/* Alícuota total del predio */}
-                    <div className="mt-4 space-y-3">
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-green-900">
-                            Alícuota Total Calculada:
-                          </span>
-                          <span className="text-lg font-bold text-green-700">
-                            {predio.alicuotaTotal.toFixed(10)}%
-                          </span>
+                    {/* Alícuota total — solo si hay inmuebles construidos */}
+                    {predio.inmuebles.some((i) => i.estaContruido === true) && (
+                      <div className="mt-4 space-y-3">
+                        <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-green-900">
+                              Alícuota Total Calculada:
+                            </span>
+                            <span className="text-lg font-bold text-green-700">
+                              {predio.alicuotaTotal.toFixed(10)}%
+                            </span>
+                          </div>
                         </div>
-                      </div>
-
-                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <label className="flex items-center gap-2 mb-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={predio.usarAlicuotaManual}
-                            onChange={(e) =>
-                              handlePredioChange(
-                                predio.id,
-                                "usarAlicuotaManual",
-                                e.target.checked,
-                              )
-                            }
-                            className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
-                          />
-                          <span className="text-sm font-medium text-yellow-900">
-                            Usar alícuota total diferente (según Registro de la
-                            Propiedad)
-                          </span>
-                        </label>
-
-                        {predio.usarAlicuotaManual && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Alícuota Total Manual (%)
-                            </label>
+                        <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <label className="flex items-center gap-2 mb-3 cursor-pointer">
                             <input
-                              type="number"
-                              step="0.0000000001"
-                              value={predio.alicuotaTotalManual}
+                              type="checkbox"
+                              checked={predio.usarAlicuotaManual}
                               onChange={(e) =>
                                 handlePredioChange(
                                   predio.id,
-                                  "alicuotaTotalManual",
-                                  e.target.value,
+                                  "usarAlicuotaManual",
+                                  e.target.checked,
                                 )
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Ej: 31.2217256789"
+                              className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
                             />
-                            <p className="text-xs text-yellow-700 mt-1">
-                              Hasta 10 decimales. Use este valor si difiere del
-                              calculado automáticamente
-                            </p>
-                          </div>
-                        )}
+                            <span className="text-sm font-medium text-yellow-900">
+                              Usar alícuota total diferente (según Registro de
+                              la Propiedad)
+                            </span>
+                          </label>
+                          {predio.usarAlicuotaManual && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Alícuota Total Manual (%)
+                              </label>
+                              <input
+                                type="number"
+                                step="0.0000000001"
+                                value={predio.alicuotaTotalManual}
+                                onChange={(e) =>
+                                  handlePredioChange(
+                                    predio.id,
+                                    "alicuotaTotalManual",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                placeholder="Ej: 31.2217256789"
+                              />
+                              <p className="text-xs text-yellow-700 mt-1">
+                                Hasta 10 decimales. Use este valor si difiere
+                                del calculado automáticamente
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1825,7 +1715,7 @@ const FormularioCompraventa = () => {
           </Card>
         )}
 
-        {/* 6B. BIENES PARA PROPIEDAD COMÚN */}
+        {/* BIENES PROPIEDAD COMÚN */}
         {tipoPropiedad === "comun" && (
           <Card title="Descripción del Bien (Propiedad Común)">
             <div className="space-y-4">
@@ -1852,7 +1742,6 @@ const FormularioCompraventa = () => {
                   <option value="otro">Otro</option>
                 </select>
               </div>
-
               {ubicacion.tipoBienComun === "otro" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1872,7 +1761,6 @@ const FormularioCompraventa = () => {
                   />
                 </div>
               )}
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1891,7 +1779,6 @@ const FormularioCompraventa = () => {
                     placeholder="Ej: 1000.44"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número de Predio (opcional)
@@ -1910,7 +1797,6 @@ const FormularioCompraventa = () => {
                   />
                 </div>
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Descripción Adicional (opcional)
@@ -1932,7 +1818,7 @@ const FormularioCompraventa = () => {
           </Card>
         )}
 
-        {/* 7. CONSTRUIDO EN */}
+        {/* CONSTRUIDO EN — igual que compraventa */}
         {tipoPropiedad && (
           <>
             <div className="border-t-2 border-gray-300 pt-4">
@@ -1940,7 +1826,6 @@ const FormularioCompraventa = () => {
                 CONSTRUIDO EN
               </h3>
             </div>
-
             <Card>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1957,7 +1842,6 @@ const FormularioCompraventa = () => {
                     placeholder="Ej: Lote de terreno"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Número
@@ -1972,7 +1856,6 @@ const FormularioCompraventa = () => {
                     placeholder="Ej: 2"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Parroquia
@@ -1987,7 +1870,6 @@ const FormularioCompraventa = () => {
                     placeholder="Ej: Nayón"
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Cantón
@@ -2002,7 +1884,6 @@ const FormularioCompraventa = () => {
                     placeholder="Ej: Quito"
                   />
                 </div>
-
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Provincia
@@ -2022,7 +1903,7 @@ const FormularioCompraventa = () => {
           </>
         )}
 
-        {/* 8. HISTORIA DE DOMINIO */}
+        {/* HISTORIA DE DOMINIO — copia exacta de compraventa */}
         {tipoPropiedad && (
           <SeccionFormularioRedactar
             titulo="HISTORIA DE DOMINIO"
@@ -2045,7 +1926,6 @@ const FormularioCompraventa = () => {
                             e.target.value === "otro"
                               ? historiaFormulario.tituloOtro
                               : "",
-                          // Limpiar campos de causante si no es sucesión
                           nombreCausante:
                             e.target.value === "sucesion"
                               ? historiaFormulario.nombreCausante
@@ -2099,7 +1979,6 @@ const FormularioCompraventa = () => {
                       <option value="otro">Otro</option>
                     </select>
                   </div>
-
                   {historiaFormulario.titulo === "otro" && (
                     <div className="col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2119,8 +1998,6 @@ const FormularioCompraventa = () => {
                       />
                     </div>
                   )}
-
-                  {/* SI ES SUCESIÓN - Tipo de Sucesión */}
                   {historiaFormulario.titulo === "sucesion" && (
                     <div className="col-span-2 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
                       <div className="space-y-3">
@@ -2147,11 +2024,9 @@ const FormularioCompraventa = () => {
                             </option>
                           </select>
                         </div>
-
                         <h4 className="font-semibold text-blue-900 pt-3 border-t border-blue-300">
                           Datos del Causante
                         </h4>
-
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
                             Nombre completo del Causante (de quien heredaron)
@@ -2172,8 +2047,6 @@ const FormularioCompraventa = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* SI NO ES SUCESIÓN - Campo "Adquirido de" */}
                   {historiaFormulario.titulo &&
                     historiaFormulario.titulo !== "sucesion" && (
                       <div className="col-span-2">
@@ -2194,7 +2067,6 @@ const FormularioCompraventa = () => {
                         />
                       </div>
                     )}
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fecha de Otorgamiento
@@ -2211,7 +2083,6 @@ const FormularioCompraventa = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Número de Notaría
@@ -2232,7 +2103,6 @@ const FormularioCompraventa = () => {
                       Se convertirá automáticamente (14 → Décimo Cuarta)
                     </p>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Cantón de la Notaría
@@ -2250,7 +2120,6 @@ const FormularioCompraventa = () => {
                       placeholder="Ej: Quito"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Notario/Notaria
@@ -2268,7 +2137,6 @@ const FormularioCompraventa = () => {
                       placeholder="Ej: ALEX DAVID MEJÍA VITERI"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fecha de Inscripción
@@ -2285,7 +2153,6 @@ const FormularioCompraventa = () => {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Cantón de Inscripción
@@ -2309,7 +2176,6 @@ const FormularioCompraventa = () => {
                   </div>
                 </div>
 
-                {/* ADQUISICIÓN DEL CAUSANTE (solo si es sucesión) */}
                 {historiaFormulario.titulo === "sucesion" && (
                   <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-lg">
                     <h4 className="font-semibold text-amber-900 mb-3">
@@ -2319,7 +2185,6 @@ const FormularioCompraventa = () => {
                       Datos de cómo el causante adquirió originalmente el
                       inmueble
                     </p>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2338,7 +2203,6 @@ const FormularioCompraventa = () => {
                           placeholder="Ej: los señores MARÍA LÓPEZ y PEDRO SÁNCHEZ"
                         />
                       </div>
-
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Título de Adquisición del Causante
@@ -2367,7 +2231,6 @@ const FormularioCompraventa = () => {
                           <option value="otro">Otro</option>
                         </select>
                       </div>
-
                       {historiaFormulario.causanteTitulo === "otro" && (
                         <div className="col-span-2">
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2387,7 +2250,6 @@ const FormularioCompraventa = () => {
                           />
                         </div>
                       )}
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Fecha de Otorgamiento
@@ -2404,7 +2266,6 @@ const FormularioCompraventa = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Número de Notaría
@@ -2425,7 +2286,6 @@ const FormularioCompraventa = () => {
                           Se convertirá automáticamente
                         </p>
                       </div>
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Cantón de la Notaría
@@ -2443,7 +2303,6 @@ const FormularioCompraventa = () => {
                           placeholder="Ej: Quito"
                         />
                       </div>
-
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Notario/Notaria
@@ -2461,7 +2320,6 @@ const FormularioCompraventa = () => {
                           placeholder="Ej: ROBERTO DUEÑAS"
                         />
                       </div>
-
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Fecha de Inscripción
@@ -2478,7 +2336,6 @@ const FormularioCompraventa = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                         />
                       </div>
-
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Cantón de Inscripción
@@ -2503,7 +2360,6 @@ const FormularioCompraventa = () => {
                   </div>
                 )}
 
-                {/* NUEVO: ACLARATORIAS */}
                 {historiaFormulario.aclaratorias.length > 0 && (
                   <div className="border-t pt-4 mt-4 space-y-4">
                     <h4 className="font-medium text-gray-900">Aclaratorias</h4>
@@ -2518,7 +2374,6 @@ const FormularioCompraventa = () => {
                     )}
                   </div>
                 )}
-
                 <button
                   onClick={() => handleAgregarAclaratoriaHistoria()}
                   className="w-full px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium"
@@ -2530,158 +2385,192 @@ const FormularioCompraventa = () => {
           />
         )}
 
-        {/* 9. DECLARATORIA DE PROPIEDAD HORIZONTAL */}
+        {/* DECLARATORIA — pregunta primero, luego copia exacta de compraventa */}
         {tipoPropiedad === "horizontal" && (
-          <SeccionFormularioRedactar
-            titulo="DECLARATORIA DE PROPIEDAD HORIZONTAL"
-            onTextoManualChange={setDeclaratoriaManual}
-            placeholderTexto="Escriba aquí la declaratoria de propiedad horizontal..."
-            renderFormulario={() => (
+          <>
+            <div className="border-t-2 border-gray-300 pt-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                DECLARATORIA DE PROPIEDAD HORIZONTAL
+              </h3>
+            </div>
+            <Card>
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha de Otorgamiento
-                    </label>
-                    <input
-                      type="date"
-                      value={declaratoriaFormulario.fechaOtorgamiento}
-                      onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          fechaOtorgamiento: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Número de Notaría
-                    </label>
-                    <input
-                      type="text"
-                      value={declaratoriaFormulario.numeroNotaria}
-                      onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          numeroNotaria: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: primera, 14, 22"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Se convertirá automáticamente (22 → Vigésimo Segunda)
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cantón de la Notaría
-                    </label>
-                    <input
-                      type="text"
-                      value={declaratoriaFormulario.cantonNotaria}
-                      onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          cantonNotaria: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: Quito"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Notario/Notaria
-                    </label>
-                    <input
-                      type="text"
-                      value={declaratoriaFormulario.notario}
-                      onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          notario: e.target.value.toUpperCase(),
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-                      placeholder="Ej: PAOLA ANDRADE TORRES"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Fecha de Inscripción
-                    </label>
-                    <input
-                      type="date"
-                      value={declaratoriaFormulario.fechaInscripcion}
-                      onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          fechaInscripcion: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Cantón de Inscripción
-                    </label>
-                    <input
-                      type="text"
-                      value={declaratoriaFormulario.cantonInscripcion}
-                      onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          cantonInscripcion: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                      placeholder="Ej: Quito"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Si es igual al cantón de la notaría, se mostrará "del
-                      mismo cantón"
-                    </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ¿El inmueble tiene declaratoria de propiedad horizontal?
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setHayDeclaratoria(true)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${hayDeclaratoria === true ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      Sí
+                    </button>
+                    <button
+                      onClick={() => setHayDeclaratoria(false)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${hayDeclaratoria === false ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      No
+                    </button>
                   </div>
                 </div>
-
-                {/* NUEVO: ACLARATORIAS */}
-                {declaratoriaFormulario.aclaratorias.length > 0 && (
-                  <div className="border-t pt-4 mt-4 space-y-4">
-                    <h4 className="font-medium text-gray-900">Aclaratorias</h4>
-                    {declaratoriaFormulario.aclaratorias.map(
-                      (aclaratoria, index) => (
-                        <AclaratoriaDeclaratoriaItem
-                          key={aclaratoria.id}
-                          aclaratoria={aclaratoria}
-                          path={[index]}
-                        />
-                      ),
-                    )}
+                {hayDeclaratoria === false && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      ℹ️ Se incluirá en la promesa el texto correspondiente a
+                      inmueble sin declaratoria de propiedad horizontal.
+                    </p>
                   </div>
                 )}
-
-                <button
-                  onClick={() => handleAgregarAclaratoriaDeclaratoria()}
-                  className="w-full px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium"
-                >
-                  + Agregar Aclaratoria
-                </button>
               </div>
+            </Card>
+
+            {hayDeclaratoria === true && (
+              <SeccionFormularioRedactar
+                titulo="DECLARATORIA DE PROPIEDAD HORIZONTAL"
+                onTextoManualChange={setDeclaratoriaManual}
+                placeholderTexto="Escriba aquí la declaratoria de propiedad horizontal..."
+                renderFormulario={() => (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fecha de Otorgamiento
+                        </label>
+                        <input
+                          type="date"
+                          value={declaratoriaFormulario.fechaOtorgamiento}
+                          onChange={(e) =>
+                            setDeclaratoriaFormulario({
+                              ...declaratoriaFormulario,
+                              fechaOtorgamiento: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Número de Notaría
+                        </label>
+                        <input
+                          type="text"
+                          value={declaratoriaFormulario.numeroNotaria}
+                          onChange={(e) =>
+                            setDeclaratoriaFormulario({
+                              ...declaratoriaFormulario,
+                              numeroNotaria: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: primera, 14, 22"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Se convertirá automáticamente (22 → Vigésimo Segunda)
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cantón de la Notaría
+                        </label>
+                        <input
+                          type="text"
+                          value={declaratoriaFormulario.cantonNotaria}
+                          onChange={(e) =>
+                            setDeclaratoriaFormulario({
+                              ...declaratoriaFormulario,
+                              cantonNotaria: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Quito"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Notario/Notaria
+                        </label>
+                        <input
+                          type="text"
+                          value={declaratoriaFormulario.notario}
+                          onChange={(e) =>
+                            setDeclaratoriaFormulario({
+                              ...declaratoriaFormulario,
+                              notario: e.target.value.toUpperCase(),
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                          placeholder="Ej: PAOLA ANDRADE TORRES"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Fecha de Inscripción
+                        </label>
+                        <input
+                          type="date"
+                          value={declaratoriaFormulario.fechaInscripcion}
+                          onChange={(e) =>
+                            setDeclaratoriaFormulario({
+                              ...declaratoriaFormulario,
+                              fechaInscripcion: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Cantón de Inscripción
+                        </label>
+                        <input
+                          type="text"
+                          value={declaratoriaFormulario.cantonInscripcion}
+                          onChange={(e) =>
+                            setDeclaratoriaFormulario({
+                              ...declaratoriaFormulario,
+                              cantonInscripcion: e.target.value,
+                            })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Quito"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Si es igual al cantón de la notaría, se mostrará "del
+                          mismo cantón"
+                        </p>
+                      </div>
+                    </div>
+                    {declaratoriaFormulario.aclaratorias.length > 0 && (
+                      <div className="border-t pt-4 mt-4 space-y-4">
+                        <h4 className="font-medium text-gray-900">
+                          Aclaratorias
+                        </h4>
+                        {declaratoriaFormulario.aclaratorias.map(
+                          (aclaratoria, index) => (
+                            <AclaratoriaDeclaratoriaItem
+                              key={aclaratoria.id}
+                              aclaratoria={aclaratoria}
+                              path={[index]}
+                            />
+                          ),
+                        )}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => handleAgregarAclaratoriaDeclaratoria()}
+                      className="w-full px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium"
+                    >
+                      + Agregar Aclaratoria
+                    </button>
+                  </div>
+                )}
+              />
             )}
-          />
+          </>
         )}
 
-        {/* Continúa con Linderos en la siguiente parte... */}
-        {/* 10. LINDEROS GENERALES */}
+        {/* LINDEROS GENERALES */}
         {tipoPropiedad && (
           <>
             <div className="border-t-2 border-gray-300 pt-4">
@@ -2689,250 +2578,78 @@ const FormularioCompraventa = () => {
                 LINDEROS GENERALES
               </h3>
             </div>
-
             <Card>
               <div className="space-y-6">
-                {/* NORTE */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Norte
-                    </label>
-                    <button
-                      onClick={() => handleAgregarLindero("norte")}
-                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                    >
-                      + Agregar lindero norte
-                    </button>
-                  </div>
-                  {linderosGenerales.norte.map((lindero, index) => (
-                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
-                      <div>
-                        <input
-                          type="text"
-                          value={lindero.metros}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "norte",
-                              index,
-                              "metros",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Metros (ej: 37.84)"
-                        />
+                {["norte", "sur", "este", "oeste"].map((dir) => {
+                  const labels = {
+                    norte: "Norte",
+                    sur: "Sur",
+                    este: "Este",
+                    oeste: "Oeste",
+                  };
+                  return (
+                    <div key={dir}>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="block text-sm font-medium text-gray-700">
+                          {labels[dir]}
+                        </label>
+                        <button
+                          onClick={() => handleAgregarLindero(dir)}
+                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
+                        >
+                          + Agregar lindero {labels[dir].toLowerCase()}
+                        </button>
                       </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={lindero.colindancia}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "norte",
-                              index,
-                              "colindancia",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Colindancia (ej: con propiedad del señor...)"
-                        />
-                        {linderosGenerales.norte.length > 1 && (
-                          <button
-                            onClick={() =>
-                              handleEliminarLindero("norte", index)
+                      {linderosGenerales[dir].map((lindero, index) => (
+                        <div
+                          key={index}
+                          className="grid grid-cols-2 gap-4 mb-2"
+                        >
+                          <input
+                            type="text"
+                            value={lindero.metros}
+                            onChange={(e) =>
+                              handleLinderoChange(
+                                dir,
+                                index,
+                                "metros",
+                                e.target.value,
+                              )
                             }
-                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                            placeholder="Metros (ej: 37.84)"
+                          />
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lindero.colindancia}
+                              onChange={(e) =>
+                                handleLinderoChange(
+                                  dir,
+                                  index,
+                                  "colindancia",
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                              placeholder="Colindancia"
+                            />
+                            {linderosGenerales[dir].length > 1 && (
+                              <button
+                                onClick={() =>
+                                  handleEliminarLindero(dir, index)
+                                }
+                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-
-                {/* SUR */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Sur
-                    </label>
-                    <button
-                      onClick={() => handleAgregarLindero("sur")}
-                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                    >
-                      + Agregar lindero sur
-                    </button>
-                  </div>
-                  {linderosGenerales.sur.map((lindero, index) => (
-                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
-                      <div>
-                        <input
-                          type="text"
-                          value={lindero.metros}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "sur",
-                              index,
-                              "metros",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Metros"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={lindero.colindancia}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "sur",
-                              index,
-                              "colindancia",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Colindancia"
-                        />
-                        {linderosGenerales.sur.length > 1 && (
-                          <button
-                            onClick={() => handleEliminarLindero("sur", index)}
-                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ESTE */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Este
-                    </label>
-                    <button
-                      onClick={() => handleAgregarLindero("este")}
-                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                    >
-                      + Agregar lindero este
-                    </button>
-                  </div>
-                  {linderosGenerales.este.map((lindero, index) => (
-                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
-                      <div>
-                        <input
-                          type="text"
-                          value={lindero.metros}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "este",
-                              index,
-                              "metros",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Metros"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={lindero.colindancia}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "este",
-                              index,
-                              "colindancia",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Colindancia"
-                        />
-                        {linderosGenerales.este.length > 1 && (
-                          <button
-                            onClick={() => handleEliminarLindero("este", index)}
-                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* OESTE */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Oeste
-                    </label>
-                    <button
-                      onClick={() => handleAgregarLindero("oeste")}
-                      className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                    >
-                      + Agregar lindero oeste
-                    </button>
-                  </div>
-                  {linderosGenerales.oeste.map((lindero, index) => (
-                    <div key={index} className="grid grid-cols-2 gap-4 mb-2">
-                      <div>
-                        <input
-                          type="text"
-                          value={lindero.metros}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "oeste",
-                              index,
-                              "metros",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Metros"
-                        />
-                      </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={lindero.colindancia}
-                          onChange={(e) =>
-                            handleLinderoChange(
-                              "oeste",
-                              index,
-                              "colindancia",
-                              e.target.value,
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                          placeholder="Colindancia"
-                        />
-                        {linderosGenerales.oeste.length > 1 && (
-                          <button
-                            onClick={() =>
-                              handleEliminarLindero("oeste", index)
-                            }
-                            className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Superficie */}
+                  );
+                })}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Superficie Total
@@ -2956,7 +2673,6 @@ const FormularioCompraventa = () => {
               </div>
             </Card>
 
-            {/* LINDEROS ESPECÍFICOS - SOLO PARA HORIZONTAL */}
             {tipoPropiedad === "horizontal" && (
               <Card title="Linderos Específicos (Opcional)">
                 <label className="flex items-center gap-2 cursor-pointer mb-4">
@@ -2973,409 +2689,87 @@ const FormularioCompraventa = () => {
                     generales?
                   </span>
                 </label>
-
                 {tieneLInderosEspecificos && (
                   <div className="space-y-6 border-t pt-4">
-                    {/* NORTE */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Norte
-                        </label>
-                        <button
-                          onClick={() => handleAgregarLindero("norte", true)}
-                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        >
-                          + Agregar lindero norte
-                        </button>
-                      </div>
-                      {linderosEspecificos.norte.map((lindero, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-2 gap-4 mb-2"
-                        >
-                          <div>
-                            <input
-                              type="text"
-                              value={lindero.metros}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "norte",
-                                  index,
-                                  "metros",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Metros"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lindero.colindancia}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "norte",
-                                  index,
-                                  "colindancia",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Colindancia"
-                            />
-                            {linderosEspecificos.norte.length > 1 && (
+                    {["norte", "sur", "este", "oeste", "arriba", "abajo"].map(
+                      (dir) => {
+                        const labels = {
+                          norte: "Norte",
+                          sur: "Sur",
+                          este: "Este",
+                          oeste: "Oeste",
+                          arriba: "Arriba",
+                          abajo: "Abajo",
+                        };
+                        return (
+                          <div key={dir}>
+                            <div className="flex justify-between items-center mb-2">
+                              <label className="block text-sm font-medium text-gray-700">
+                                {labels[dir]}
+                              </label>
                               <button
-                                onClick={() =>
-                                  handleEliminarLindero("norte", index, true)
-                                }
-                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                                onClick={() => handleAgregarLindero(dir, true)}
+                                className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
                               >
-                                ×
+                                + Agregar lindero {labels[dir].toLowerCase()}
                               </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* SUR */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Sur
-                        </label>
-                        <button
-                          onClick={() => handleAgregarLindero("sur", true)}
-                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        >
-                          + Agregar lindero sur
-                        </button>
-                      </div>
-                      {linderosEspecificos.sur.map((lindero, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-2 gap-4 mb-2"
-                        >
-                          <div>
-                            <input
-                              type="text"
-                              value={lindero.metros}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "sur",
-                                  index,
-                                  "metros",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Metros"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lindero.colindancia}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "sur",
-                                  index,
-                                  "colindancia",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Colindancia"
-                            />
-                            {linderosEspecificos.sur.length > 1 && (
-                              <button
-                                onClick={() =>
-                                  handleEliminarLindero("sur", index, true)
-                                }
-                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                            </div>
+                            {linderosEspecificos[dir].map((lindero, index) => (
+                              <div
+                                key={index}
+                                className="grid grid-cols-2 gap-4 mb-2"
                               >
-                                ×
-                              </button>
-                            )}
+                                <input
+                                  type="text"
+                                  value={lindero.metros}
+                                  onChange={(e) =>
+                                    handleLinderoChange(
+                                      dir,
+                                      index,
+                                      "metros",
+                                      e.target.value,
+                                      true,
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Metros"
+                                />
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={lindero.colindancia}
+                                    onChange={(e) =>
+                                      handleLinderoChange(
+                                        dir,
+                                        index,
+                                        "colindancia",
+                                        e.target.value,
+                                        true,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                    placeholder="Colindancia"
+                                  />
+                                  {linderosEspecificos[dir].length > 1 && (
+                                    <button
+                                      onClick={() =>
+                                        handleEliminarLindero(dir, index, true)
+                                      }
+                                      className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
+                                    >
+                                      ×
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ESTE */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Este
-                        </label>
-                        <button
-                          onClick={() => handleAgregarLindero("este", true)}
-                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        >
-                          + Agregar lindero este
-                        </button>
-                      </div>
-                      {linderosEspecificos.este.map((lindero, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-2 gap-4 mb-2"
-                        >
-                          <div>
-                            <input
-                              type="text"
-                              value={lindero.metros}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "este",
-                                  index,
-                                  "metros",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Metros"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lindero.colindancia}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "este",
-                                  index,
-                                  "colindancia",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Colindancia"
-                            />
-                            {linderosEspecificos.este.length > 1 && (
-                              <button
-                                onClick={() =>
-                                  handleEliminarLindero("este", index, true)
-                                }
-                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* OESTE */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Oeste
-                        </label>
-                        <button
-                          onClick={() => handleAgregarLindero("oeste", true)}
-                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        >
-                          + Agregar lindero oeste
-                        </button>
-                      </div>
-                      {linderosEspecificos.oeste.map((lindero, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-2 gap-4 mb-2"
-                        >
-                          <div>
-                            <input
-                              type="text"
-                              value={lindero.metros}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "oeste",
-                                  index,
-                                  "metros",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Metros"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lindero.colindancia}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "oeste",
-                                  index,
-                                  "colindancia",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Colindancia"
-                            />
-                            {linderosEspecificos.oeste.length > 1 && (
-                              <button
-                                onClick={() =>
-                                  handleEliminarLindero("oeste", index, true)
-                                }
-                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ARRIBA - NUEVO */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Arriba
-                        </label>
-                        <button
-                          onClick={() => handleAgregarLindero("arriba", true)}
-                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        >
-                          + Agregar lindero arriba
-                        </button>
-                      </div>
-                      {linderosEspecificos.arriba.map((lindero, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-2 gap-4 mb-2"
-                        >
-                          <div>
-                            <input
-                              type="text"
-                              value={lindero.metros}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "arriba",
-                                  index,
-                                  "metros",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Metros"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lindero.colindancia}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "arriba",
-                                  index,
-                                  "colindancia",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Ej: con losa del departamento superior"
-                            />
-                            {linderosEspecificos.arriba.length > 1 && (
-                              <button
-                                onClick={() =>
-                                  handleEliminarLindero("arriba", index, true)
-                                }
-                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* ABAJO - NUEVO */}
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Abajo
-                        </label>
-                        <button
-                          onClick={() => handleAgregarLindero("abajo", true)}
-                          className="text-sm px-3 py-1 bg-primary-100 text-primary-700 rounded hover:bg-primary-200"
-                        >
-                          + Agregar lindero abajo
-                        </button>
-                      </div>
-                      {linderosEspecificos.abajo.map((lindero, index) => (
-                        <div
-                          key={index}
-                          className="grid grid-cols-2 gap-4 mb-2"
-                        >
-                          <div>
-                            <input
-                              type="text"
-                              value={lindero.metros}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "abajo",
-                                  index,
-                                  "metros",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Metros"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lindero.colindancia}
-                              onChange={(e) =>
-                                handleLinderoChange(
-                                  "abajo",
-                                  index,
-                                  "colindancia",
-                                  e.target.value,
-                                  true,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                              placeholder="Ej: con contrapiso del departamento inferior"
-                            />
-                            {linderosEspecificos.abajo.length > 1 && (
-                              <button
-                                onClick={() =>
-                                  handleEliminarLindero("abajo", index, true)
-                                }
-                                className="px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 font-bold"
-                              >
-                                ×
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Superficie específica */}
+                        );
+                      },
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Superficie Específica
+                        Superficie Total
                       </label>
                       <input
                         type="text"
@@ -3387,11 +2781,10 @@ const FormularioCompraventa = () => {
                           })
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                        placeholder="Ej: 85.50"
+                        placeholder="Ej: 1000.44"
                       />
                       <p className="text-xs text-gray-500 mt-1">
-                        Superficie específica del inmueble (si difiere de la
-                        general)
+                        En metros cuadrados y decímetros cuadrados
                       </p>
                     </div>
                   </div>
@@ -3401,61 +2794,7 @@ const FormularioCompraventa = () => {
           </>
         )}
 
-        {/* Continúa con Objeto del Contrato, Precio, etc. en la siguiente parte... */}
-        {/* 11. OBJETO DEL CONTRATO */}
-        {tipoPropiedad && (
-          <>
-            <div className="border-t-4 border-primary-500 pt-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  OBJETO DEL CONTRATO
-                </h2>
-                <Button
-                  variant={modoSujeto === "manual" ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() =>
-                    setModoSujeto(modoSujeto === "auto" ? "manual" : "auto")
-                  }
-                >
-                  {modoSujeto === "auto"
-                    ? "Redactar Manualmente"
-                    : "Usar Datos del Formulario"}
-                </Button>
-              </div>
-            </div>
-
-            {modoSujeto === "manual" ? (
-              <Card>
-                <p className="text-sm text-gray-600 mb-3">
-                  Redacte manualmente el objeto del contrato:
-                </p>
-                <RichTextEditor
-                  onChange={setSujetoManual}
-                  placeholder="Escriba aquí el objeto del contrato..."
-                  minHeight="12rem"
-                />
-              </Card>
-            ) : (
-              <div className="p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <div className="text-blue-600 mt-1">ℹ️</div>
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">
-                      El objeto del contrato se generará automáticamente
-                    </p>
-                    <p className="text-xs text-blue-700 mt-1">
-                      Se usarán los datos de vendedores, compradores y bienes
-                      que ingresó arriba. Si necesita personalizar el texto, use
-                      el botón "Redactar Manualmente".
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* 12. PRECIO Y FORMA DE PAGO */}
+        {/* PRECIO Y FORMA DE PAGO — copia exacta de compraventa */}
         {tipoPropiedad && (
           <>
             <div className="border-t-4 border-primary-500 pt-6">
@@ -3492,7 +2831,6 @@ const FormularioCompraventa = () => {
               </Card>
             ) : (
               <>
-                {/* PRECIO TOTAL */}
                 <Card title="Precio Total">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl font-bold text-gray-700">$</span>
@@ -3508,7 +2846,6 @@ const FormularioCompraventa = () => {
                   </div>
                 </Card>
 
-                {/* PARTES DE PAGO */}
                 <Card title="Forma de Pago">
                   <div className="space-y-6">
                     {partesPago.map((parte) => (
@@ -3516,7 +2853,6 @@ const FormularioCompraventa = () => {
                         key={parte.id}
                         className="border-2 border-gray-300 rounded-lg p-6 bg-gray-50"
                       >
-                        {/* Header de la parte */}
                         <div className="flex justify-between items-center mb-4">
                           <h3 className="text-lg font-bold text-gray-900">
                             Parte {parte.letra})
@@ -3530,9 +2866,7 @@ const FormularioCompraventa = () => {
                             </button>
                           )}
                         </div>
-
                         <div className="space-y-4">
-                          {/* Monto */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Monto de esta parte
@@ -3557,8 +2891,6 @@ const FormularioCompraventa = () => {
                               />
                             </div>
                           </div>
-
-                          {/* Tipo de Pago */}
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Tipo de Pago
@@ -3581,10 +2913,8 @@ const FormularioCompraventa = () => {
                             </select>
                           </div>
 
-                          {/* SI ES PAGO ÚNICO */}
                           {parte.tipoPago === "unico" && (
                             <>
-                              {/* Medio de Pago */}
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                   Medio de Pago
@@ -3613,8 +2943,6 @@ const FormularioCompraventa = () => {
                                   <option value="efectivo">Efectivo</option>
                                 </select>
                               </div>
-
-                              {/* NUEVO: Detalle de Transferencia */}
                               {parte.medioPago === "transferencia" && (
                                 <div className="border-t pt-4 mt-4">
                                   <label className="flex items-center gap-2 cursor-pointer mb-3">
@@ -3634,7 +2962,6 @@ const FormularioCompraventa = () => {
                                       ¿Agregar detalle de transferencia?
                                     </span>
                                   </label>
-
                                   {parte.tieneDetalle && (
                                     <div className="grid grid-cols-2 gap-4 bg-blue-50 p-4 rounded-lg border border-blue-200">
                                       <div>
@@ -3655,7 +2982,6 @@ const FormularioCompraventa = () => {
                                           placeholder="Ej: Banco Pichincha"
                                         />
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Cuenta de origen
@@ -3674,7 +3000,6 @@ const FormularioCompraventa = () => {
                                           placeholder="Ej: 2100123456"
                                         />
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Tipo de cuenta de origen
@@ -3699,7 +3024,6 @@ const FormularioCompraventa = () => {
                                           </option>
                                         </select>
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Banco de destino
@@ -3718,7 +3042,6 @@ const FormularioCompraventa = () => {
                                           placeholder="Ej: Banco Guayaquil"
                                         />
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Cuenta de destino
@@ -3737,7 +3060,6 @@ const FormularioCompraventa = () => {
                                           placeholder="Ej: 3200654321"
                                         />
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Tipo de cuenta de destino
@@ -3768,8 +3090,6 @@ const FormularioCompraventa = () => {
                                   )}
                                 </div>
                               )}
-
-                              {/* NUEVO: Detalle de Depósito */}
                               {parte.medioPago === "deposito" && (
                                 <div className="border-t pt-4 mt-4">
                                   <label className="flex items-center gap-2 cursor-pointer mb-3">
@@ -3789,7 +3109,6 @@ const FormularioCompraventa = () => {
                                       ¿Agregar detalle de depósito?
                                     </span>
                                   </label>
-
                                   {parte.tieneDetalle && (
                                     <div className="grid grid-cols-2 gap-4 bg-green-50 p-4 rounded-lg border border-green-200">
                                       <div>
@@ -3810,7 +3129,6 @@ const FormularioCompraventa = () => {
                                           placeholder="Ej: Banco Pacífico"
                                         />
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Número de cuenta de destino
@@ -3829,7 +3147,6 @@ const FormularioCompraventa = () => {
                                           placeholder="Ej: 4500987654"
                                         />
                                       </div>
-
                                       <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                           Tipo de cuenta de destino
@@ -3860,8 +3177,6 @@ const FormularioCompraventa = () => {
                                   )}
                                 </div>
                               )}
-
-                              {/* Si es Cheque - Tipo de Cheque */}
                               {parte.medioPago === "cheque" && (
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -3891,8 +3206,6 @@ const FormularioCompraventa = () => {
                                   </select>
                                 </div>
                               )}
-
-                              {/* Momento de Pago */}
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                   Momento de Pago
@@ -3923,8 +3236,6 @@ const FormularioCompraventa = () => {
                                   </option>
                                 </select>
                               </div>
-
-                              {/* Si es Otro momento */}
                               {parte.momentoPago === "otro" && (
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -3948,7 +3259,6 @@ const FormularioCompraventa = () => {
                             </>
                           )}
 
-                          {/* SI ES PAGO EN CUOTAS */}
                           {parte.tipoPago === "cuotas" && (
                             <>
                               <div className="grid grid-cols-2 gap-4">
@@ -3971,7 +3281,6 @@ const FormularioCompraventa = () => {
                                     min="1"
                                   />
                                 </div>
-
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Valor por Cuota (auto-calculado)
@@ -3988,7 +3297,6 @@ const FormularioCompraventa = () => {
                                   </div>
                                 </div>
                               </div>
-
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                   Periodicidad
@@ -4016,7 +3324,6 @@ const FormularioCompraventa = () => {
                                   </option>
                                 </select>
                               </div>
-
                               {parte.periodicidad === "otro" && (
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -4037,8 +3344,6 @@ const FormularioCompraventa = () => {
                                   />
                                 </div>
                               )}
-
-                              {/* Medio de Pago para cuotas */}
                               <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                   Medio de Pago
@@ -4067,8 +3372,6 @@ const FormularioCompraventa = () => {
                                   <option value="efectivo">Efectivo</option>
                                 </select>
                               </div>
-
-                              {/* Si es Cheque - Tipo */}
                               {parte.medioPago === "cheque" && (
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -4101,7 +3404,6 @@ const FormularioCompraventa = () => {
                             </>
                           )}
 
-                          {/* CRÉDITO BANCARIO (aplica para ambos tipos) */}
                           <div className="border-t pt-4">
                             <label className="flex items-center gap-2 cursor-pointer">
                               <input
@@ -4120,7 +3422,6 @@ const FormularioCompraventa = () => {
                                 Proviene de crédito bancario
                               </span>
                             </label>
-
                             {parte.esCreditoBancario && (
                               <div className="mt-3 space-y-3 pl-6">
                                 <div>
@@ -4141,7 +3442,6 @@ const FormularioCompraventa = () => {
                                     placeholder="Ej: BANCO DEL PACÍFICO"
                                   />
                                 </div>
-
                                 <div>
                                   <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Cuenta Destino
@@ -4167,7 +3467,6 @@ const FormularioCompraventa = () => {
                       </div>
                     ))}
 
-                    {/* Resumen y botón agregar */}
                     <div className="border-t-2 border-gray-300 pt-4">
                       <div className="flex justify-between items-center mb-4">
                         <div>
@@ -4190,7 +3489,6 @@ const FormularioCompraventa = () => {
                             {calcularSaldoRestante().toFixed(2)}
                           </p>
                         </div>
-
                         <Button
                           variant="outline"
                           size="sm"
@@ -4199,7 +3497,6 @@ const FormularioCompraventa = () => {
                           + Agregar Parte de Pago
                         </Button>
                       </div>
-
                       {calcularSaldoRestante() !== 0 && precioTotal && (
                         <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                           <p className="text-sm text-yellow-800">
@@ -4208,7 +3505,6 @@ const FormularioCompraventa = () => {
                           </p>
                         </div>
                       )}
-
                       {calcularSaldoRestante() === 0 && precioTotal && (
                         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                           <p className="text-sm text-green-800">
@@ -4225,48 +3521,362 @@ const FormularioCompraventa = () => {
           </>
         )}
 
-        {/* 13. ADMINISTRADOR */}
-        {tipoPropiedad === "horizontal" && (
-          <Card title="Administrador del Condominio">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={hayAdministrador}
-                onChange={(e) => setHayAdministrador(e.target.checked)}
-                className="w-5 h-5 text-primary-600 focus:ring-primary-500 rounded"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                ¿El condominio tiene administrador nombrado?
-              </span>
-            </label>
+        {/* CLÁUSULAS EXCLUSIVAS DE PROMESA */}
+        {tipoPropiedad && (
+          <>
+            <div className="border-t-4 border-primary-500 pt-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                CLÁUSULAS DE LA PROMESA
+              </h2>
+            </div>
 
-            {!hayAdministrador && (
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  ℹ️ Se incluirá en la minuta la declaración juramentada de que
-                  no existe administrador nombrado
-                </p>
-              </div>
-            )}
+            {/* PLAZO */}
+            <Card title="Plazo para Celebrar la Escritura (Quinta Cláusula)">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ¿El plazo es una fecha fija?
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() =>
+                        setPlazo({
+                          ...plazo,
+                          esFechaFija: true,
+                          anios: "",
+                          meses: "",
+                          dias: "",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${plazo.esFechaFija ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      Sí, fecha fija
+                    </button>
+                    <button
+                      onClick={() =>
+                        setPlazo({
+                          ...plazo,
+                          esFechaFija: false,
+                          fechaFija: "",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${!plazo.esFechaFija ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      No, plazo en días/meses/años
+                    </button>
+                  </div>
+                </div>
 
-            {hayAdministrador && (
-              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  ⚠️ Si existe administrador, NO se incluirá la cláusula de
-                  declaración
-                </p>
+                {plazo.esFechaFija ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fecha límite para escriturar
+                    </label>
+                    <input
+                      type="date"
+                      value={plazo.fechaFija}
+                      onChange={(e) =>
+                        setPlazo({ ...plazo, fechaFija: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Duración del plazo
+                    </label>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Años
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={plazo.anios}
+                          onChange={(e) =>
+                            setPlazo({ ...plazo, anios: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Meses
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="11"
+                          value={plazo.meses}
+                          onChange={(e) =>
+                            setPlazo({ ...plazo, meses: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">
+                          Días
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={plazo.dias}
+                          onChange={(e) =>
+                            setPlazo({ ...plazo, dias: e.target.value })
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                    {(plazo.anios || plazo.meses || plazo.dias) && (
+                      <p className="text-xs text-primary-700 mt-2 font-medium">
+                        Plazo:{" "}
+                        {[
+                          plazo.anios && `${plazo.anios} año(s)`,
+                          plazo.meses && `${plazo.meses} mes(es)`,
+                          plazo.dias && `${plazo.dias} día(s)`,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <div className="border-t pt-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={plazo.conProrroga}
+                      onChange={(e) =>
+                        setPlazo({
+                          ...plazo,
+                          conProrroga: e.target.checked,
+                          fechaProrroga: "",
+                        })
+                      }
+                      className="w-4 h-4 text-primary-600 focus:ring-primary-500 rounded"
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Incluir prórroga
+                    </span>
+                  </label>
+                  {plazo.conProrroga && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Fecha límite de la prórroga
+                      </label>
+                      <input
+                        type="date"
+                        value={plazo.fechaProrroga}
+                        onChange={(e) =>
+                          setPlazo({ ...plazo, fechaProrroga: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
+            </Card>
+
+            {/* CLÁUSULA PENAL */}
+            <Card title="Cláusula Penal (Séptima Cláusula)">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipo de penalidad
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() =>
+                        setClausulaPenal({
+                          ...clausulaPenal,
+                          tipoPenal: "monto_fijo",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${clausulaPenal.tipoPenal === "monto_fijo" ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      Monto fijo
+                    </button>
+                    <button
+                      onClick={() =>
+                        setClausulaPenal({
+                          ...clausulaPenal,
+                          tipoPenal: "porcentaje",
+                        })
+                      }
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${clausulaPenal.tipoPenal === "porcentaje" ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      Porcentaje del precio
+                    </button>
+                  </div>
+                </div>
+                {clausulaPenal.tipoPenal === "monto_fijo" ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Monto de la pena (USD)
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-bold text-gray-700">$</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={clausulaPenal.montoFijo}
+                        onChange={(e) =>
+                          setClausulaPenal({
+                            ...clausulaPenal,
+                            montoFijo: e.target.value,
+                          })
+                        }
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Porcentaje (%)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={clausulaPenal.porcentaje}
+                        onChange={(e) =>
+                          setClausulaPenal({
+                            ...clausulaPenal,
+                            porcentaje: e.target.value,
+                          })
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ej: 10"
+                      />
+                    </div>
+                    {clausulaPenal.porcentaje && precioTotal && (
+                      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                        <p className="text-sm text-amber-800">
+                          Monto calculado:{" "}
+                          <strong>
+                            $
+                            {(
+                              (parseFloat(precioTotal) *
+                                parseFloat(clausulaPenal.porcentaje)) /
+                              100
+                            ).toFixed(2)}
+                          </strong>
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* CONDICIÓN RESOLUTORIA */}
+            <Card title="Condición Resolutoria (Octava Cláusula)">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ¿Incluir condición resolutoria?
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setHayCondicionResolutoria(true)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${hayCondicionResolutoria === true ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      Sí
+                    </button>
+                    <button
+                      onClick={() => setHayCondicionResolutoria(false)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${hayCondicionResolutoria === false ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+                {hayCondicionResolutoria === true && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      ℹ️ Se incluirá en la promesa la cláusula de condición
+                      resolutoria.
+                    </p>
+                  </div>
+                )}
+                {hayCondicionResolutoria === false && (
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p className="text-sm text-gray-600">
+                      ℹ️ No se incluirá condición resolutoria en la promesa.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {/* DATOS ABOGADO ADICIONAL — solo si hay CR */}
+            {hayCondicionResolutoria === true && (
+              <Card title="Datos para Décima Segunda Cláusula">
+                <p className="text-sm text-gray-600 mb-4">
+                  Al incluir condición resolutoria, se requieren los datos del
+                  abogado patrocinador adicional.
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nombre del abogado
+                    </label>
+                    <input
+                      type="text"
+                      value={propiedadIntelectual.nombreAbogado}
+                      onChange={(e) =>
+                        setPropiedadIntelectual({
+                          ...propiedadIntelectual,
+                          nombreAbogado: e.target.value.toUpperCase(),
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+                      placeholder="NOMBRES COMPLETOS"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Género
+                    </label>
+                    <select
+                      value={propiedadIntelectual.generoAbogado}
+                      onChange={(e) =>
+                        setPropiedadIntelectual({
+                          ...propiedadIntelectual,
+                          generoAbogado: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="femenino">Femenino (la abogada)</option>
+                      <option value="masculino">Masculino (el abogado)</option>
+                    </select>
+                  </div>
+                </div>
+              </Card>
             )}
-          </Card>
+          </>
         )}
 
-        {/* 14. DATOS DEL ABOGADO */}
+        {/* ABOGADO — igual que compraventa */}
         <div className="border-t-4 border-primary-500 pt-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             DATOS DEL ABOGADO
           </h2>
         </div>
-
         <Card>
           <div className="space-y-4">
             <div>
@@ -4286,7 +3896,6 @@ const FormularioCompraventa = () => {
                 placeholder="Ej: MARIELA VERA SOSA"
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -4303,7 +3912,6 @@ const FormularioCompraventa = () => {
                   <option value="colegio">Colegio de Abogados</option>
                 </select>
               </div>
-
               {abogado.tipoMatricula === "colegio" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -4321,7 +3929,6 @@ const FormularioCompraventa = () => {
                 </div>
               )}
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Número de Matrícula
@@ -4350,15 +3957,14 @@ const FormularioCompraventa = () => {
           <Button
             variant="primary"
             size="lg"
-            onClick={handleGenerarMinuta}
+            onClick={handleGenerarPromesa}
             disabled={loading}
           >
-            {loading ? "Generando..." : "Generar Minuta"}
+            {loading ? "Generando..." : "Generar Promesa"}
           </Button>
         </div>
       </div>
 
-      {/* MODAL GUARDAR PLANTILLA */}
       <ModalGuardarPlantilla
         abierto={modalPlantillaAbierto}
         onCerrar={() => setModalPlantillaAbierto(false)}
@@ -4367,7 +3973,7 @@ const FormularioCompraventa = () => {
           toast.success("Plantilla guardada correctamente");
         }}
         tipoDocumento="minuta"
-        tipoContrato="compraventa"
+        tipoContrato="promesa_compraventa"
         nombreVendedor={(() => {
           const v = vendedores[0];
           if (!v) return "";
@@ -4385,22 +3991,22 @@ const FormularioCompraventa = () => {
           nombreConjunto,
           predios,
           ubicacion,
-          modoHistoria,
           historiaManual,
           historiaFormulario,
-          modoDeclaratoria,
+          hayDeclaratoria,
           declaratoriaManual,
           declaratoriaFormulario,
           linderosGenerales,
           tieneLInderosEspecificos,
           linderosEspecificos,
-          modoSujeto,
-          sujetoManual,
-          precioTotal,
           modoPrecio,
-          precioManual,
+          precioTotal,
           partesPago,
-          hayAdministrador,
+          precioManual,
+          plazo,
+          clausulaPenal,
+          hayCondicionResolutoria,
+          propiedadIntelectual,
           abogado,
         }}
       />
@@ -4408,4 +4014,4 @@ const FormularioCompraventa = () => {
   );
 };
 
-export default FormularioCompraventa;
+export default FormularioPromesa;

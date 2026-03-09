@@ -19,7 +19,7 @@ const tiposContrato = [
       "Compromiso de celebrar un contrato de compraventa en fecha futura.",
     icon: FileSignature,
     path: "/minutas/promesa",
-    disponible: false,
+    disponible: true,
     color: "amber",
   },
   {

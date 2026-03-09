@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, Button } from "../shared";
 import ComparecienteSearch from "./ComparecienteSearch";
 import ComparecienteForm from "./ComparecienteForm";
@@ -27,7 +27,11 @@ const INITIAL_OPCIONES = {
   idiomaInterprete: "",
 };
 
-const ComparecienteInline = ({ title, onComparecienteReady }) => {
+const ComparecienteInline = ({
+  title,
+  onComparecienteReady,
+  initialData = null,
+}) => {
   const [entityType, setEntityType] = useState("persona"); // 'persona' | 'empresa'
   const [mode, setMode] = useState("search");
   const [loading, setLoading] = useState(false);
@@ -35,6 +39,24 @@ const ComparecienteInline = ({ title, onComparecienteReady }) => {
   const [opcionesEspeciales, setOpcionesEspeciales] =
     useState(INITIAL_OPCIONES);
   const toast = useToast();
+
+  // Precargar datos desde plantilla
+  useEffect(() => {
+    if (!initialData) return;
+    const esEmpresa = initialData.esEmpresa === true || !!initialData.ruc;
+    setEntityType(esEmpresa ? "empresa" : "persona");
+    setCompareciente(initialData);
+    setMode("selected");
+    // Restaurar opciones especiales si vienen en el initialData
+    const opciones = {};
+    Object.keys(INITIAL_OPCIONES).forEach((key) => {
+      if (initialData[key] !== undefined) opciones[key] = initialData[key];
+    });
+    if (Object.keys(opciones).length > 0) {
+      setOpcionesEspeciales((prev) => ({ ...prev, ...opciones }));
+    }
+    if (onComparecienteReady) onComparecienteReady(initialData);
+  }, [initialData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const notifyParent = (comp, opciones) => {
     if (onComparecienteReady) {
