@@ -12,6 +12,8 @@ import FormularioMatrizCompraventa from "./pages/matrices/compraventa/Formulario
 import MinutasIndexPage from "./pages/minutas/MinutasIndexPage";
 import FormularioCompraventa from "./pages/minutas/compraventa/FormularioCompraventa";
 import FormularioPromesa from "./pages/minutas/promesa/FormularioPromesa";
+import RegistroClientePage from "./pages/registro/RegistroClientePage";
+import GestionTokensPage from "./pages/registro/GestionTokensPage";
 
 function App() {
   const { isAuthenticated, loading } = useAuth();
@@ -80,6 +82,21 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* Registro público de clientes — sin login */}
+        <Route path="/registro/:token" element={<RegistroClientePage />} />
+
+        {/* Gestión de tokens — requiere login */}
+        <Route
+          path="/registro"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <GestionTokensPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+
         {/* Ruta por defecto */}
         <Route path="*" element={<Navigate to="/" replace />} />
         <Route

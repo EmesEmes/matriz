@@ -7,6 +7,7 @@ import {
   History,
   FileEdit,
   LogOut,
+  Link2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -43,6 +44,12 @@ const Sidebar = () => {
       name: "Historial",
       path: "/historial",
       icon: History,
+      roles: ["admin", "notaria", "lexdata"],
+    },
+    {
+      name: "Registro de Clientes",
+      path: "/registro",
+      icon: Link2,
       roles: ["admin", "notaria", "lexdata"],
     },
     {

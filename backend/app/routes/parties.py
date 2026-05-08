@@ -1,83 +1,82 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.party import Party
 from app.schemas.party import PartyCreate, PartyResponse, PartyWithPartner
 from app.middleware.auth import get_current_user
 from app.models.system_user import SystemUser
+from app.utils.access_log import registrar_acceso
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
+
+def get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else None
+
+
 @router.post("/", response_model=PartyResponse, status_code=status.HTTP_201_CREATED)
 def save_user(
+    request: Request,
     user_data: PartyCreate,
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    POST /api/users - Crear o guardar compareciente
-    Requiere autenticación
-    """
+    """POST /api/users — Crear o actualizar compareciente"""
     try:
-        # Verificar si ya existe el usuario
         existing_user = db.query(Party).filter(
             Party.document_number == user_data.document_number
         ).first()
-        
+
         if existing_user:
-            # Si existe, actualizar (upsert)
             for field, value in user_data.model_dump().items():
                 setattr(existing_user, field, value)
-            
+            db.flush()
+            registrar_acceso(db, current_user.username, "actualizar", "parties", user_data.document_number, get_client_ip(request))
             db.commit()
             db.refresh(existing_user)
             return existing_user
-        
-        # Si no existe, crear nuevo
+
         new_user = Party(**user_data.model_dump())
         db.add(new_user)
+        db.flush()
+        registrar_acceso(db, current_user.username, "crear", "parties", user_data.document_number, get_client_ip(request))
         db.commit()
         db.refresh(new_user)
-        
         return new_user
-        
+
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.get("/{document_number}", response_model=PartyWithPartner)
 def get_user(
     document_number: str,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    GET /api/users/:documentNumber - Obtener compareciente por número de documento
-    Incluye datos del cónyuge si está casado
-    """
+    """GET /api/users/:documentNumber — Obtener compareciente por número de documento"""
     try:
-        # Buscar usuario por documento
         user = db.query(Party).filter(
             Party.document_number == document_number
         ).first()
-        
+
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario no encontrado"
-            )
-        
-        # Si el usuario está casado y tiene cédula de pareja, buscarla
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+        registrar_acceso(db, current_user.username, "ver", "parties", document_number, get_client_ip(request))
+        db.commit()
+
         partner = None
         if user.marital_status.value == 'casado' and user.partner_document_number:
             partner = db.query(Party).filter(
                 Party.document_number == user.partner_document_number
             ).first()
-        
-        # Convertir a dict para incluir partner
+
         user_dict = {
             "document_number": user.document_number,
             "names": user.names,
@@ -101,8 +100,7 @@ def get_user(
             "profession": user.profession,
             "partner": None
         }
-        
-        # Agregar datos del partner si existe
+
         if partner:
             user_dict["partner"] = {
                 "document_number": partner.document_number,
@@ -126,13 +124,10 @@ def get_user(
                 "occupation": partner.occupation,
                 "profession": partner.profession
             }
-        
+
         return user_dict
-        
+
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno del servidor")

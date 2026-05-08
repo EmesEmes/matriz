@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.models import party, system_user, document, minute, company, template  # noqa: F401
+from app.models import party, system_user, document, minute, company, template, registration_token, access_log  # noqa: F401
 from app.database import engine, Base
 from app.routes import auth, users, parties, documents, minutes, companies, templates
 
