@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import Optional
 from datetime import date
+from decimal import Decimal
 
 
 class CompanyBase(BaseModel):
@@ -43,6 +44,23 @@ class CompanyBase(BaseModel):
     rep_occupation: str = Field(..., min_length=2, max_length=100)
     rep_profession: Optional[str] = Field(None, max_length=100)
     rep_position: str = Field(..., min_length=2, max_length=100)
+
+    # Financiero empresa
+    ingreso_mensual: Optional[Decimal] = None
+    egreso_mensual: Optional[Decimal] = None
+
+    # UAFE representante legal
+    rep_actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado)$")
+    rep_empresa_trabajo: Optional[str] = Field(None, max_length=200)
+    rep_ingreso_mensual: Optional[Decimal] = None
+    rep_origen_fondos: Optional[str] = Field(None, max_length=500)
+    rep_es_pep: Optional[bool] = None
+    rep_pep_nombre: Optional[str] = Field(None, max_length=200)
+    rep_pep_institucion: Optional[str] = Field(None, max_length=200)
+    rep_pep_fecha_inicio: Optional[str] = None
+    rep_pep_cargo: Optional[str] = Field(None, max_length=200)
+    rep_pep_anios_trabajo: Optional[int] = None
+    rep_pep_grado_relacion: Optional[str] = Field(None, max_length=200)
 
     @field_validator('ruc')
     @classmethod

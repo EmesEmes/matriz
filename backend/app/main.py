@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.models import party, system_user, document, minute, company, template, registration_token, access_log  # noqa: F401
 from app.database import engine, Base
-from app.routes import auth, users, parties, documents, minutes, companies, templates
+from app.routes import auth, users, parties, documents, minutes, companies, templates, registration
 
 # Crear tablas
 Base.metadata.create_all(bind=engine)
@@ -13,11 +13,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
+import os
+
 # CORS
+# En desarrollo/pruebas se permite cualquier origen
+# En producción cambiar a los dominios específicos
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*")
+
+if ALLOWED_ORIGINS == "*":
+    cors_origins = ["*"]
+else:
+    cors_origins = [origin.strip() for origin in ALLOWED_ORIGINS.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=False if "*" in cors_origins else True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -30,6 +41,7 @@ app.include_router(documents.router)
 app.include_router(minutes.router, prefix="/api")
 app.include_router(companies.router)
 app.include_router(templates.router)
+app.include_router(registration.router)
 
 @app.get("/")
 def root():

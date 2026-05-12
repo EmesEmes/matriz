@@ -6,8 +6,10 @@ from typing import Optional
 from app.database import get_db
 from app.models.registration_token import RegistrationToken
 from app.models.party import Party
+from app.models.company import Company
 from app.schemas.registration_token import TokenGenerado, TokenInfo, RegistrationTokenResponse
 from app.schemas.party import PartyCreate, PartyResponse
+from app.schemas.company import CompanyCreate, CompanyResponse
 from app.middleware.auth import get_current_user
 from app.models.system_user import SystemUser
 from app.utils.access_log import registrar_acceso
@@ -16,10 +18,17 @@ import uuid
 router = APIRouter(tags=["registro"])
 
 
-class RegistroClientePayload(BaseModel):
-    """Payload del formulario público — titular + cónyuge opcional"""
+class RegistroPersonaPayload(BaseModel):
+    """Payload para persona natural — titular + cónyuge opcional"""
+    tipo: str = "persona"
     titular: PartyCreate
     conyugue: Optional[PartyCreate] = None
+
+
+class RegistroEmpresaPayload(BaseModel):
+    """Payload para persona jurídica"""
+    tipo: str = "empresa"
+    empresa: CompanyCreate
 
 
 # ============================================
@@ -93,7 +102,6 @@ def eliminar_token(
 # ============================================
 
 def _verificar_token_obj(token: str, db: Session) -> RegistrationToken:
-    """Helper que valida el token y retorna el objeto o lanza excepción."""
     token_obj = db.query(RegistrationToken).filter(
         RegistrationToken.token == token
     ).first()
@@ -109,7 +117,6 @@ def _verificar_token_obj(token: str, db: Session) -> RegistrationToken:
 
 
 def _upsert_party(db: Session, party_data: PartyCreate) -> Party:
-    """Crea o actualiza una persona en la BD."""
     existing = db.query(Party).filter(
         Party.document_number == party_data.document_number
     ).first()
@@ -124,6 +131,23 @@ def _upsert_party(db: Session, party_data: PartyCreate) -> Party:
         db.add(party)
         db.flush()
         return party
+
+
+def _upsert_company(db: Session, company_data: CompanyCreate) -> Company:
+    existing = db.query(Company).filter(
+        Company.ruc == company_data.ruc
+    ).first()
+
+    if existing:
+        for field, value in company_data.model_dump().items():
+            setattr(existing, field, value)
+        db.flush()
+        return existing
+    else:
+        company = Company(**company_data.model_dump())
+        db.add(company)
+        db.flush()
+        return company
 
 
 @router.get("/api/public/registro/verificar/{token}", response_model=TokenInfo)
@@ -146,45 +170,53 @@ def verificar_token(token: str, db: Session = Depends(get_db)):
 @router.post("/api/public/registro/{token}", status_code=status.HTTP_201_CREATED)
 def registrar_cliente(
     token: str,
-    payload: RegistroClientePayload,
     request: Request,
+    payload: dict,
     db: Session = Depends(get_db)
 ):
     """
-    Registra los datos del cliente (y cónyuge si aplica) usando un token válido.
-    Guarda cada persona por separado en la tabla parties, relacionadas por cédula.
-    Endpoint público — no requiere autenticación.
+    Registra los datos del cliente usando un token válido.
+    Soporta persona natural (con o sin cónyuge) y persona jurídica.
     """
     token_obj = _verificar_token_obj(token, db)
+    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
 
     try:
-        if payload.conyugue:
-            # Guardar cónyuge primero (sin partner_document_number aún)
-            datos_conyugue = payload.conyugue.model_dump()
-            datos_conyugue['partner_document_number'] = payload.titular.document_number
-            conyugue_schema = PartyCreate(**datos_conyugue)
-            conyugue = _upsert_party(db, conyugue_schema)
+        tipo = payload.get("tipo", "persona")
 
-            # Guardar titular con referencia al cónyuge
-            datos_titular = payload.titular.model_dump()
-            datos_titular['partner_document_number'] = payload.conyugue.document_number
-            titular_schema = PartyCreate(**datos_titular)
-            titular = _upsert_party(db, titular_schema)
+        if tipo == "empresa":
+            # Persona jurídica
+            empresa_data = CompanyCreate(**payload.get("empresa", {}))
+            empresa = _upsert_company(db, empresa_data)
+
+            token_obj.usado = True
+            token_obj.party_document_number = empresa.ruc
+            registrar_acceso(db, "registro_publico", "registro_publico", "companies", empresa.ruc, ip)
+
         else:
-            titular = _upsert_party(db, payload.titular)
+            # Persona natural
+            titular_data = PartyCreate(**payload.get("titular", {}))
+            conyugue_raw = payload.get("conyugue")
 
-        # Marcar token como usado
-        token_obj.usado = True
-        token_obj.party_document_number = titular.document_number
+            if conyugue_raw:
+                conyugue_data = PartyCreate(**conyugue_raw)
+                conyugue_data_dict = conyugue_raw.copy()
+                conyugue_data_dict['partner_document_number'] = titular_data.document_number
+                conyugue = _upsert_party(db, PartyCreate(**conyugue_data_dict))
 
-        # Log de acceso — registro público
-        ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
-        registrar_acceso(db, "registro_publico", "registro_publico", "parties", titular.document_number, ip)
-        if payload.conyugue:
-            registrar_acceso(db, "registro_publico", "registro_publico", "parties", payload.conyugue.document_number, ip)
+                titular_data_dict = payload.get("titular").copy()
+                titular_data_dict['partner_document_number'] = conyugue_raw.get('document_number')
+                titular = _upsert_party(db, PartyCreate(**titular_data_dict))
+
+                registrar_acceso(db, "registro_publico", "registro_publico", "parties", conyugue.document_number, ip)
+            else:
+                titular = _upsert_party(db, titular_data)
+
+            token_obj.usado = True
+            token_obj.party_document_number = titular.document_number
+            registrar_acceso(db, "registro_publico", "registro_publico", "parties", titular.document_number, ip)
 
         db.commit()
-
         return {"message": "Datos registrados correctamente"}
 
     except HTTPException:
