@@ -25,6 +25,11 @@ class MaritalStatus(enum.Enum):
 class ActividadEconomica(enum.Enum):
     independiente = "independiente"
     empleado = "empleado"
+    jubilado = "jubilado"
+    quehaceres_domesticos = "quehaceres_domesticos"
+    cuidador_hogar = "cuidador_hogar"
+    estudiante = "estudiante"
+    ninguna = "ninguna"
 
 
 class Party(Base):

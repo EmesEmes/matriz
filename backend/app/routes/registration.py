@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
@@ -13,20 +14,18 @@ from app.schemas.company import CompanyCreate, CompanyResponse
 from app.middleware.auth import get_current_user
 from app.models.system_user import SystemUser
 from app.utils.access_log import registrar_acceso
-import uuid
+from app.config import settings
 
 router = APIRouter(tags=["registro"])
 
 
 class RegistroPersonaPayload(BaseModel):
-    """Payload para persona natural — titular + cónyuge opcional"""
     tipo: str = "persona"
     titular: PartyCreate
     conyugue: Optional[PartyCreate] = None
 
 
 class RegistroEmpresaPayload(BaseModel):
-    """Payload para persona jurídica"""
     tipo: str = "empresa"
     empresa: CompanyCreate
 
@@ -41,7 +40,6 @@ def generar_token(
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """Genera un token único para que un cliente registre sus datos."""
     token_str = str(uuid.uuid4())
     expira_en = datetime.now(timezone.utc) + timedelta(hours=72)
 
@@ -54,8 +52,8 @@ def generar_token(
     db.commit()
     db.refresh(token)
 
-    base_url = str(request.base_url).rstrip('/')
-    link = f"{base_url}/registro/{token_str}"
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    link = f"{frontend_url}/registro/{token_str}"
 
     return TokenGenerado(
         token=token_str,
@@ -70,7 +68,6 @@ def listar_tokens(
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """Lista todos los tokens generados."""
     return db.query(RegistrationToken).order_by(
         RegistrationToken.creado_en.desc()
     ).all()
@@ -82,14 +79,12 @@ def eliminar_token(
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """Elimina un token no usado."""
     token_obj = db.query(RegistrationToken).filter(
         RegistrationToken.token == token
     ).first()
 
     if not token_obj:
         raise HTTPException(status_code=404, detail="Token no encontrado")
-
     if token_obj.usado:
         raise HTTPException(status_code=400, detail="No se puede eliminar un token ya usado")
 
@@ -152,7 +147,6 @@ def _upsert_company(db: Session, company_data: CompanyCreate) -> Company:
 
 @router.get("/api/public/registro/verificar/{token}", response_model=TokenInfo)
 def verificar_token(token: str, db: Session = Depends(get_db)):
-    """Verifica si un token es válido. Endpoint público."""
     token_obj = db.query(RegistrationToken).filter(
         RegistrationToken.token == token
     ).first()
@@ -174,10 +168,6 @@ def registrar_cliente(
     payload: dict,
     db: Session = Depends(get_db)
 ):
-    """
-    Registra los datos del cliente usando un token válido.
-    Soporta persona natural (con o sin cónyuge) y persona jurídica.
-    """
     token_obj = _verificar_token_obj(token, db)
     ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
 
@@ -185,21 +175,17 @@ def registrar_cliente(
         tipo = payload.get("tipo", "persona")
 
         if tipo == "empresa":
-            # Persona jurídica
             empresa_data = CompanyCreate(**payload.get("empresa", {}))
             empresa = _upsert_company(db, empresa_data)
-
             token_obj.usado = True
             token_obj.party_document_number = empresa.ruc
             registrar_acceso(db, "registro_publico", "registro_publico", "companies", empresa.ruc, ip)
 
         else:
-            # Persona natural
             titular_data = PartyCreate(**payload.get("titular", {}))
             conyugue_raw = payload.get("conyugue")
 
             if conyugue_raw:
-                conyugue_data = PartyCreate(**conyugue_raw)
                 conyugue_data_dict = conyugue_raw.copy()
                 conyugue_data_dict['partner_document_number'] = titular_data.document_number
                 conyugue = _upsert_party(db, PartyCreate(**conyugue_data_dict))

@@ -50,7 +50,7 @@ class CompanyBase(BaseModel):
     egreso_mensual: Optional[Decimal] = None
 
     # UAFE representante legal
-    rep_actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado)$")
+    rep_actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado|jubilado|quehaceres_domesticos|cuidador_hogar|estudiante|ninguna)$")
     rep_empresa_trabajo: Optional[str] = Field(None, max_length=200)
     rep_ingreso_mensual: Optional[Decimal] = None
     rep_origen_fondos: Optional[str] = Field(None, max_length=500)

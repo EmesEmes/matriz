@@ -284,6 +284,11 @@ const SeccionUAFE = ({
           <option value="">Seleccione</option>
           <option value="independiente">Independiente</option>
           <option value="empleado">Empleado</option>
+          <option value="jubilado">Jubilado</option>
+          <option value="quehaceres_domesticos">Quehaceres Domésticos</option>
+          <option value="cuidador_hogar">Cuidador del Hogar</option>
+          <option value="estudiante">Estudiante</option>
+          <option value="ninguna">Ninguna</option>
         </select>
         {errors[`${prefijo}actividad_economica`] && (
           <p className="text-red-500 text-xs mt-1">
@@ -857,47 +862,6 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
       errors={errors}
       titulo="Dirección de la Empresa"
     />
-
-    {/* Ingreso y egreso mensual de la empresa */}
-    <h3 className="font-medium text-gray-700 pt-2 border-t">
-      Información Financiera de la Empresa
-    </h3>
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Ingreso Mensual (USD)
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={datos.ingreso_mensual}
-          onChange={(e) => onChange("ingreso_mensual", e.target.value)}
-          className={inputClass(errors, "ingreso_mensual")}
-          placeholder="Ej: 50000"
-        />
-        {errors.ingreso_mensual && (
-          <p className="text-red-500 text-xs mt-1">{errors.ingreso_mensual}</p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Egreso Mensual (USD)
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={datos.egreso_mensual}
-          onChange={(e) => onChange("egreso_mensual", e.target.value)}
-          className={inputClass(errors, "egreso_mensual")}
-          placeholder="Ej: 35000"
-        />
-        {errors.egreso_mensual && (
-          <p className="text-red-500 text-xs mt-1">{errors.egreso_mensual}</p>
-        )}
-      </div>
-    </div>
 
     {/* REPRESENTANTE LEGAL */}
     <div className="border-t-2 border-blue-200 pt-4">

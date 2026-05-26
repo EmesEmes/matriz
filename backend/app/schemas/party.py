@@ -28,7 +28,7 @@ class PartyBase(BaseModel):
     profession: Optional[str] = Field(None, max_length=100)
 
     # Campos UAFE
-    actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado)$")
+    actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado|jubilado|quehaceres_domesticos|cuidador_hogar|estudiante|ninguna)$")
     empresa_trabajo: Optional[str] = Field(None, max_length=200)
     ingreso_mensual: Optional[Decimal] = None
     es_pep: Optional[bool] = None
