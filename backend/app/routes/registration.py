@@ -128,6 +128,24 @@ def _upsert_party(db: Session, party_data: PartyCreate) -> Party:
         return party
 
 
+def _crear_party_publico(db: Session, party_data: PartyCreate) -> Party:
+    """Para registro público — rechaza si la cédula ya existe"""
+    existing = db.query(Party).filter(
+        Party.document_number == party_data.document_number
+    ).first()
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ya existe un registro con el número de documento {party_data.document_number}. Por favor contacte a la notaría."
+        )
+
+    party = Party(**party_data.model_dump())
+    db.add(party)
+    db.flush()
+    return party
+
+
 def _upsert_company(db: Session, company_data: CompanyCreate) -> Company:
     existing = db.query(Company).filter(
         Company.ruc == company_data.ruc
@@ -188,15 +206,15 @@ def registrar_cliente(
             if conyugue_raw:
                 conyugue_data_dict = conyugue_raw.copy()
                 conyugue_data_dict['partner_document_number'] = titular_data.document_number
-                conyugue = _upsert_party(db, PartyCreate(**conyugue_data_dict))
+                conyugue = _crear_party_publico(db, PartyCreate(**conyugue_data_dict))
 
                 titular_data_dict = payload.get("titular").copy()
                 titular_data_dict['partner_document_number'] = conyugue_raw.get('document_number')
-                titular = _upsert_party(db, PartyCreate(**titular_data_dict))
+                titular = _crear_party_publico(db, PartyCreate(**titular_data_dict))
 
                 registrar_acceso(db, "registro_publico", "registro_publico", "parties", conyugue.document_number, ip)
             else:
-                titular = _upsert_party(db, titular_data)
+                titular = _crear_party_publico(db, titular_data)
 
             token_obj.usado = True
             token_obj.party_document_number = titular.document_number

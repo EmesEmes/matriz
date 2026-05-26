@@ -31,7 +31,10 @@ class PartyBase(BaseModel):
     actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado|jubilado|quehaceres_domesticos|cuidador_hogar|estudiante|ninguna)$")
     empresa_trabajo: Optional[str] = Field(None, max_length=200)
     ingreso_mensual: Optional[Decimal] = None
+    rol_tramite: Optional[str] = Field(None, pattern="^(vendedor|adquirente)$")
+    origen_fondos: Optional[str] = Field(None, max_length=500)
     es_pep: Optional[bool] = None
+    es_pep_indirecto: Optional[bool] = None
 
     # Detalle PEP
     pep_nombre: Optional[str] = Field(None, max_length=200)

@@ -57,8 +57,10 @@ const personaInicial = () => ({
   actividad_economica: "",
   empresa_trabajo: "",
   ingreso_mensual: "",
-  es_pep: "",
+  rol_tramite: "",
   origen_fondos: "",
+  es_pep: "",
+  es_pep_indirecto: "",
   pep_nombre: "",
   pep_institucion: "",
   pep_fecha_inicio: "",
@@ -105,8 +107,10 @@ const empresaInicial = () => ({
   rep_actividad_economica: "",
   rep_empresa_trabajo: "",
   rep_ingreso_mensual: "",
+  rep_rol_tramite: "",
   rep_origen_fondos: "",
   rep_es_pep: "",
+  rep_es_pep_indirecto: "",
   rep_pep_nombre: "",
   rep_pep_institucion: "",
   rep_pep_fecha_inicio: "",
@@ -258,264 +262,367 @@ const SeccionDireccion = ({
   </>
 );
 
+const FormularioPEP = ({
+  datos,
+  onChange,
+  errors,
+  prefijo = "",
+  mostrarGrado = false,
+}) => (
+  <div className="grid grid-cols-2 gap-4">
+    <div className="col-span-2">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Nombre PEP
+      </label>
+      <input
+        type="text"
+        value={datos[`${prefijo}pep_nombre`]}
+        onChange={(e) =>
+          onChange(`${prefijo}pep_nombre`, e.target.value.toUpperCase())
+        }
+        className={inputClass(errors, `${prefijo}pep_nombre`)}
+        placeholder="Nombre completo"
+      />
+      {errors[`${prefijo}pep_nombre`] && (
+        <p className="text-red-500 text-xs mt-1">
+          {errors[`${prefijo}pep_nombre`]}
+        </p>
+      )}
+    </div>
+    <div className="col-span-2">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Institución en la que trabaja
+      </label>
+      <input
+        type="text"
+        value={datos[`${prefijo}pep_institucion`]}
+        onChange={(e) => onChange(`${prefijo}pep_institucion`, e.target.value)}
+        className={inputClass(errors, `${prefijo}pep_institucion`)}
+        placeholder="Ej: Ministerio de Finanzas"
+      />
+      {errors[`${prefijo}pep_institucion`] && (
+        <p className="text-red-500 text-xs mt-1">
+          {errors[`${prefijo}pep_institucion`]}
+        </p>
+      )}
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Fecha de Inicio
+      </label>
+      <input
+        type="date"
+        value={datos[`${prefijo}pep_fecha_inicio`]}
+        onChange={(e) => onChange(`${prefijo}pep_fecha_inicio`, e.target.value)}
+        className={inputClass(errors, `${prefijo}pep_fecha_inicio`)}
+      />
+      {errors[`${prefijo}pep_fecha_inicio`] && (
+        <p className="text-red-500 text-xs mt-1">
+          {errors[`${prefijo}pep_fecha_inicio`]}
+        </p>
+      )}
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Años de Trabajo
+      </label>
+      <input
+        type="number"
+        min="0"
+        step="1"
+        value={datos[`${prefijo}pep_anios_trabajo`]}
+        onChange={(e) =>
+          onChange(
+            `${prefijo}pep_anios_trabajo`,
+            Math.floor(Number(e.target.value)).toString(),
+          )
+        }
+        className={inputClass(errors, `${prefijo}pep_anios_trabajo`)}
+        placeholder="Ej: 3"
+      />
+      {errors[`${prefijo}pep_anios_trabajo`] && (
+        <p className="text-red-500 text-xs mt-1">
+          {errors[`${prefijo}pep_anios_trabajo`]}
+        </p>
+      )}
+    </div>
+    <div className="col-span-2">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Cargo que Desempeña
+      </label>
+      <input
+        type="text"
+        value={datos[`${prefijo}pep_cargo`]}
+        onChange={(e) => onChange(`${prefijo}pep_cargo`, e.target.value)}
+        className={inputClass(errors, `${prefijo}pep_cargo`)}
+        placeholder="Ej: Director General"
+      />
+      {errors[`${prefijo}pep_cargo`] && (
+        <p className="text-red-500 text-xs mt-1">
+          {errors[`${prefijo}pep_cargo`]}
+        </p>
+      )}
+    </div>
+    {mostrarGrado && (
+      <div className="col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Grado de Consanguinidad, Afinidad o Relación de Colaboración
+        </label>
+        <input
+          type="text"
+          value={datos[`${prefijo}pep_grado_relacion`]}
+          onChange={(e) =>
+            onChange(`${prefijo}pep_grado_relacion`, e.target.value)
+          }
+          className={inputClass(errors, `${prefijo}pep_grado_relacion`)}
+          placeholder="Ej: Primer grado de consanguinidad"
+        />
+        {errors[`${prefijo}pep_grado_relacion`] && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors[`${prefijo}pep_grado_relacion`]}
+          </p>
+        )}
+      </div>
+    )}
+  </div>
+);
+
 const SeccionUAFE = ({
   datos,
   onChange,
   errors,
   prefijo = "",
   mostrarOrigenFondos = false,
-}) => (
-  <>
-    <h3 className="font-medium text-gray-700 pt-2 border-t">
-      Información Financiera
-    </h3>
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Actividad Económica
-        </label>
-        <select
-          value={datos[`${prefijo}actividad_economica`]}
-          onChange={(e) =>
-            onChange(`${prefijo}actividad_economica`, e.target.value)
-          }
-          className={inputClass(errors, `${prefijo}actividad_economica`)}
-        >
-          <option value="">Seleccione</option>
-          <option value="independiente">Independiente</option>
-          <option value="empleado">Empleado</option>
-          <option value="jubilado">Jubilado</option>
-          <option value="quehaceres_domesticos">Quehaceres Domésticos</option>
-          <option value="cuidador_hogar">Cuidador del Hogar</option>
-          <option value="estudiante">Estudiante</option>
-          <option value="ninguna">Ninguna</option>
-        </select>
-        {errors[`${prefijo}actividad_economica`] && (
-          <p className="text-red-500 text-xs mt-1">
-            {errors[`${prefijo}actividad_economica`]}
-          </p>
-        )}
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Ingreso Mensual (USD)
-        </label>
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={datos[`${prefijo}ingreso_mensual`]}
-          onChange={(e) =>
-            onChange(`${prefijo}ingreso_mensual`, e.target.value)
-          }
-          className={inputClass(errors, `${prefijo}ingreso_mensual`)}
-          placeholder="Ej: 1500"
-        />
-        {errors[`${prefijo}ingreso_mensual`] && (
-          <p className="text-red-500 text-xs mt-1">
-            {errors[`${prefijo}ingreso_mensual`]}
-          </p>
-        )}
-      </div>
-      <div className="col-span-2">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Empresa o Institución de Trabajo
-        </label>
-        <input
-          type="text"
-          value={datos[`${prefijo}empresa_trabajo`]}
-          onChange={(e) =>
-            onChange(`${prefijo}empresa_trabajo`, e.target.value)
-          }
-          className={inputClass(errors, `${prefijo}empresa_trabajo`)}
-          placeholder="Ej: Empresa XYZ S.A."
-        />
-      </div>
-    </div>
+}) => {
+  const esPepDirecto = datos[`${prefijo}es_pep`] === "si";
+  const noesPep = datos[`${prefijo}es_pep`] === "no";
+  const esPepIndirecto =
+    noesPep && datos[`${prefijo}es_pep_indirecto`] === "si";
+  const noEsPepIndirecto =
+    noesPep && datos[`${prefijo}es_pep_indirecto`] === "no";
 
-    {/* Origen de fondos — solo para persona natural */}
-    {mostrarOrigenFondos && (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Origen de los fondos con los que el tradente adquirió los bienes que
-          transfiere
-        </label>
-        <textarea
-          value={datos[`${prefijo}origen_fondos`] || ""}
-          onChange={(e) => onChange(`${prefijo}origen_fondos`, e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none ${errors[`${prefijo}origen_fondos`] ? "border-red-400 bg-red-50" : "border-gray-300"}`}
-          rows={3}
-          placeholder="Ej: Ahorros personales, préstamo bancario, herencia, etc."
-        />
-        {errors[`${prefijo}origen_fondos`] && (
-          <p className="text-red-500 text-xs mt-1">
-            {errors[`${prefijo}origen_fondos`]}
-          </p>
-        )}
-      </div>
-    )}
+  const labelOrigenFondos =
+    datos[`${prefijo}rol_tramite`] === "adquirente"
+      ? "Origen de los fondos con los que pagará el bien que adquiere"
+      : "Origen de los fondos con los que adquirió el bien que transfiere";
 
-    <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
-        ¿Es usted una Persona Políticamente Expuesta (PEP)?
-      </label>
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => onChange(`${prefijo}es_pep`, "si")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${datos[`${prefijo}es_pep`] === "si" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-        >
-          Sí
-        </button>
-        <button
-          type="button"
-          onClick={() => onChange(`${prefijo}es_pep`, "no")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium ${datos[`${prefijo}es_pep`] === "no" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-        >
-          No
-        </button>
-      </div>
-      {errors[`${prefijo}es_pep`] && (
-        <p className="text-red-500 text-xs mt-1">
-          {errors[`${prefijo}es_pep`]}
-        </p>
-      )}
-    </div>
-
-    {datos[`${prefijo}es_pep`] === "si" && (
-      <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-lg space-y-4">
-        <p className="text-sm text-amber-800 font-medium leading-relaxed">
-          ¿Los accionistas, representantes legales, miembros del directorio o
-          sus familiares comprendidos hasta el segundo grado de consanguinidad o
-          primero de afinidad, desempeñan o ha desempeñado funciones públicas de
-          alto grado en los últimos 4 años? Por ejemplo (Presidente, Ministros,
-          Gobernadores, Secretarios, Director General, Alcaldes, Policía
-          Nacional, Fuerzas Armadas, dignatarios elegidos por voto popular,
-          etc.) (SI USTED ES UNA PERSONA EXPUESTA POLÍTICAMENTE) LLENAR LA
-          INFORMACIÓN:
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre PEP
-            </label>
-            <input
-              type="text"
-              value={datos[`${prefijo}pep_nombre`]}
-              onChange={(e) =>
-                onChange(`${prefijo}pep_nombre`, e.target.value.toUpperCase())
-              }
-              className={inputClass(errors, `${prefijo}pep_nombre`)}
-              placeholder="Nombre completo"
-            />
-            {errors[`${prefijo}pep_nombre`] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[`${prefijo}pep_nombre`]}
-              </p>
-            )}
-          </div>
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Institución en la que trabaja
-            </label>
-            <input
-              type="text"
-              value={datos[`${prefijo}pep_institucion`]}
-              onChange={(e) =>
-                onChange(`${prefijo}pep_institucion`, e.target.value)
-              }
-              className={inputClass(errors, `${prefijo}pep_institucion`)}
-              placeholder="Ej: Ministerio de Finanzas"
-            />
-            {errors[`${prefijo}pep_institucion`] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[`${prefijo}pep_institucion`]}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de Inicio
-            </label>
-            <input
-              type="date"
-              value={datos[`${prefijo}pep_fecha_inicio`]}
-              onChange={(e) =>
-                onChange(`${prefijo}pep_fecha_inicio`, e.target.value)
-              }
-              className={inputClass(errors, `${prefijo}pep_fecha_inicio`)}
-            />
-            {errors[`${prefijo}pep_fecha_inicio`] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[`${prefijo}pep_fecha_inicio`]}
-              </p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Años de Trabajo
-            </label>
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={datos[`${prefijo}pep_anios_trabajo`]}
-              onChange={(e) =>
-                onChange(
-                  `${prefijo}pep_anios_trabajo`,
-                  Math.floor(Number(e.target.value)).toString(),
-                )
-              }
-              className={inputClass(errors, `${prefijo}pep_anios_trabajo`)}
-              placeholder="Ej: 3"
-            />
-            {errors[`${prefijo}pep_anios_trabajo`] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[`${prefijo}pep_anios_trabajo`]}
-              </p>
-            )}
-          </div>
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cargo que Desempeña
-            </label>
-            <input
-              type="text"
-              value={datos[`${prefijo}pep_cargo`]}
-              onChange={(e) => onChange(`${prefijo}pep_cargo`, e.target.value)}
-              className={inputClass(errors, `${prefijo}pep_cargo`)}
-              placeholder="Ej: Director General"
-            />
-            {errors[`${prefijo}pep_cargo`] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[`${prefijo}pep_cargo`]}
-              </p>
-            )}
-          </div>
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Grado de Consanguinidad, Afinidad o Relación de Colaboración
-            </label>
-            <input
-              type="text"
-              value={datos[`${prefijo}pep_grado_relacion`]}
-              onChange={(e) =>
-                onChange(`${prefijo}pep_grado_relacion`, e.target.value)
-              }
-              className={inputClass(errors, `${prefijo}pep_grado_relacion`)}
-              placeholder="Ej: Primer grado de consanguinidad"
-            />
-            {errors[`${prefijo}pep_grado_relacion`] && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors[`${prefijo}pep_grado_relacion`]}
-              </p>
-            )}
-          </div>
+  return (
+    <>
+      <h3 className="font-medium text-gray-700 pt-2 border-t">
+        Información Financiera
+      </h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Actividad Económica
+          </label>
+          <select
+            value={datos[`${prefijo}actividad_economica`]}
+            onChange={(e) =>
+              onChange(`${prefijo}actividad_economica`, e.target.value)
+            }
+            className={inputClass(errors, `${prefijo}actividad_economica`)}
+          >
+            <option value="">Seleccione</option>
+            <option value="independiente">Independiente</option>
+            <option value="empleado">Empleado</option>
+            <option value="jubilado">Jubilado</option>
+            <option value="quehaceres_domesticos">Quehaceres Domésticos</option>
+            <option value="cuidador_hogar">Cuidador del Hogar</option>
+            <option value="estudiante">Estudiante</option>
+            <option value="ninguna">Ninguna</option>
+          </select>
+          {errors[`${prefijo}actividad_economica`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}actividad_economica`]}
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Ingreso Mensual (USD)
+          </label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={datos[`${prefijo}ingreso_mensual`]}
+            onChange={(e) =>
+              onChange(`${prefijo}ingreso_mensual`, e.target.value)
+            }
+            className={inputClass(errors, `${prefijo}ingreso_mensual`)}
+            placeholder="Ej: 1500"
+          />
+          {errors[`${prefijo}ingreso_mensual`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}ingreso_mensual`]}
+            </p>
+          )}
+        </div>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Empresa o Institución de Trabajo
+          </label>
+          <input
+            type="text"
+            value={datos[`${prefijo}empresa_trabajo`]}
+            onChange={(e) =>
+              onChange(`${prefijo}empresa_trabajo`, e.target.value)
+            }
+            className={inputClass(errors, `${prefijo}empresa_trabajo`)}
+            placeholder="Ej: Empresa XYZ S.A."
+          />
         </div>
       </div>
-    )}
-  </>
-);
+
+      {/* Rol en el trámite + origen de fondos */}
+      {mostrarOrigenFondos && (
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            ¿En qué calidad participa en el trámite?
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => onChange(`${prefijo}rol_tramite`, "vendedor")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${datos[`${prefijo}rol_tramite`] === "vendedor" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+            >
+              Vendedor / Transferente
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(`${prefijo}rol_tramite`, "adquirente")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${datos[`${prefijo}rol_tramite`] === "adquirente" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+            >
+              Comprador / Adquirente
+            </button>
+          </div>
+          {errors[`${prefijo}rol_tramite`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}rol_tramite`]}
+            </p>
+          )}
+
+          {datos[`${prefijo}rol_tramite`] && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {labelOrigenFondos}
+              </label>
+              <textarea
+                value={datos[`${prefijo}origen_fondos`] || ""}
+                onChange={(e) =>
+                  onChange(`${prefijo}origen_fondos`, e.target.value)
+                }
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm resize-none ${errors[`${prefijo}origen_fondos`] ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+                rows={3}
+                placeholder="Ej: Ahorros personales, préstamo bancario, herencia, etc."
+              />
+              {errors[`${prefijo}origen_fondos`] && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors[`${prefijo}origen_fondos`]}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* PEP Directo */}
+      <div className="space-y-3">
+        <label className="block text-sm font-medium text-gray-700">
+          ¿Es usted una Persona Políticamente Expuesta (PEP)?
+        </label>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              onChange(`${prefijo}es_pep`, "si");
+              onChange(`${prefijo}es_pep_indirecto`, "");
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${esPepDirecto ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+          >
+            Sí
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(`${prefijo}es_pep`, "no")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${noesPep ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+          >
+            No
+          </button>
+        </div>
+        {errors[`${prefijo}es_pep`] && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors[`${prefijo}es_pep`]}
+          </p>
+        )}
+      </div>
+
+      {esPepDirecto && (
+        <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-lg space-y-4">
+          <p className="text-sm text-amber-800 font-medium leading-relaxed">
+            (SI USTED ES UNA PERSONA EXPUESTA POLÍTICAMENTE) Complete la
+            siguiente información:
+          </p>
+          <FormularioPEP
+            datos={datos}
+            onChange={onChange}
+            errors={errors}
+            prefijo={prefijo}
+            mostrarGrado={false}
+          />
+        </div>
+      )}
+
+      {/* PEP Indirecto — solo si respondió No al PEP directo */}
+      {noesPep && (
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            ¿Es pariente, amigo o colaborador de una Persona Políticamente
+            Expuesta?
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => onChange(`${prefijo}es_pep_indirecto`, "si")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${esPepIndirecto ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+            >
+              Sí
+            </button>
+            <button
+              type="button"
+              onClick={() => onChange(`${prefijo}es_pep_indirecto`, "no")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${noEsPepIndirecto ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+            >
+              No
+            </button>
+          </div>
+          {errors[`${prefijo}es_pep_indirecto`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}es_pep_indirecto`]}
+            </p>
+          )}
+        </div>
+      )}
+
+      {esPepIndirecto && (
+        <div className="p-4 bg-orange-50 border-2 border-orange-200 rounded-lg space-y-4">
+          <p className="text-sm text-orange-800 font-medium leading-relaxed">
+            Complete los datos de la Persona Políticamente Expuesta con quien
+            tiene relación:
+          </p>
+          <FormularioPEP
+            datos={datos}
+            onChange={onChange}
+            errors={errors}
+            prefijo={prefijo}
+            mostrarGrado={true}
+          />
+        </div>
+      )}
+    </>
+  );
+};
 
 // ============================================
 // FORMULARIO PERSONA NATURAL
@@ -863,6 +970,47 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
       titulo="Dirección de la Empresa"
     />
 
+    {/* Ingreso y egreso mensual de la empresa */}
+    <h3 className="font-medium text-gray-700 pt-2 border-t">
+      Información Financiera de la Empresa
+    </h3>
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Ingreso Mensual (USD)
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={datos.ingreso_mensual}
+          onChange={(e) => onChange("ingreso_mensual", e.target.value)}
+          className={inputClass(errors, "ingreso_mensual")}
+          placeholder="Ej: 50000"
+        />
+        {errors.ingreso_mensual && (
+          <p className="text-red-500 text-xs mt-1">{errors.ingreso_mensual}</p>
+        )}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Egreso Mensual (USD)
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={datos.egreso_mensual}
+          onChange={(e) => onChange("egreso_mensual", e.target.value)}
+          className={inputClass(errors, "egreso_mensual")}
+          placeholder="Ej: 35000"
+        />
+        {errors.egreso_mensual && (
+          <p className="text-red-500 text-xs mt-1">{errors.egreso_mensual}</p>
+        )}
+      </div>
+    </div>
+
     {/* REPRESENTANTE LEGAL */}
     <div className="border-t-2 border-blue-200 pt-4">
       <h2 className="font-semibold text-blue-900 text-lg mb-4">
@@ -1112,8 +1260,15 @@ const validarUAFE = (datos, prefijo = "", validarOrigenFondos = false) => {
   if (!datos[`${p}actividad_economica`])
     e[`${p}actividad_economica`] = "Requerido";
   if (!datos[`${p}ingreso_mensual`]) e[`${p}ingreso_mensual`] = "Requerido";
-  if (validarOrigenFondos && !datos[`${p}origen_fondos`]?.trim())
-    e[`${p}origen_fondos`] = "Requerido";
+
+  // Validar rol y origen de fondos
+  if (validarOrigenFondos) {
+    if (!datos[`${p}rol_tramite`]) e[`${p}rol_tramite`] = "Requerido";
+    if (datos[`${p}rol_tramite`] && !datos[`${p}origen_fondos`]?.trim())
+      e[`${p}origen_fondos`] = "Requerido";
+  }
+
+  // Validar PEP directo
   if (!datos[`${p}es_pep`]) e[`${p}es_pep`] = "Requerido";
   if (datos[`${p}es_pep`] === "si") {
     if (!datos[`${p}pep_nombre`]) e[`${p}pep_nombre`] = "Requerido";
@@ -1122,9 +1277,25 @@ const validarUAFE = (datos, prefijo = "", validarOrigenFondos = false) => {
     if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
     if (!datos[`${p}pep_anios_trabajo`])
       e[`${p}pep_anios_trabajo`] = "Requerido";
-    if (!datos[`${p}pep_grado_relacion`])
-      e[`${p}pep_grado_relacion`] = "Requerido";
+    // PEP directo NO requiere grado de consanguinidad
   }
+
+  // Validar PEP indirecto — solo si respondió No al PEP directo
+  if (datos[`${p}es_pep`] === "no") {
+    if (!datos[`${p}es_pep_indirecto`]) e[`${p}es_pep_indirecto`] = "Requerido";
+    if (datos[`${p}es_pep_indirecto`] === "si") {
+      if (!datos[`${p}pep_nombre`]) e[`${p}pep_nombre`] = "Requerido";
+      if (!datos[`${p}pep_institucion`]) e[`${p}pep_institucion`] = "Requerido";
+      if (!datos[`${p}pep_fecha_inicio`])
+        e[`${p}pep_fecha_inicio`] = "Requerido";
+      if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
+      if (!datos[`${p}pep_anios_trabajo`])
+        e[`${p}pep_anios_trabajo`] = "Requerido";
+      if (!datos[`${p}pep_grado_relacion`])
+        e[`${p}pep_grado_relacion`] = "Requerido";
+    }
+  }
+
   return e;
 };
 

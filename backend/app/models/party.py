@@ -74,7 +74,10 @@ class Party(Base):
     actividad_economica = Column(SQLEnum(ActividadEconomica), nullable=True)
     empresa_trabajo = Column(String(200), nullable=True)
     ingreso_mensual = Column(Numeric(10, 2), nullable=True)
+    rol_tramite = Column(String(20), nullable=True)  # vendedor / adquirente
+    origen_fondos = Column(String(500), nullable=True)
     es_pep = Column(Boolean, nullable=True)
+    es_pep_indirecto = Column(Boolean, nullable=True)
 
     # Detalle PEP
     pep_nombre = Column(String(200), nullable=True)
