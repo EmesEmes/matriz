@@ -43,17 +43,19 @@ def generar_token(
     token_str = str(uuid.uuid4())
     expira_en = datetime.now(timezone.utc) + timedelta(hours=72)
 
+    # Calcular link antes de crear el token
+    frontend_url = settings.FRONTEND_URL.rstrip('/')
+    link = f"{frontend_url}/registro/{token_str}"
+
     token = RegistrationToken(
         token=token_str,
+        link=link,
         expira_en=expira_en,
         creado_por=current_user.username
     )
     db.add(token)
     db.commit()
     db.refresh(token)
-
-    frontend_url = settings.FRONTEND_URL.rstrip('/')
-    link = f"{frontend_url}/registro/{token_str}"
 
     return TokenGenerado(
         token=token_str,
@@ -187,7 +189,8 @@ def registrar_cliente(
     db: Session = Depends(get_db)
 ):
     token_obj = _verificar_token_obj(token, db)
-    ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
+    ip_raw = request.headers.get("X-Forwarded-For", request.client.host if request.client else None)
+    ip = ip_raw.split(",")[0].strip() if ip_raw else None
 
     try:
         tipo = payload.get("tipo", "persona")
@@ -227,7 +230,10 @@ def registrar_cliente(
         raise
     except Exception as e:
         db.rollback()
+        import traceback
+        print("ERROR EN REGISTRO:", str(e))
+        print(traceback.format_exc())
         raise HTTPException(
             status_code=500,
-            detail="Error al guardar los datos. Por favor intente nuevamente."
+            detail=f"Error: {str(e)}"
         )

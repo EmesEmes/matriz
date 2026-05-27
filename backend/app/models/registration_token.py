@@ -10,6 +10,7 @@ class RegistrationToken(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     token = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
+    link = Column(String(500), nullable=True)
     usado = Column(Boolean, default=False, nullable=False)
     party_document_number = Column(
         String(20),

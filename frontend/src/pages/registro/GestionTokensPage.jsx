@@ -24,7 +24,7 @@ const GestionTokensPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // sin dependencias — estable para siempre
+  }, []);
 
   useEffect(() => {
     cargarTokens();
@@ -40,21 +40,22 @@ const GestionTokensPage = () => {
       if (res.ok) {
         const data = await res.json();
         setLinkGenerado(data.link);
-        toast.success("Enlace generado correctamente");
+        toastRef.current.success("Enlace generado correctamente");
         cargarTokens();
       } else {
-        toast.error("Error al generar el enlace");
+        toastRef.current.error("Error al generar el enlace");
       }
     } catch {
-      toast.error("Error al generar el enlace");
+      toastRef.current.error("Error al generar el enlace");
     } finally {
       setGenerando(false);
     }
   };
 
   const copiarLink = (link) => {
+    if (!link) return;
     navigator.clipboard.writeText(link);
-    toast.success("Enlace copiado al portapapeles");
+    toastRef.current.success("Enlace copiado al portapapeles");
   };
 
   const eliminarToken = async (tkn) => {
@@ -64,14 +65,14 @@ const GestionTokensPage = () => {
         method: "DELETE",
       });
       if (res.ok || res.status === 204) {
-        toast.success("Enlace eliminado");
+        toastRef.current.success("Enlace eliminado");
         cargarTokens();
       } else {
         const data = await res.json();
-        toast.error(data.detail || "Error al eliminar");
+        toastRef.current.error(data.detail || "Error al eliminar");
       }
     } catch {
-      toast.error("Error al eliminar el enlace");
+      toastRef.current.error("Error al eliminar el enlace");
     }
   };
 
@@ -216,18 +217,16 @@ const GestionTokensPage = () => {
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">
-                          {!tkn.usado && !estaExpirado(tkn.expira_en) && (
-                            <button
-                              onClick={() =>
-                                copiarLink(
-                                  `${window.location.origin}/registro/${tkn.token}`,
-                                )
-                              }
-                              className="text-blue-600 hover:text-blue-800 text-xs underline"
-                            >
-                              Copiar link
-                            </button>
-                          )}
+                          {!tkn.usado &&
+                            !estaExpirado(tkn.expira_en) &&
+                            tkn.link && (
+                              <button
+                                onClick={() => copiarLink(tkn.link)}
+                                className="text-blue-600 hover:text-blue-800 text-xs underline"
+                              >
+                                Copiar link
+                              </button>
+                            )}
                           {!tkn.usado && (
                             <button
                               onClick={() => eliminarToken(tkn.token)}

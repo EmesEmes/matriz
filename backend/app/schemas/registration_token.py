@@ -21,6 +21,7 @@ class RegistrationTokenResponse(BaseModel):
     """Respuesta completa del token para el empleado"""
     id: str
     token: str
+    link: Optional[str]
     usado: bool
     party_document_number: Optional[str]
     creado_en: datetime
