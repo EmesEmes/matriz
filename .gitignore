@@ -19,6 +19,7 @@ backend/venv/
 backend/.env
 frontend/.env
 frontend/.env.local
+frontend/.env.production
 
 # Node.js (frontend)
 node_modules/

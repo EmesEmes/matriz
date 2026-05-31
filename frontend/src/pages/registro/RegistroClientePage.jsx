@@ -268,30 +268,35 @@ const FormularioPEP = ({
   errors,
   prefijo = "",
   mostrarGrado = false,
+  mostrarNombre = true,
 }) => (
   <div className="grid grid-cols-2 gap-4">
+    {mostrarNombre && (
+      <>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nombre del PEP
+          </label>
+          <input
+            type="text"
+            value={datos[`${prefijo}pep_nombre`]}
+            onChange={(e) =>
+              onChange(`${prefijo}pep_nombre`, e.target.value.toUpperCase())
+            }
+            className={inputClass(errors, `${prefijo}pep_nombre`)}
+            placeholder="Nombre completo"
+          />
+          {errors[`${prefijo}pep_nombre`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}pep_nombre`]}
+            </p>
+          )}
+        </div>
+      </>
+    )}
     <div className="col-span-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Nombre PEP
-      </label>
-      <input
-        type="text"
-        value={datos[`${prefijo}pep_nombre`]}
-        onChange={(e) =>
-          onChange(`${prefijo}pep_nombre`, e.target.value.toUpperCase())
-        }
-        className={inputClass(errors, `${prefijo}pep_nombre`)}
-        placeholder="Nombre completo"
-      />
-      {errors[`${prefijo}pep_nombre`] && (
-        <p className="text-red-500 text-xs mt-1">
-          {errors[`${prefijo}pep_nombre`]}
-        </p>
-      )}
-    </div>
-    <div className="col-span-2">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Institución en la que trabaja
+        Institución en la que trabaja el PEP
       </label>
       <input
         type="text"
@@ -348,7 +353,7 @@ const FormularioPEP = ({
     </div>
     <div className="col-span-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Cargo que Desempeña
+        Cargo que Desempeña el PEP
       </label>
       <input
         type="text"
@@ -366,7 +371,8 @@ const FormularioPEP = ({
     {mostrarGrado && (
       <div className="col-span-2">
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Grado de Consanguinidad, Afinidad o Relación de Colaboración
+          Grado de Consanguinidad, Afinidad o Relación de Colaboración que tiene
+          con el PEP
         </label>
         <input
           type="text"
@@ -459,20 +465,23 @@ const SeccionUAFE = ({
             </p>
           )}
         </div>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Empresa o Institución de Trabajo
-          </label>
-          <input
-            type="text"
-            value={datos[`${prefijo}empresa_trabajo`]}
-            onChange={(e) =>
-              onChange(`${prefijo}empresa_trabajo`, e.target.value)
-            }
-            className={inputClass(errors, `${prefijo}empresa_trabajo`)}
-            placeholder="Ej: Empresa XYZ S.A."
-          />
-        </div>
+        {(datos[`${prefijo}actividad_economica`] === "empleado" ||
+          datos[`${prefijo}actividad_economica`] === "independiente") && (
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Empresa o Institución de Trabajo
+            </label>
+            <input
+              type="text"
+              value={datos[`${prefijo}empresa_trabajo`]}
+              onChange={(e) =>
+                onChange(`${prefijo}empresa_trabajo`, e.target.value)
+              }
+              className={inputClass(errors, `${prefijo}empresa_trabajo`)}
+              placeholder="Ej: Empresa XYZ S.A."
+            />
+          </div>
+        )}
       </div>
 
       {/* Rol en el trámite + origen de fondos */}
@@ -485,16 +494,18 @@ const SeccionUAFE = ({
             <button
               type="button"
               onClick={() => onChange(`${prefijo}rol_tramite`, "vendedor")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${datos[`${prefijo}rol_tramite`] === "vendedor" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+              className={`px-3 py-2 rounded-lg text-xs font-medium text-left ${datos[`${prefijo}rol_tramite`] === "vendedor" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
             >
-              Vendedor / Transferente
+              TRADENTE/S – VENDEDOR/ES – DONANTE/S – CEDENTE/S – ADJUDICANTE/S -
+              ACREEDORES - OTORGANTES
             </button>
             <button
               type="button"
               onClick={() => onChange(`${prefijo}rol_tramite`, "adquirente")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${datos[`${prefijo}rol_tramite`] === "adquirente" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+              className={`px-3 py-2 rounded-lg text-xs font-medium text-left ${datos[`${prefijo}rol_tramite`] === "adquirente" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
             >
-              Comprador / Adquirente
+              ADQUIRIENTE/S – COMPRADOR/ES – DONATARIO/S – CESIONARIO/S –
+              ADJUDICATARIO/S - DEUDORES - BENEFICIARIOS
             </button>
           </div>
           {errors[`${prefijo}rol_tramite`] && (
@@ -570,6 +581,7 @@ const SeccionUAFE = ({
             errors={errors}
             prefijo={prefijo}
             mostrarGrado={false}
+            mostrarNombre={false}
           />
         </div>
       )}
@@ -608,8 +620,8 @@ const SeccionUAFE = ({
       {esPepIndirecto && (
         <div className="p-4 bg-orange-50 border-2 border-orange-200 rounded-lg space-y-4">
           <p className="text-sm text-orange-800 font-medium leading-relaxed">
-            Complete los datos de la Persona Políticamente Expuesta con quien
-            tiene relación:
+            Complete los datos de la Persona Políticamente Expuesta (PEP) con
+            quien tiene relación:
           </p>
           <FormularioPEP
             datos={datos}
@@ -1337,6 +1349,10 @@ const RegistroClientePage = () => {
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
+  const [aceptaCondiciones, setAceptaCondiciones] = useState(false);
+  const [modalCondiciones, setModalCondiciones] = useState(false);
+  const [calidadParticipacion, setCalidadParticipacion] = useState(""); // "propios_derechos" | "representando"
+  const [representado, setRepresentado] = useState(personaInicial());
 
   const esCasado = titular.marital_status === "casado";
 
@@ -1384,6 +1400,12 @@ const RegistroClientePage = () => {
   const handleTitularChange = (field, value) => {
     setTitular((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleRepresentadoChange = (field, value) => {
+    setRepresentado((prev) => ({ ...prev, [field]: value }));
+    if (errors[`rep2_${field}`])
+      setErrors((prev) => ({ ...prev, [`rep2_${field}`]: "" }));
   };
 
   const handleConyugueChange = (field, value) => {
@@ -1435,6 +1457,8 @@ const RegistroClientePage = () => {
 
     if (!aceptaPrivacidad)
       e.privacidad = "Debe aceptar el tratamiento de sus datos";
+    if (!aceptaCondiciones)
+      e.condiciones = "Debe aceptar las condiciones jurídicas";
     return e;
   };
 
@@ -1584,11 +1608,13 @@ const RegistroClientePage = () => {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Registro de Datos
+          <h1 className="text-xl font-bold text-gray-900 uppercase">
+            Notaría Vigésimo Segunda del Cantón Quito
           </h1>
-          <p className="text-gray-600 mt-1">
-            Complete sus datos para agilizar su trámite notarial
+          <p className="text-sm text-gray-700 mt-2 font-medium leading-relaxed">
+            FORMULARIO QUE REGISTRA INFORMACIÓN CUMPLIENDO LO DISPUESTO EN EL
+            ART. 58 DE LA LEY PREVENCIÓN DE LAVADO DE ACTIVOS Y DE LA
+            FINANCIACIÓN DE DELITOS Y ART. 3 NUMERAL 5 DE SU REGLAMENTO.
           </p>
         </div>
 
@@ -1606,6 +1632,148 @@ const RegistroClientePage = () => {
         )}
 
         <div className="space-y-6">
+          {/* MODAL CONDICIONES JURÍDICAS */}
+          {modalCondiciones && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-bold text-gray-900">
+                      Condiciones Jurídicas
+                    </h2>
+                    <button
+                      onClick={() => setModalCondiciones(false)}
+                      className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="text-sm text-gray-700 space-y-4 leading-relaxed">
+                    <p>
+                      <strong>1.-</strong> Conforme a los principios de la
+                      administración pública garantizados en el artículo 227 de
+                      la Constitución de la República que guardan relación con
+                      el principio de no duplicidad de información determinado
+                      en el artículo 3 numeral 13 de la Ley Orgánica Para La
+                      Optimización y Eficiencia de Trámites Administrativos, así
+                      como con la prohibición establecida en el artículo 11 de
+                      la referida normativa que impide a quienes prestamos un
+                      servicio público exigir a los usuarios información que ya
+                      disponemos en nuestras bases de datos, quienes hacemos
+                      esta dependencia dejamos constancia que respecto a
+                      personas naturales los datos tales como: a) Nombres y
+                      apellidos completos, b) Número de Registro Único de
+                      Contribuyentes, c) Domicilio, d) Cédula de identidad para
+                      ecuatorianos, pasaporte o documento de identificación en
+                      caso de persona extranjera, e) Actividad ocupacional y
+                      cargo, f) Sexo; y, g) Nacionalidad; así como, respecto a
+                      personas jurídicas datos tales como: a) Razón social, b)
+                      Número de Registro Único de Contribuyentes, c)
+                      Nacionalidad, d) Dirección domiciliaria, e) Provincia,
+                      ciudad, cantón; y, f) Actividad económica; y, sus
+                      representantes legales respecto con: a) Nombres y
+                      apellidos completos, b) Cédula de identidad para
+                      ecuatorianos, pasaporte o documento de identificación en
+                      caso de persona extranjera, c) Sexo, d) Nacionalidad; y,
+                      e) Escritura pública del poder respectivo constan
+                      plenamente detallados en el texto de la escritura pública
+                      y o actuación notarial cuyo número específico está en la
+                      parte superior de este formulario y además los documentos
+                      originales, copias certificadas, compulsas y
+                      materializaciones de respaldo están habilitados a dicho
+                      instrumento notarial.
+                    </p>
+                    <p>
+                      <strong>2.</strong> La información respecto al contrato o
+                      acto notarial que comprenda: a) Valor de la operación,
+                      transacción económica, acto o contratos realizados, b)
+                      Fecha de su realización, c) Moneda en la que se realizó la
+                      transacción; y, d) Ciudad y fecha de pago también constan
+                      detallados en la escritura pública o actuación notarial
+                      cuyo número específico se encuentra en la parte superior
+                      de este formulario.
+                    </p>
+                    <p>
+                      <strong>3.</strong> La información respecto al detalle de
+                      los accionistas o socios de empresas que permita obtener
+                      los datos hasta llegar a las personas naturales debe ser
+                      proporcionada por los usuarios y en la medida de lo
+                      posible podrá ser contrastada con las bases de datos de la
+                      Superintendencia de Compañías. De la misma forma, toda la
+                      información que identifique al fideicomitente, fiduciario,
+                      beneficiarios, clase de fideicomisos, hasta llegar a las
+                      personas naturales que ejerzan el control efectivo y
+                      definitivo sobre el mismo debe ser proporcionada por los
+                      usuarios del servicio.
+                    </p>
+                    <p>
+                      <strong>4.-</strong> Como persona legalmente capaz que soy
+                      manifiesto que estoy enterado(a) de todos los detalles de
+                      la negociación o pretensión que antecede a la firma de
+                      este instrumento, y en consecuencia lo realizo sin presión
+                      de ninguna naturaleza en beneficio de mis intereses.
+                      Manifiesto que he recibido explicaciones y asesoría
+                      jurídica de parte del abogado que patrocina la minuta o
+                      petición y directamente del Notario que interviene
+                      autorizando el otorgamiento de este instrumento.
+                    </p>
+                    <p>
+                      <strong>5.-</strong> Declaro que los fondos con los que se
+                      ejecuta esta negociación no provienen de actividades
+                      ilícitas ni vinculadas con la producción, consumo,
+                      comercialización de sustancias estupefacientes y
+                      psicotrópicas, ni el lavado de activos fijos, ni
+                      recolección de fondos de financiamiento de terrorismo o
+                      cualquier otra actividad tipificada en la normativa
+                      vigente ya sea relacionada con los delitos de narcotráfico
+                      u otro tipo de delitos, por lo que me hago absolutamente
+                      responsable de cualquier tipo de imputaciones que el
+                      Estado Ecuatoriano a través de sus instituciones de
+                      control ejecute como resultado de sus investigaciones,
+                      expresando con claridad que la intervención del Notario
+                      que autoriza el otorgamiento de este instrumento es
+                      únicamente de tipo legal conforme a sus facultades e
+                      investidura.
+                    </p>
+                    <p>
+                      <strong>6.-</strong> Manifiesto que tanto la persona
+                      dependiente de la Notaría Vigésimo Segunda del cantón
+                      Quito que me ha atendido, al igual que el Notario en forma
+                      personal me han explicado sobre los riesgos que existen al
+                      hacer negociaciones con personas a quienes no conozco
+                      directamente o de las que no tengo referencias, en
+                      especial cuando los contratos a otorgarse son producto de
+                      avisos publicados en la prensa o los precios están por
+                      debajo del mercado, por lo tanto sé y conozco claramente
+                      la importancia de informarme sobre los antecedentes
+                      personales de quienes han ofertado el bien que estoy
+                      adquiriendo o a quienes deseo transferirlo.
+                    </p>
+                    <p>
+                      <strong>7.-</strong> (NUMERAL APLICABLE PARA PERSONAS QUE
+                      NO SABEN LEER Y ESCRIBIR) Como persona que no sé leer y
+                      escribir, manifiesto que este documento me fue leído por
+                      el testigo de confianza por mi presentado y que recibí las
+                      explicaciones adecuadas y claras tanto del personal de la
+                      Notaría Vigésima Segunda del cantón Quito y del Notario,
+                      en consecuencia, coloco la huella digital de mi pulgar
+                      derecho al pie de este documento.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setAceptaCondiciones(true);
+                      setModalCondiciones(false);
+                    }}
+                    className="mt-6 w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    He leído y acepto estas condiciones
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* TOGGLE PERSONA / EMPRESA */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -1650,15 +1818,58 @@ const RegistroClientePage = () => {
           {/* FORMULARIO SEGÚN TIPO */}
           {tipoRegistro === "persona" && (
             <>
-              <FormularioPersona
-                titulo="Sus datos personales"
-                datos={titular}
-                onChange={handleTitularChange}
-                errors={errors}
-                mostrarEstadoCivil={true}
-              />
+              {/* CALIDAD DE PARTICIPACIÓN */}
+              <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
+                <label className="block text-sm font-medium text-gray-700">
+                  Calidad en la que participa en el trámite
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCalidadParticipacion("propios_derechos")}
+                    className={`p-4 rounded-lg border-2 text-left transition-colors ${calidadParticipacion === "propios_derechos" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                  >
+                    <div className="font-semibold text-gray-900 text-sm">
+                      Por sus propios derechos
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCalidadParticipacion("representando")}
+                    className={`p-4 rounded-lg border-2 text-left transition-colors ${calidadParticipacion === "representando" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                  >
+                    <div className="font-semibold text-gray-900 text-sm">
+                      Representando a alguien
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Mandatario, apoderado, representante
+                    </div>
+                  </button>
+                </div>
+                {errors.calidadParticipacion && (
+                  <p className="text-red-500 text-xs">
+                    {errors.calidadParticipacion}
+                  </p>
+                )}
+              </div>
 
-              {esCasado && (
+              {/* FORMULARIO REPRESENTANTE (quien firma) */}
+              {calidadParticipacion && (
+                <FormularioPersona
+                  titulo={
+                    calidadParticipacion === "representando"
+                      ? "Datos del Representante (quien firma)"
+                      : "Sus datos personales"
+                  }
+                  datos={titular}
+                  onChange={handleTitularChange}
+                  errors={errors}
+                  mostrarEstadoCivil={true}
+                />
+              )}
+
+              {/* CÓNYUGE — solo si es por propios derechos y está casado */}
+              {calidadParticipacion === "propios_derechos" && esCasado && (
                 <div className="border-2 border-blue-200 rounded-xl overflow-hidden">
                   <div className="bg-blue-50 px-6 py-3 border-b border-blue-200">
                     <p className="text-sm font-medium text-blue-800">
@@ -1681,6 +1892,52 @@ const RegistroClientePage = () => {
                   />
                 </div>
               )}
+
+              {/* REPRESENTADO — solo si está representando */}
+              {calidadParticipacion === "representando" && (
+                <div className="border-2 border-purple-200 rounded-xl overflow-hidden">
+                  <div className="bg-purple-50 px-6 py-3 border-b border-purple-200">
+                    <p className="text-sm font-medium text-purple-800">
+                      📋 Datos del Representado / Mandante / Poderdante
+                    </p>
+                  </div>
+                  <FormularioPersona
+                    titulo="Datos del Representado"
+                    datos={representado}
+                    onChange={handleRepresentadoChange}
+                    errors={Object.fromEntries(
+                      Object.entries(errors)
+                        .filter(([k]) => k.startsWith("rep2_"))
+                        .map(([k, v]) => [k.replace("rep2_", ""), v]),
+                    )}
+                    mostrarEstadoCivil={true}
+                  />
+                  {/* Cónyuge del representado si es casado */}
+                  {representado.marital_status === "casado" && (
+                    <div className="border-t-2 border-purple-200">
+                      <div className="bg-purple-50 px-6 py-3 border-b border-purple-200">
+                        <p className="text-sm font-medium text-purple-800">
+                          👫 El representado está casado/a — datos del cónyuge
+                          del representado
+                        </p>
+                      </div>
+                      <FormularioPersona
+                        titulo="Datos del cónyuge del representado"
+                        datos={conyugue}
+                        onChange={handleConyugueChange}
+                        errors={Object.fromEntries(
+                          Object.entries(errors)
+                            .filter(([k]) => k.startsWith("c_"))
+                            .map(([k, v]) => [k.replace("c_", ""), v]),
+                        )}
+                        mostrarEstadoCivil={false}
+                        mismaDir={mismaDir}
+                        onToggleMismaDir={() => setMismaDir((prev) => !prev)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -1691,6 +1948,39 @@ const RegistroClientePage = () => {
               errors={errors}
             />
           )}
+
+          {/* CONDICIONES JURÍDICAS */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
+            <h2 className="font-semibold text-amber-900 mb-3">
+              Condiciones Jurídicas
+            </h2>
+            <button
+              type="button"
+              onClick={() => setModalCondiciones(true)}
+              className="text-sm text-amber-700 underline hover:text-amber-900 mb-3 block"
+            >
+              Ver condiciones jurídicas completas
+            </button>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={aceptaCondiciones}
+                onChange={(e) => {
+                  setAceptaCondiciones(e.target.checked);
+                  if (errors.condiciones)
+                    setErrors((prev) => ({ ...prev, condiciones: "" }));
+                }}
+                className="w-4 h-4 mt-0.5 rounded text-amber-600"
+              />
+              <span className="text-sm text-amber-800">
+                He leído y acepto las condiciones jurídicas establecidas por la
+                Notaría Vigésimo Segunda del Cantón Quito.
+              </span>
+            </label>
+            {errors.condiciones && (
+              <p className="text-red-500 text-xs mt-2">{errors.condiciones}</p>
+            )}
+          </div>
 
           {/* PRIVACIDAD */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
