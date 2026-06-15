@@ -30,9 +30,23 @@ const PROVINCIAS_ECUADOR = [
   "Zamora Chinchipe",
 ];
 
-// ============================================
-// ESTADOS INICIALES
-// ============================================
+const RAZONES_EXCLUSION_CONYUGUE = [
+  { value: "disolucion", label: "Disolución de sociedad conyugal" },
+  { value: "capitulacion", label: "Capitulación matrimonial" },
+  { value: "adquirido_solo", label: "Bien adquirido soltero/viudo/divorciado" },
+];
+
+const RELACIONES_PEP = [
+  "Cónyuge/Conviviente",
+  "Ascendiente/Padres/Abuelos/Suegros",
+  "Descendientes/Hijos/Nietos/Yerno-Nuera",
+  "Hermanos/Cuñados",
+  "Tíos directos",
+  "Primos directos",
+  "Colaborador",
+  "Amigo",
+];
+
 const personaInicial = () => ({
   document_type: "cedula",
   document_number: "",
@@ -59,8 +73,11 @@ const personaInicial = () => ({
   ingreso_mensual: "",
   rol_tramite: "",
   origen_fondos: "",
+  conyugue_comparece: true,
+  razon_exclusion_conyugue: "",
   es_pep: "",
   es_pep_indirecto: "",
+  pep_relacion_tipo: "",
   pep_nombre: "",
   pep_institucion: "",
   pep_fecha_inicio: "",
@@ -83,7 +100,6 @@ const empresaInicial = () => ({
   number_street: "",
   ingreso_mensual: "",
   egreso_mensual: "",
-  // Representante legal
   rep_document_type: "cedula",
   rep_document_number: "",
   rep_names: "",
@@ -103,7 +119,6 @@ const empresaInicial = () => ({
   rep_occupation: "",
   rep_profession: "",
   rep_position: "",
-  // UAFE representante legal
   rep_actividad_economica: "",
   rep_empresa_trabajo: "",
   rep_ingreso_mensual: "",
@@ -111,6 +126,7 @@ const empresaInicial = () => ({
   rep_origen_fondos: "",
   rep_es_pep: "",
   rep_es_pep_indirecto: "",
+  rep_pep_relacion_tipo: "",
   rep_pep_nombre: "",
   rep_pep_institucion: "",
   rep_pep_fecha_inicio: "",
@@ -120,7 +136,7 @@ const empresaInicial = () => ({
 });
 
 // ============================================
-// CAMPOS REUTILIZABLES
+// HELPERS
 // ============================================
 const inputClass = (errors, field) =>
   `w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm ${
@@ -262,6 +278,56 @@ const SeccionDireccion = ({
   </>
 );
 
+// Checkbox cónyuge no comparece
+const SeccionConyugue = ({ datos, onChange, errors, prefijo = "" }) => {
+  if (datos[`${prefijo}marital_status`] !== "casado") return null;
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={!datos[`${prefijo}conyugue_comparece`]}
+            onChange={(e) =>
+              onChange(`${prefijo}conyugue_comparece`, !e.target.checked)
+            }
+            className="w-4 h-4 text-gray-600 rounded"
+          />
+          <span className="text-sm font-medium text-gray-700">
+            El cónyuge no comparece en este trámite
+          </span>
+        </label>
+      </div>
+      {!datos[`${prefijo}conyugue_comparece`] && (
+        <div className="p-4 bg-white">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Razón de no comparecencia
+          </label>
+          <select
+            value={datos[`${prefijo}razon_exclusion_conyugue`] || ""}
+            onChange={(e) =>
+              onChange(`${prefijo}razon_exclusion_conyugue`, e.target.value)
+            }
+            className={inputClass(errors, `${prefijo}razon_exclusion_conyugue`)}
+          >
+            <option value="">Seleccione una razón</option>
+            {RAZONES_EXCLUSION_CONYUGUE.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          {errors[`${prefijo}razon_exclusion_conyugue`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}razon_exclusion_conyugue`]}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FormularioPEP = ({
   datos,
   onChange,
@@ -272,27 +338,25 @@ const FormularioPEP = ({
 }) => (
   <div className="grid grid-cols-2 gap-4">
     {mostrarNombre && (
-      <>
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre del PEP
-          </label>
-          <input
-            type="text"
-            value={datos[`${prefijo}pep_nombre`]}
-            onChange={(e) =>
-              onChange(`${prefijo}pep_nombre`, e.target.value.toUpperCase())
-            }
-            className={inputClass(errors, `${prefijo}pep_nombre`)}
-            placeholder="Nombre completo"
-          />
-          {errors[`${prefijo}pep_nombre`] && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors[`${prefijo}pep_nombre`]}
-            </p>
-          )}
-        </div>
-      </>
+      <div className="col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Nombre del PEP
+        </label>
+        <input
+          type="text"
+          value={datos[`${prefijo}pep_nombre`]}
+          onChange={(e) =>
+            onChange(`${prefijo}pep_nombre`, e.target.value.toUpperCase())
+          }
+          className={inputClass(errors, `${prefijo}pep_nombre`)}
+          placeholder="Nombre completo"
+        />
+        {errors[`${prefijo}pep_nombre`] && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors[`${prefijo}pep_nombre`]}
+          </p>
+        )}
+      </div>
     )}
     <div className="col-span-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -369,26 +433,52 @@ const FormularioPEP = ({
       )}
     </div>
     {mostrarGrado && (
-      <div className="col-span-2">
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Grado de Consanguinidad, Afinidad o Relación de Colaboración que tiene
-          con el PEP
-        </label>
-        <input
-          type="text"
-          value={datos[`${prefijo}pep_grado_relacion`]}
-          onChange={(e) =>
-            onChange(`${prefijo}pep_grado_relacion`, e.target.value)
-          }
-          className={inputClass(errors, `${prefijo}pep_grado_relacion`)}
-          placeholder="Ej: Primer grado de consanguinidad"
-        />
-        {errors[`${prefijo}pep_grado_relacion`] && (
-          <p className="text-red-500 text-xs mt-1">
-            {errors[`${prefijo}pep_grado_relacion`]}
-          </p>
-        )}
-      </div>
+      <>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Relación con el PEP
+          </label>
+          <select
+            value={datos[`${prefijo}pep_relacion_tipo`] || ""}
+            onChange={(e) =>
+              onChange(`${prefijo}pep_relacion_tipo`, e.target.value)
+            }
+            className={inputClass(errors, `${prefijo}pep_relacion_tipo`)}
+          >
+            <option value="">Seleccione</option>
+            {RELACIONES_PEP.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          {errors[`${prefijo}pep_relacion_tipo`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}pep_relacion_tipo`]}
+            </p>
+          )}
+        </div>
+        <div className="col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Grado de Consanguinidad, Afinidad o Relación de Colaboración que
+            tiene con el PEP
+          </label>
+          <input
+            type="text"
+            value={datos[`${prefijo}pep_grado_relacion`]}
+            onChange={(e) =>
+              onChange(`${prefijo}pep_grado_relacion`, e.target.value)
+            }
+            className={inputClass(errors, `${prefijo}pep_grado_relacion`)}
+            placeholder="Ej: Primer grado de consanguinidad"
+          />
+          {errors[`${prefijo}pep_grado_relacion`] && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors[`${prefijo}pep_grado_relacion`]}
+            </p>
+          )}
+        </div>
+      </>
     )}
   </div>
 );
@@ -406,7 +496,7 @@ const SeccionUAFE = ({
     noesPep && datos[`${prefijo}es_pep_indirecto`] === "si";
   const noEsPepIndirecto =
     noesPep && datos[`${prefijo}es_pep_indirecto`] === "no";
-
+  const actEco = datos[`${prefijo}actividad_economica`];
   const labelOrigenFondos =
     datos[`${prefijo}rol_tramite`] === "adquirente"
       ? "Origen de los fondos con los que pagará el bien que adquiere"
@@ -465,8 +555,7 @@ const SeccionUAFE = ({
             </p>
           )}
         </div>
-        {(datos[`${prefijo}actividad_economica`] === "empleado" ||
-          datos[`${prefijo}actividad_economica`] === "independiente") && (
+        {(actEco === "empleado" || actEco === "independiente") && (
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Empresa o Institución de Trabajo
@@ -484,13 +573,12 @@ const SeccionUAFE = ({
         )}
       </div>
 
-      {/* Rol en el trámite + origen de fondos */}
       {mostrarOrigenFondos && (
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
             ¿En qué calidad participa en el trámite?
           </label>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2">
             <button
               type="button"
               onClick={() => onChange(`${prefijo}rol_tramite`, "vendedor")}
@@ -513,7 +601,6 @@ const SeccionUAFE = ({
               {errors[`${prefijo}rol_tramite`]}
             </p>
           )}
-
           {datos[`${prefijo}rol_tramite`] && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -538,7 +625,6 @@ const SeccionUAFE = ({
         </div>
       )}
 
-      {/* PEP Directo */}
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
           ¿Es usted una Persona Políticamente Expuesta (PEP)?
@@ -571,7 +657,7 @@ const SeccionUAFE = ({
 
       {esPepDirecto && (
         <div className="p-4 bg-amber-50 border-2 border-amber-200 rounded-lg space-y-4">
-          <p className="text-sm text-amber-800 font-medium leading-relaxed">
+          <p className="text-sm text-amber-800 font-medium">
             (SI USTED ES UNA PERSONA EXPUESTA POLÍTICAMENTE) Complete la
             siguiente información:
           </p>
@@ -586,7 +672,6 @@ const SeccionUAFE = ({
         </div>
       )}
 
-      {/* PEP Indirecto — solo si respondió No al PEP directo */}
       {noesPep && (
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
@@ -619,7 +704,7 @@ const SeccionUAFE = ({
 
       {esPepIndirecto && (
         <div className="p-4 bg-orange-50 border-2 border-orange-200 rounded-lg space-y-4">
-          <p className="text-sm text-orange-800 font-medium leading-relaxed">
+          <p className="text-sm text-orange-800 font-medium">
             Complete los datos de la Persona Políticamente Expuesta (PEP) con
             quien tiene relación:
           </p>
@@ -629,6 +714,7 @@ const SeccionUAFE = ({
             errors={errors}
             prefijo={prefijo}
             mostrarGrado={true}
+            mostrarNombre={true}
           />
         </div>
       )}
@@ -645,6 +731,7 @@ const FormularioPersona = ({
   onChange,
   errors,
   mostrarEstadoCivil = true,
+  mostrarRolTramite = true,
   mismaDir,
   onToggleMismaDir,
 }) => (
@@ -888,7 +975,7 @@ const FormularioPersona = ({
       datos={datos}
       onChange={onChange}
       errors={errors}
-      mostrarOrigenFondos={true}
+      mostrarOrigenFondos={mostrarRolTramite}
     />
   </div>
 );
@@ -901,7 +988,6 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
     <h2 className="font-semibold text-gray-800 text-lg border-b pb-2">
       Datos de la Empresa
     </h2>
-
     <div className="grid grid-cols-2 gap-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -937,7 +1023,6 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
         )}
       </div>
     </div>
-
     <h3 className="font-medium text-gray-700 pt-2 border-t">
       Contacto de la Empresa
     </h3>
@@ -974,15 +1059,12 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
         )}
       </div>
     </div>
-
     <SeccionDireccion
       datos={datos}
       onChange={onChange}
       errors={errors}
       titulo="Dirección de la Empresa"
     />
-
-    {/* Ingreso y egreso mensual de la empresa */}
     <h3 className="font-medium text-gray-700 pt-2 border-t">
       Información Financiera de la Empresa
     </h3>
@@ -1022,13 +1104,10 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
         )}
       </div>
     </div>
-
-    {/* REPRESENTANTE LEGAL */}
     <div className="border-t-2 border-blue-200 pt-4">
       <h2 className="font-semibold text-blue-900 text-lg mb-4">
         Representante Legal
       </h2>
-
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1216,7 +1295,6 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
           />
         </div>
       </div>
-
       <SeccionDireccion
         datos={datos}
         onChange={onChange}
@@ -1224,7 +1302,6 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
         prefijo="rep_"
         titulo="Dirección del Representante Legal"
       />
-
       <SeccionUAFE
         datos={datos}
         onChange={onChange}
@@ -1272,27 +1349,19 @@ const validarUAFE = (datos, prefijo = "", validarOrigenFondos = false) => {
   if (!datos[`${p}actividad_economica`])
     e[`${p}actividad_economica`] = "Requerido";
   if (!datos[`${p}ingreso_mensual`]) e[`${p}ingreso_mensual`] = "Requerido";
-
-  // Validar rol y origen de fondos
   if (validarOrigenFondos) {
     if (!datos[`${p}rol_tramite`]) e[`${p}rol_tramite`] = "Requerido";
     if (datos[`${p}rol_tramite`] && !datos[`${p}origen_fondos`]?.trim())
       e[`${p}origen_fondos`] = "Requerido";
   }
-
-  // Validar PEP directo
   if (!datos[`${p}es_pep`]) e[`${p}es_pep`] = "Requerido";
   if (datos[`${p}es_pep`] === "si") {
-    if (!datos[`${p}pep_nombre`]) e[`${p}pep_nombre`] = "Requerido";
     if (!datos[`${p}pep_institucion`]) e[`${p}pep_institucion`] = "Requerido";
     if (!datos[`${p}pep_fecha_inicio`]) e[`${p}pep_fecha_inicio`] = "Requerido";
     if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
     if (!datos[`${p}pep_anios_trabajo`])
       e[`${p}pep_anios_trabajo`] = "Requerido";
-    // PEP directo NO requiere grado de consanguinidad
   }
-
-  // Validar PEP indirecto — solo si respondió No al PEP directo
   if (datos[`${p}es_pep`] === "no") {
     if (!datos[`${p}es_pep_indirecto`]) e[`${p}es_pep_indirecto`] = "Requerido";
     if (datos[`${p}es_pep_indirecto`] === "si") {
@@ -1303,11 +1372,12 @@ const validarUAFE = (datos, prefijo = "", validarOrigenFondos = false) => {
       if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
       if (!datos[`${p}pep_anios_trabajo`])
         e[`${p}pep_anios_trabajo`] = "Requerido";
+      if (!datos[`${p}pep_relacion_tipo`])
+        e[`${p}pep_relacion_tipo`] = "Requerido";
       if (!datos[`${p}pep_grado_relacion`])
         e[`${p}pep_grado_relacion`] = "Requerido";
     }
   }
-
   return e;
 };
 
@@ -1326,7 +1396,6 @@ const validarEmpresa = (datos) => {
   if (!datos.number_street) e.number_street = "Requerido";
   if (!datos.ingreso_mensual) e.ingreso_mensual = "Requerido";
   if (!datos.egreso_mensual) e.egreso_mensual = "Requerido";
-  // Representante legal
   const errorsRep = validarPersona(datos, "rep_");
   if (!datos.rep_position) errorsRep.rep_position = "Requerido";
   const errorsRepUAFE = validarUAFE(datos, "rep_", true);
@@ -1340,21 +1409,29 @@ const RegistroClientePage = () => {
   const { token } = useParams();
 
   const [tokenValido, setTokenValido] = useState(null);
-  const [tipoRegistro, setTipoRegistro] = useState("persona"); // "persona" | "empresa"
+  const [tipoRegistro, setTipoRegistro] = useState("persona");
+  const [calidadParticipacion, setCalidadParticipacion] = useState("");
+  const [representadoEsConyugue, setRepresentadoEsConyugue] = useState(null);
   const [titular, setTitular] = useState(personaInicial());
   const [conyugue, setConyugue] = useState(personaInicial());
+  const [representado, setRepresentado] = useState(personaInicial());
+  const [conyugueRepresentado, setConyugueRepresentado] =
+    useState(personaInicial());
   const [empresa, setEmpresa] = useState(empresaInicial());
   const [mismaDir, setMismaDir] = useState(true);
+  const [mismaDirRepresentado, setMismaDirRepresentado] = useState(true);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [aceptaPrivacidad, setAceptaPrivacidad] = useState(false);
   const [aceptaCondiciones, setAceptaCondiciones] = useState(false);
   const [modalCondiciones, setModalCondiciones] = useState(false);
-  const [calidadParticipacion, setCalidadParticipacion] = useState(""); // "propios_derechos" | "representando"
-  const [representado, setRepresentado] = useState(personaInicial());
 
-  const esCasado = titular.marital_status === "casado";
+  const esCasadoTitular = titular.marital_status === "casado";
+  const esCasadoRepresentado = representado.marital_status === "casado";
+  const titularConyugueComparece = titular.conyugue_comparece !== false;
+  const representadoConyugueComparece =
+    representado.conyugue_comparece !== false;
 
   useEffect(() => {
     const verificar = async () => {
@@ -1371,9 +1448,13 @@ const RegistroClientePage = () => {
     verificar();
   }, [token]);
 
-  // Sincronizar dirección del cónyuge
+  // Sincronizar dirección del cónyuge del titular
   useEffect(() => {
-    if (mismaDir && esCasado) {
+    if (
+      mismaDir &&
+      esCasadoTitular &&
+      calidadParticipacion === "propios_derechos"
+    ) {
       setConyugue((prev) => ({
         ...prev,
         province: titular.province,
@@ -1387,7 +1468,8 @@ const RegistroClientePage = () => {
     }
   }, [
     mismaDir,
-    esCasado,
+    esCasadoTitular,
+    calidadParticipacion,
     titular.province,
     titular.canton,
     titular.parroquia,
@@ -1397,23 +1479,51 @@ const RegistroClientePage = () => {
     titular.number_street,
   ]);
 
+  // Sincronizar dirección del cónyuge del representado
+  useEffect(() => {
+    if (mismaDirRepresentado && esCasadoRepresentado) {
+      setConyugueRepresentado((prev) => ({
+        ...prev,
+        province: representado.province,
+        canton: representado.canton,
+        parroquia: representado.parroquia,
+        sector: representado.sector,
+        main_street: representado.main_street,
+        secondary_street: representado.secondary_street,
+        number_street: representado.number_street,
+      }));
+    }
+  }, [
+    mismaDirRepresentado,
+    esCasadoRepresentado,
+    representado.province,
+    representado.canton,
+    representado.parroquia,
+    representado.sector,
+    representado.main_street,
+    representado.secondary_street,
+    representado.number_street,
+  ]);
+
   const handleTitularChange = (field, value) => {
     setTitular((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
-
-  const handleRepresentadoChange = (field, value) => {
-    setRepresentado((prev) => ({ ...prev, [field]: value }));
-    if (errors[`rep2_${field}`])
-      setErrors((prev) => ({ ...prev, [`rep2_${field}`]: "" }));
-  };
-
   const handleConyugueChange = (field, value) => {
     setConyugue((prev) => ({ ...prev, [field]: value }));
     if (errors[`c_${field}`])
       setErrors((prev) => ({ ...prev, [`c_${field}`]: "" }));
   };
-
+  const handleRepresentadoChange = (field, value) => {
+    setRepresentado((prev) => ({ ...prev, [field]: value }));
+    if (errors[`r_${field}`])
+      setErrors((prev) => ({ ...prev, [`r_${field}`]: "" }));
+  };
+  const handleConyugueRepresentadoChange = (field, value) => {
+    setConyugueRepresentado((prev) => ({ ...prev, [field]: value }));
+    if (errors[`cr_${field}`])
+      setErrors((prev) => ({ ...prev, [`cr_${field}`]: "" }));
+  };
   const handleEmpresaChange = (field, value) => {
     setEmpresa((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -1421,40 +1531,95 @@ const RegistroClientePage = () => {
 
   const validar = () => {
     let e = {};
-
     if (tipoRegistro === "empresa") {
       e = { ...e, ...validarEmpresa(empresa) };
     } else {
-      e = { ...e, ...validarPersona(titular) };
-      e = { ...e, ...validarUAFE(titular, "", true) };
-      if (!titular.marital_status) e.marital_status = "Requerido";
+      if (!calidadParticipacion) e.calidadParticipacion = "Requerido";
 
-      if (esCasado) {
-        const errC = {
-          ...validarPersona(conyugue, "c_"),
-          ...validarUAFE(conyugue, "c_", true),
-        };
-        if (mismaDir) {
-          [
-            "c_province",
-            "c_canton",
-            "c_parroquia",
-            "c_main_street",
-            "c_secondary_street",
-            "c_number_street",
-          ].forEach((k) => delete errC[k]);
-        }
+      // Validar titular siempre
+      e = { ...e, ...validarPersona(titular) };
+      e = {
+        ...e,
+        ...validarUAFE(titular, "", calidadParticipacion !== "representando"),
+      };
+      if (
+        calidadParticipacion === "propios_derechos" ||
+        calidadParticipacion === "propios_y_representando"
+      ) {
+        if (!titular.marital_status) e.marital_status = "Requerido";
+      }
+
+      // Cónyuge del titular
+      if (
+        (calidadParticipacion === "propios_derechos" ||
+          calidadParticipacion === "propios_y_representando") &&
+        esCasadoTitular &&
+        titularConyugueComparece
+      ) {
         if (
-          titular.document_number &&
-          conyugue.document_number &&
-          titular.document_number === conyugue.document_number
+          calidadParticipacion === "propios_y_representando" &&
+          representadoEsConyugue
+        ) {
+          // No validar cónyuge separado
+        } else {
+          const errC = {
+            ...validarPersona(conyugue, "c_"),
+            ...validarUAFE(conyugue, "c_", false),
+          };
+          if (mismaDir)
+            [
+              "c_province",
+              "c_canton",
+              "c_parroquia",
+              "c_main_street",
+              "c_secondary_street",
+              "c_number_street",
+            ].forEach((k) => delete errC[k]);
+          e = { ...e, ...errC };
+        }
+      }
+
+      // Validar representado
+      if (
+        calidadParticipacion === "representando" ||
+        calidadParticipacion === "propios_y_representando"
+      ) {
+        if (
+          calidadParticipacion === "propios_y_representando" &&
+          representadoEsConyugue === null
         )
-          errC.c_document_number =
-            "La cédula del cónyuge no puede ser igual a la del titular";
-        e = { ...e, ...errC };
+          e.representadoEsConyugue = "Requerido";
+
+        const usarRepresentadoSeparado = !(
+          calidadParticipacion === "propios_y_representando" &&
+          representadoEsConyugue
+        );
+        if (usarRepresentadoSeparado) {
+          const errR = {
+            ...validarPersona(representado, "r_"),
+            ...validarUAFE(representado, "r_", true),
+          };
+          e = { ...e, ...errR };
+          // Cónyuge del representado
+          if (esCasadoRepresentado && representadoConyugueComparece) {
+            const errCR = {
+              ...validarPersona(conyugueRepresentado, "cr_"),
+              ...validarUAFE(conyugueRepresentado, "cr_", false),
+            };
+            if (mismaDirRepresentado)
+              [
+                "cr_province",
+                "cr_canton",
+                "cr_parroquia",
+                "cr_main_street",
+                "cr_secondary_street",
+                "cr_number_street",
+              ].forEach((k) => delete errCR[k]);
+            e = { ...e, ...errCR };
+          }
+        }
       }
     }
-
     if (!aceptaPrivacidad)
       e.privacidad = "Debe aceptar el tratamiento de sus datos";
     if (!aceptaCondiciones)
@@ -1481,11 +1646,9 @@ const RegistroClientePage = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-
     setLoading(true);
     try {
       let payload;
-
       if (tipoRegistro === "empresa") {
         payload = {
           tipo: "empresa",
@@ -1511,27 +1674,70 @@ const RegistroClientePage = () => {
           },
         };
       } else {
+        const titularPrep = prepararPersona(titular, titular.es_pep);
+        let conyuguePrep = null;
+        let representadoPrep = null;
+        let conyugueRepresentadoPrep = null;
+
+        if (
+          (calidadParticipacion === "propios_derechos" ||
+            calidadParticipacion === "propios_y_representando") &&
+          esCasadoTitular &&
+          titularConyugueComparece
+        ) {
+          if (
+            !(
+              calidadParticipacion === "propios_y_representando" &&
+              representadoEsConyugue
+            )
+          ) {
+            conyuguePrep = {
+              ...prepararPersona(conyugue, conyugue.es_pep),
+              marital_status: "casado",
+              partner_document_number: titular.document_number,
+            };
+            titularPrep.partner_document_number = conyugue.document_number;
+          }
+        }
+
+        if (
+          calidadParticipacion === "representando" ||
+          calidadParticipacion === "propios_y_representando"
+        ) {
+          if (
+            calidadParticipacion === "propios_y_representando" &&
+            representadoEsConyugue
+          ) {
+            // El representado es el cónyuge del titular
+            conyuguePrep = prepararPersona(conyugue, conyugue.es_pep);
+            titularPrep.partner_document_number = conyugue.document_number;
+          } else {
+            representadoPrep = prepararPersona(
+              representado,
+              representado.es_pep,
+            );
+            if (esCasadoRepresentado && representadoConyugueComparece) {
+              conyugueRepresentadoPrep = {
+                ...prepararPersona(
+                  conyugueRepresentado,
+                  conyugueRepresentado.es_pep,
+                ),
+                marital_status: "casado",
+                partner_document_number: representado.document_number,
+              };
+              representadoPrep.partner_document_number =
+                conyugueRepresentado.document_number;
+            }
+          }
+        }
+
         payload = {
           tipo: "persona",
-          titular: prepararPersona(
-            {
-              ...titular,
-              partner_document_number: esCasado
-                ? conyugue.document_number
-                : null,
-            },
-            titular.es_pep,
-          ),
-          conyugue: esCasado
-            ? prepararPersona(
-                {
-                  ...conyugue,
-                  marital_status: "casado",
-                  partner_document_number: titular.document_number,
-                },
-                conyugue.es_pep,
-              )
-            : null,
+          calidad_participacion: calidadParticipacion,
+          titular: titularPrep,
+          conyugue: conyuguePrep,
+          representado: representadoPrep,
+          conyugue_representado: conyugueRepresentadoPrep,
         };
       }
 
@@ -1540,7 +1746,6 @@ const RegistroClientePage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       if (res.ok) {
         setEnviado(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1569,12 +1774,11 @@ const RegistroClientePage = () => {
       </div>
     );
   }
-
   if (!tokenValido) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-xl shadow-md p-8 max-w-md w-full text-center">
-          <div className="text-5xl mb-4">⚠️</div>
+          <div className="text-5xl mb-4"></div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             Enlace no válido
           </h1>
@@ -1586,12 +1790,11 @@ const RegistroClientePage = () => {
       </div>
     );
   }
-
   if (enviado) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="bg-white rounded-xl shadow-md p-8 max-w-md w-full text-center">
-          <div className="text-5xl mb-4">✅</div>
+          <div className="text-5xl mb-4"></div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             ¡Datos registrados!
           </h1>
@@ -1607,7 +1810,16 @@ const RegistroClientePage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
+        {/* ENCABEZADO */}
         <div className="text-center mb-8">
+          <img
+            src="/logo.svg"
+            alt="Notaría Vigésimo Segunda"
+            className="h-20 mx-auto mb-4 object-contain"
+            onError={(e) => {
+              e.target.style.display = "none";
+            }}
+          />
           <h1 className="text-xl font-bold text-gray-900 uppercase">
             Notaría Vigésimo Segunda del Cantón Quito
           </h1>
@@ -1624,7 +1836,7 @@ const RegistroClientePage = () => {
           </div>
         )}
         {Object.keys(errors).filter(
-          (k) => k !== "general" && k !== "privacidad",
+          (k) => k !== "general" && k !== "privacidad" && k !== "condiciones",
         ).length > 0 && (
           <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
             Por favor corrija los campos marcados en rojo antes de continuar.
@@ -1632,10 +1844,10 @@ const RegistroClientePage = () => {
         )}
 
         <div className="space-y-6">
-          {/* MODAL CONDICIONES JURÍDICAS */}
+          {/* MODAL CONDICIONES */}
           {modalCondiciones && (
             <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-screen overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold text-gray-900">
@@ -1788,7 +2000,7 @@ const RegistroClientePage = () => {
                 }}
                 className={`p-4 rounded-lg border-2 text-left transition-colors ${tipoRegistro === "persona" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
               >
-                <div className="text-2xl mb-1">👤</div>
+                <div className="text-2xl mb-1"></div>
                 <div className="font-semibold text-gray-900 text-sm">
                   Persona Natural
                 </div>
@@ -1804,7 +2016,7 @@ const RegistroClientePage = () => {
                 }}
                 className={`p-4 rounded-lg border-2 text-left transition-colors ${tipoRegistro === "empresa" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
               >
-                <div className="text-2xl mb-1">🏢</div>
+                <div className="text-2xl mb-1"></div>
                 <div className="font-semibold text-gray-900 text-sm">
                   Persona Jurídica
                 </div>
@@ -1815,7 +2027,7 @@ const RegistroClientePage = () => {
             </div>
           </div>
 
-          {/* FORMULARIO SEGÚN TIPO */}
+          {/* PERSONA NATURAL */}
           {tipoRegistro === "persona" && (
             <>
               {/* CALIDAD DE PARTICIPACIÓN */}
@@ -1823,10 +2035,13 @@ const RegistroClientePage = () => {
                 <label className="block text-sm font-medium text-gray-700">
                   Calidad en la que participa en el trámite
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
                   <button
                     type="button"
-                    onClick={() => setCalidadParticipacion("propios_derechos")}
+                    onClick={() => {
+                      setCalidadParticipacion("propios_derechos");
+                      setErrors({});
+                    }}
                     className={`p-4 rounded-lg border-2 text-left transition-colors ${calidadParticipacion === "propios_derechos" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
                   >
                     <div className="font-semibold text-gray-900 text-sm">
@@ -1835,14 +2050,32 @@ const RegistroClientePage = () => {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCalidadParticipacion("representando")}
+                    onClick={() => {
+                      setCalidadParticipacion("representando");
+                      setErrors({});
+                    }}
                     className={`p-4 rounded-lg border-2 text-left transition-colors ${calidadParticipacion === "representando" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
                   >
                     <div className="font-semibold text-gray-900 text-sm">
-                      Representando a alguien
+                      Representando a:
                     </div>
                     <div className="text-xs text-gray-500 mt-0.5">
                       Mandatario, apoderado, representante
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCalidadParticipacion("propios_y_representando");
+                      setErrors({});
+                    }}
+                    className={`p-4 rounded-lg border-2 text-left transition-colors ${calidadParticipacion === "propios_y_representando" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                  >
+                    <div className="font-semibold text-gray-900 text-sm">
+                      Por sus propios derechos y representando a:
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      Comparece en doble calidad
                     </div>
                   </button>
                 </div>
@@ -1853,76 +2086,102 @@ const RegistroClientePage = () => {
                 )}
               </div>
 
-              {/* FORMULARIO REPRESENTANTE (quien firma) */}
+              {/* DATOS DEL COMPARECIENTE */}
               {calidadParticipacion && (
                 <FormularioPersona
                   titulo={
-                    calidadParticipacion === "representando"
-                      ? "Datos del Representante (quien firma)"
-                      : "Sus datos personales"
+                    calidadParticipacion === "propios_derechos"
+                      ? "Sus datos personales"
+                      : "Datos del Apoderado, Mandatario, Representante (quien firma)"
                   }
                   datos={titular}
                   onChange={handleTitularChange}
                   errors={errors}
                   mostrarEstadoCivil={true}
+                  mostrarRolTramite={
+                    calidadParticipacion === "propios_derechos"
+                  }
                 />
               )}
 
-              {/* CÓNYUGE — solo si es por propios derechos y está casado */}
-              {calidadParticipacion === "propios_derechos" && esCasado && (
-                <div className="border-2 border-blue-200 rounded-xl overflow-hidden">
-                  <div className="bg-blue-50 px-6 py-3 border-b border-blue-200">
-                    <p className="text-sm font-medium text-blue-800">
-                      👫 Como está casado/a, necesitamos también los datos de su
-                      cónyuge
-                    </p>
-                  </div>
-                  <FormularioPersona
-                    titulo="Datos del cónyuge"
-                    datos={conyugue}
-                    onChange={handleConyugueChange}
-                    errors={Object.fromEntries(
-                      Object.entries(errors)
-                        .filter(([k]) => k.startsWith("c_"))
-                        .map(([k, v]) => [k.replace("c_", ""), v]),
-                    )}
-                    mostrarEstadoCivil={false}
-                    mismaDir={mismaDir}
-                    onToggleMismaDir={() => setMismaDir((prev) => !prev)}
+              {/* CÓNYUGE NO COMPARECE — titular por propios derechos o propios+representando */}
+              {calidadParticipacion &&
+                calidadParticipacion !== "representando" &&
+                esCasadoTitular && (
+                  <SeccionConyugue
+                    datos={titular}
+                    onChange={handleTitularChange}
+                    errors={errors}
                   />
-                </div>
-              )}
+                )}
 
-              {/* REPRESENTADO — solo si está representando */}
-              {calidadParticipacion === "representando" && (
-                <div className="border-2 border-purple-200 rounded-xl overflow-hidden">
-                  <div className="bg-purple-50 px-6 py-3 border-b border-purple-200">
-                    <p className="text-sm font-medium text-purple-800">
-                      📋 Datos del Representado / Mandante / Poderdante
-                    </p>
+              {/* CÓNYUGE DEL TITULAR */}
+              {calidadParticipacion &&
+                calidadParticipacion !== "representando" &&
+                esCasadoTitular &&
+                titularConyugueComparece &&
+                !(
+                  calidadParticipacion === "propios_y_representando" &&
+                  representadoEsConyugue
+                ) && (
+                  <div className="border-2 border-blue-200 rounded-xl overflow-hidden">
+                    <div className="bg-blue-50 px-6 py-3 border-b border-blue-200">
+                      <p className="text-sm font-medium text-blue-800">
+                        {" "}
+                        Como está casado/a, necesitamos también los datos de su
+                        cónyuge
+                      </p>
+                    </div>
+                    <FormularioPersona
+                      titulo="Datos del cónyuge"
+                      datos={conyugue}
+                      onChange={handleConyugueChange}
+                      errors={Object.fromEntries(
+                        Object.entries(errors)
+                          .filter(([k]) => k.startsWith("c_"))
+                          .map(([k, v]) => [k.replace("c_", ""), v]),
+                      )}
+                      mostrarEstadoCivil={false}
+                      mostrarRolTramite={false}
+                      mismaDir={mismaDir}
+                      onToggleMismaDir={() => setMismaDir((prev) => !prev)}
+                    />
                   </div>
-                  <FormularioPersona
-                    titulo="Datos del Representado"
-                    datos={representado}
-                    onChange={handleRepresentadoChange}
-                    errors={Object.fromEntries(
-                      Object.entries(errors)
-                        .filter(([k]) => k.startsWith("rep2_"))
-                        .map(([k, v]) => [k.replace("rep2_", ""), v]),
-                    )}
-                    mostrarEstadoCivil={true}
-                  />
-                  {/* Cónyuge del representado si es casado */}
-                  {representado.marital_status === "casado" && (
-                    <div className="border-t-2 border-purple-200">
-                      <div className="bg-purple-50 px-6 py-3 border-b border-purple-200">
-                        <p className="text-sm font-medium text-purple-800">
-                          👫 El representado está casado/a — datos del cónyuge
-                          del representado
-                        </p>
-                      </div>
+                )}
+
+              {/* ¿EL REPRESENTADO ES SU CÓNYUGE? — solo para propios_y_representando */}
+              {calidadParticipacion === "propios_y_representando" && (
+                <div className="bg-white rounded-xl shadow-sm p-6 space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    ¿El representado es su cónyuge?
+                  </label>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setRepresentadoEsConyugue(true)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${representadoEsConyugue === true ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      Sí
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRepresentadoEsConyugue(false)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium ${representadoEsConyugue === false ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                    >
+                      No
+                    </button>
+                  </div>
+                  {errors.representadoEsConyugue && (
+                    <p className="text-red-500 text-xs">
+                      {errors.representadoEsConyugue}
+                    </p>
+                  )}
+
+                  {/* Si es su cónyuge — formulario del cónyuge con rol en trámite */}
+                  {representadoEsConyugue === true && (
+                    <div className="border-2 border-purple-200 rounded-xl overflow-hidden mt-4">
                       <FormularioPersona
-                        titulo="Datos del cónyuge del representado"
+                        titulo="Datos del Poderdante, Mandante, Representado (cónyuge)"
                         datos={conyugue}
                         onChange={handleConyugueChange}
                         errors={Object.fromEntries(
@@ -1931,8 +2190,66 @@ const RegistroClientePage = () => {
                             .map(([k, v]) => [k.replace("c_", ""), v]),
                         )}
                         mostrarEstadoCivil={false}
+                        mostrarRolTramite={true}
                         mismaDir={mismaDir}
                         onToggleMismaDir={() => setMismaDir((prev) => !prev)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* FORMULARIO DEL REPRESENTADO — cuando no es el cónyuge */}
+              {(calidadParticipacion === "representando" ||
+                (calidadParticipacion === "propios_y_representando" &&
+                  representadoEsConyugue === false)) && (
+                <div className="border-2 border-purple-200 rounded-xl overflow-hidden">
+                  <FormularioPersona
+                    titulo="Datos del Poderdante, Mandante, Representado"
+                    datos={representado}
+                    onChange={handleRepresentadoChange}
+                    errors={Object.fromEntries(
+                      Object.entries(errors)
+                        .filter(([k]) => k.startsWith("r_"))
+                        .map(([k, v]) => [k.replace("r_", ""), v]),
+                    )}
+                    mostrarEstadoCivil={true}
+                    mostrarRolTramite={true}
+                  />
+
+                  {/* Cónyuge no comparece — representado */}
+                  {esCasadoRepresentado && (
+                    <div className="px-6 pb-4">
+                      <SeccionConyugue
+                        datos={representado}
+                        onChange={handleRepresentadoChange}
+                        errors={Object.fromEntries(
+                          Object.entries(errors)
+                            .filter(([k]) => k.startsWith("r_"))
+                            .map(([k, v]) => [k.replace("r_", ""), v]),
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Cónyuge del representado */}
+                  {esCasadoRepresentado && representadoConyugueComparece && (
+                    <div className="border-t-2 border-purple-200">
+                      <FormularioPersona
+                        titulo="Datos del cónyuge del representado"
+                        datos={conyugueRepresentado}
+                        onChange={handleConyugueRepresentadoChange}
+                        errors={Object.fromEntries(
+                          Object.entries(errors)
+                            .filter(([k]) => k.startsWith("cr_"))
+                            .map(([k, v]) => [k.replace("cr_", ""), v]),
+                        )}
+                        mostrarEstadoCivil={false}
+                        mostrarRolTramite={false}
+                        mismaDir={mismaDirRepresentado}
+                        onToggleMismaDir={() =>
+                          setMismaDirRepresentado((prev) => !prev)
+                        }
                       />
                     </div>
                   )}
@@ -1941,6 +2258,7 @@ const RegistroClientePage = () => {
             </>
           )}
 
+          {/* EMPRESA */}
           {tipoRegistro === "empresa" && (
             <FormularioEmpresa
               datos={empresa}
