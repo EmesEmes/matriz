@@ -109,8 +109,18 @@ class GenerateMatrizRequest(BaseModel):
 
     # Participantes — lista genérica que acepta personas y empresas
     participantes_list: List[Dict[str, Any]]
-    vendedores_list: List[Dict[str, Any]]
-    compradores_list: List[Dict[str, Any]]
+    # Compraventa
+    vendedores_list: Optional[List[Dict[str, Any]]] = []
+    compradores_list: Optional[List[Dict[str, Any]]] = []
+    # Promesa de compraventa
+    promitentes_vendedores_list: Optional[List[Dict[str, Any]]] = []
+    promitentes_compradores_list: Optional[List[Dict[str, Any]]] = []
+    # Sesión
+    cedentes_list: Optional[List[Dict[str, Any]]] = []
+    cesionarios_list: Optional[List[Dict[str, Any]]] = []
+    # Donación
+    donantes_list: Optional[List[Dict[str, Any]]] = []
+    donatarios_list: Optional[List[Dict[str, Any]]] = []
 
     # Abogado y minuta
     abogado: LawyerData

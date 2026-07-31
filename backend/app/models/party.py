@@ -86,6 +86,14 @@ class Party(Base):
     pep_cargo = Column(String(200), nullable=True)
     pep_anios_trabajo = Column(Integer, nullable=True)
     pep_grado_relacion = Column(String(200), nullable=True)
+    pep_relacion_tipo = Column(String(100), nullable=True)  # tipo de relación con el PEP (cónyuge, hermano, etc.)
+
+    # Cónyuge no comparece
+    conyugue_comparece = Column(Boolean, default=True, nullable=True)
+    razon_exclusion_conyugue = Column(String(50), nullable=True)  # disolucion / capitulacion / adquirido_solo
+
+    # Calidad en la que participó en el trámite del registro público
+    calidad_participacion = Column(String(30), nullable=True)  # propios_derechos / representando / propios_y_representando
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Card, FormField } from '../shared';
-import { useAuth } from '../../context/AuthContext';
+import { useState, useEffect } from "react";
+import { Card, FormField } from "../shared";
+import { useAuth } from "../../context/AuthContext";
 
 const NOTARIOS = {
   "alex-mejia": {
@@ -13,58 +13,65 @@ const NOTARIOS = {
   },
 };
 
-const DatosAdministrativos = ({ onChange }) => {
+const TIPOS_CONTRATO = {
+  compraventa: "Compraventa",
+  promesa_compraventa: "Promesa de Compraventa",
+  sesion: "Sesión",
+  donacion: "Donación",
+};
+
+const DatosAdministrativos = ({ onChange, tipoContrato = "compraventa" }) => {
   const { user } = useAuth();
   const [showConcuerdo, setShowConcuerdo] = useState(false);
-  
+
   const [formData, setFormData] = useState({
-    notarioKey: '',
-    matrizador: user?.iniciales || '',
-    numeroProtocolo: '',
-    tipoContrato: 'compraventa',
-    cuantia: '',
-    fechaEscritura: new Date().toISOString().split('T')[0],
-    concuerdoNumeroProtocolo: '',
-    concuerdoNombres: '',
-    concuerdoApellidos: '',
-    concuerdoCedula: '',
-    concuerdoFecha: new Date().toISOString().split('T')[0]
+    notarioKey: "",
+    matrizador: user?.iniciales || "",
+    numeroProtocolo: "",
+    tipoContrato: tipoContrato,
+    cuantia: "",
+    fechaEscritura: new Date().toISOString().split("T")[0],
+    concuerdoNumeroProtocolo: "",
+    concuerdoNombres: "",
+    concuerdoApellidos: "",
+    concuerdoCedula: "",
+    concuerdoFecha: new Date().toISOString().split("T")[0],
   });
 
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const notario = NOTARIOS[formData.notarioKey] || null;
-    
+
     if (onChange) {
       onChange({
         ...formData,
         notario,
-        needsConcuerdo: showConcuerdo
+        needsConcuerdo: showConcuerdo,
       });
     }
   }, [formData, showConcuerdo, onChange]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const handleToggleConcuerdo = () => {
-    setShowConcuerdo(prev => {
+    setShowConcuerdo((prev) => {
       const newState = !prev;
       if (!newState) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          concuerdoNumeroProtocolo: '',
-          concuerdoNombres: '',
-          concuerdoApellidos: '',
-          concuerdoCedula: '',
-          concuerdoFecha: new Date().toISOString().split('T')[0]
+          concuerdoNumeroProtocolo: "",
+          concuerdoNombres: "",
+          concuerdoApellidos: "",
+          concuerdoCedula: "",
+          concuerdoFecha: new Date().toISOString().split("T")[0],
         }));
       }
       return newState;
@@ -84,14 +91,20 @@ const DatosAdministrativos = ({ onChange }) => {
             >
               <option value="">Seleccione un notario</option>
               <option value="alex-mejia">ALEX DAVID MEJÍA VITERI</option>
-              <option value="cristiana-casa">CRISTINA ELIZABETH CASA LLUMIQUINGA</option>
+              <option value="cristiana-casa">
+                CRISTINA ELIZABETH CASA LLUMIQUINGA
+              </option>
             </select>
           </FormField>
 
           <FormField label="Matrizador">
             <input
               type="text"
-              value={user?.iniciales ? `${formData.matrizador} (${user.nombre})` : 'Sin iniciales configuradas'}
+              value={
+                user?.iniciales
+                  ? `${formData.matrizador} (${user.nombre})`
+                  : "Sin iniciales configuradas"
+              }
               className="input-field bg-gray-100"
               disabled
             />
@@ -99,7 +112,11 @@ const DatosAdministrativos = ({ onChange }) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <FormField label="Número de Protocolo" required error={errors.numeroProtocolo}>
+          <FormField
+            label="Número de Protocolo"
+            required
+            error={errors.numeroProtocolo}
+          >
             <input
               type="text"
               name="numeroProtocolo"
@@ -111,14 +128,14 @@ const DatosAdministrativos = ({ onChange }) => {
           </FormField>
 
           <FormField label="Tipo de Contrato" required>
-            <select
-              name="tipoContrato"
-              value={formData.tipoContrato}
-              onChange={handleChange}
-              className="input-field"
-            >
-              <option value="compraventa">Compraventa</option>
-            </select>
+            <input
+              type="text"
+              value={
+                TIPOS_CONTRATO[formData.tipoContrato] || formData.tipoContrato
+              }
+              readOnly
+              className="input-field bg-gray-50 cursor-default"
+            />
           </FormField>
 
           <FormField label="Cuantía" required error={errors.cuantia}>
@@ -161,7 +178,7 @@ const DatosAdministrativos = ({ onChange }) => {
         {showConcuerdo && (
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-4">
             <h4 className="font-semibold text-blue-900">Datos del Concuerdo</h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <FormField label="N° Protocolo" required>
                 <input

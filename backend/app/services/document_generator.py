@@ -203,7 +203,7 @@ def procesar_empresa(comp, index):
     }
 
 
-def generate_matriz_compraventa(data: dict) -> str:
+def generate_matriz_compraventa(data: dict, template_name: str = "compraventa.docx") -> str:
     """
     Genera matriz de compraventa usando docxtpl
     """
@@ -328,7 +328,7 @@ def generate_matriz_compraventa(data: dict) -> str:
     print(f"- Hay discapacidad intelectual: {hay_discapacidad_intelectual}")
     
     # Cargar plantilla
-    template_path = TEMPLATES_DIR / "compraventa.docx"
+    template_path = TEMPLATES_DIR / template_name
     
     if not template_path.exists():
         raise FileNotFoundError(f"Plantilla no encontrada en: {template_path}")

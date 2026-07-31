@@ -34,6 +34,22 @@ const RAZONES_EXCLUSION_CONYUGUE = [
   { value: "disolucion", label: "Disolución de sociedad conyugal" },
   { value: "capitulacion", label: "Capitulación matrimonial" },
   { value: "adquirido_solo", label: "Bien adquirido soltero/viudo/divorciado" },
+  {
+    value: "no_requiere_adquirente",
+    label:
+      "No requiere comparecencia del cónyuge — actúa como parte adquirente",
+  },
+];
+
+const ORIGENES_FONDOS = [
+  "Ahorros personales",
+  "Sueldo o salario",
+  "Venta de otro bien (inmueble, vehículo, etc.)",
+  "Herencia o legado",
+  "Préstamo bancario",
+  "Préstamo de familiar o tercero",
+  "Utilidades de negocio propio",
+  "Indemnización o liquidación laboral",
 ];
 
 const RELACIONES_PEP = [
@@ -489,6 +505,8 @@ const SeccionUAFE = ({
   errors,
   prefijo = "",
   mostrarOrigenFondos = false,
+  esRepresentado = false,
+  tituloFinanciero = "Información Financiera",
 }) => {
   const esPepDirecto = datos[`${prefijo}es_pep`] === "si";
   const noesPep = datos[`${prefijo}es_pep`] === "no";
@@ -505,7 +523,7 @@ const SeccionUAFE = ({
   return (
     <>
       <h3 className="font-medium text-gray-700 pt-2 border-t">
-        Información Financiera
+        {tituloFinanciero}
       </h3>
       <div className="grid grid-cols-2 gap-4">
         <div>
@@ -603,18 +621,67 @@ const SeccionUAFE = ({
           )}
           {datos[`${prefijo}rol_tramite`] && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 {labelOrigenFondos}
               </label>
-              <textarea
-                value={datos[`${prefijo}origen_fondos`] || ""}
-                onChange={(e) =>
-                  onChange(`${prefijo}origen_fondos`, e.target.value)
-                }
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-sm resize-none ${errors[`${prefijo}origen_fondos`] ? "border-red-400 bg-red-50" : "border-gray-300"}`}
-                rows={3}
-                placeholder="Ej: Ahorros personales, préstamo bancario, herencia, etc."
-              />
+              <div className="space-y-2 p-3 border border-gray-300 rounded-lg">
+                {ORIGENES_FONDOS.map((opcion) => {
+                  const seleccionados =
+                    datos[`${prefijo}origen_fondos_lista`] || [];
+                  const checked = seleccionados.includes(opcion);
+                  return (
+                    <label
+                      key={opcion}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => {
+                          const actual =
+                            datos[`${prefijo}origen_fondos_lista`] || [];
+                          const nuevo = checked
+                            ? actual.filter((o) => o !== opcion)
+                            : [...actual, opcion];
+                          onChange(`${prefijo}origen_fondos_lista`, nuevo);
+                        }}
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700">{opcion}</span>
+                    </label>
+                  );
+                })}
+                <label className="flex items-center gap-2 cursor-pointer pt-1 border-t">
+                  <input
+                    type="checkbox"
+                    checked={
+                      datos[`${prefijo}origen_fondos_otros_check`] || false
+                    }
+                    onChange={(e) =>
+                      onChange(
+                        `${prefijo}origen_fondos_otros_check`,
+                        e.target.checked,
+                      )
+                    }
+                    className="w-4 h-4 rounded text-blue-600"
+                  />
+                  <span className="text-sm text-gray-700">Otros</span>
+                </label>
+                {datos[`${prefijo}origen_fondos_otros_check`] && (
+                  <input
+                    type="text"
+                    value={datos[`${prefijo}origen_fondos_otros`] || ""}
+                    onChange={(e) =>
+                      onChange(`${prefijo}origen_fondos_otros`, e.target.value)
+                    }
+                    className={inputClass(
+                      errors,
+                      `${prefijo}origen_fondos_otros`,
+                    )}
+                    placeholder="Especifique el origen de los fondos"
+                  />
+                )}
+              </div>
               {errors[`${prefijo}origen_fondos`] && (
                 <p className="text-red-500 text-xs mt-1">
                   {errors[`${prefijo}origen_fondos`]}
@@ -627,8 +694,21 @@ const SeccionUAFE = ({
 
       <div className="space-y-3">
         <label className="block text-sm font-medium text-gray-700">
-          ¿Es usted una Persona Políticamente Expuesta (PEP)?
+          {esRepresentado
+            ? "¿Es su Mandante una Persona Políticamente Expuesta (PEP)?"
+            : "¿Es usted una Persona Políticamente Expuesta (PEP)?"}
         </label>
+        <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+          <p className="text-xs text-blue-800 leading-relaxed">
+            Una <strong>Persona Políticamente Expuesta (PEP)</strong> es alguien
+            que desempeña o ha desempeñado funciones públicas de alto perfil
+            (Presidente, Ministros, Alcaldes, Asambleístas, entre otros), o sus
+            familiares cercanos. Esta consulta es{" "}
+            <strong>únicamente informativa</strong> y de cumplimiento legal — el
+            ser PEP o tener un familiar PEP{" "}
+            <strong>no afecta de ninguna manera</strong> el trámite notarial.
+          </p>
+        </div>
         <div className="flex gap-3">
           <button
             type="button"
@@ -732,6 +812,7 @@ const FormularioPersona = ({
   errors,
   mostrarEstadoCivil = true,
   mostrarRolTramite = true,
+  esRepresentado = false,
   mismaDir,
   onToggleMismaDir,
 }) => (
@@ -976,6 +1057,7 @@ const FormularioPersona = ({
       onChange={onChange}
       errors={errors}
       mostrarOrigenFondos={mostrarRolTramite}
+      esRepresentado={esRepresentado}
     />
   </div>
 );
@@ -1308,6 +1390,7 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
         errors={errors}
         prefijo="rep_"
         mostrarOrigenFondos={true}
+        tituloFinanciero="Información Financiera del Representante Legal"
       />
     </div>
   </div>
@@ -1351,8 +1434,15 @@ const validarUAFE = (datos, prefijo = "", validarOrigenFondos = false) => {
   if (!datos[`${p}ingreso_mensual`]) e[`${p}ingreso_mensual`] = "Requerido";
   if (validarOrigenFondos) {
     if (!datos[`${p}rol_tramite`]) e[`${p}rol_tramite`] = "Requerido";
-    if (datos[`${p}rol_tramite`] && !datos[`${p}origen_fondos`]?.trim())
-      e[`${p}origen_fondos`] = "Requerido";
+    if (datos[`${p}rol_tramite`]) {
+      const lista = datos[`${p}origen_fondos_lista`] || [];
+      const otrosCheck = datos[`${p}origen_fondos_otros_check`];
+      const otrosTexto = datos[`${p}origen_fondos_otros`]?.trim();
+      const tieneAlgo = lista.length > 0 || (otrosCheck && otrosTexto);
+      if (!tieneAlgo) e[`${p}origen_fondos`] = "Seleccione al menos una opción";
+      if (otrosCheck && !otrosTexto)
+        e[`${p}origen_fondos_otros`] = "Especifique el origen de los fondos";
+    }
   }
   if (!datos[`${p}es_pep`]) e[`${p}es_pep`] = "Requerido";
   if (datos[`${p}es_pep`] === "si") {
@@ -1627,17 +1717,26 @@ const RegistroClientePage = () => {
     return e;
   };
 
-  const prepararPersona = (datos, esPep) => ({
-    ...datos,
-    es_pep: esPep === "si",
-    pep_nombre: esPep === "si" ? datos.pep_nombre : null,
-    pep_institucion: esPep === "si" ? datos.pep_institucion : null,
-    pep_fecha_inicio: esPep === "si" ? datos.pep_fecha_inicio : null,
-    pep_cargo: esPep === "si" ? datos.pep_cargo : null,
-    pep_anios_trabajo:
-      esPep === "si" ? parseInt(datos.pep_anios_trabajo) : null,
-    pep_grado_relacion: esPep === "si" ? datos.pep_grado_relacion : null,
-  });
+  const prepararPersona = (datos, esPep) => {
+    const lista = datos.origen_fondos_lista || [];
+    const otros = datos.origen_fondos_otros_check
+      ? datos.origen_fondos_otros
+      : "";
+    const origenFondosTexto = [...lista, otros].filter(Boolean).join(", ");
+
+    return {
+      ...datos,
+      origen_fondos: origenFondosTexto || datos.origen_fondos || null,
+      es_pep: esPep === "si",
+      pep_nombre: esPep === "si" ? datos.pep_nombre : null,
+      pep_institucion: esPep === "si" ? datos.pep_institucion : null,
+      pep_fecha_inicio: esPep === "si" ? datos.pep_fecha_inicio : null,
+      pep_cargo: esPep === "si" ? datos.pep_cargo : null,
+      pep_anios_trabajo:
+        esPep === "si" ? parseInt(datos.pep_anios_trabajo) : null,
+      pep_grado_relacion: esPep === "si" ? datos.pep_grado_relacion : null,
+    };
+  };
 
   const handleSubmit = async () => {
     const e = validar();
@@ -1650,10 +1749,20 @@ const RegistroClientePage = () => {
     try {
       let payload;
       if (tipoRegistro === "empresa") {
+        const repLista = empresa.rep_origen_fondos_lista || [];
+        const repOtros = empresa.rep_origen_fondos_otros_check
+          ? empresa.rep_origen_fondos_otros
+          : "";
+        const repOrigenFondosTexto = [...repLista, repOtros]
+          .filter(Boolean)
+          .join(", ");
+
         payload = {
           tipo: "empresa",
           empresa: {
             ...empresa,
+            rep_origen_fondos:
+              repOrigenFondosTexto || empresa.rep_origen_fondos || null,
             rep_es_pep: empresa.rep_es_pep === "si",
             rep_pep_nombre:
               empresa.rep_es_pep === "si" ? empresa.rep_pep_nombre : null,
@@ -1734,6 +1843,10 @@ const RegistroClientePage = () => {
         payload = {
           tipo: "persona",
           calidad_participacion: calidadParticipacion,
+          representado_es_conyugue:
+            calidadParticipacion === "propios_y_representando"
+              ? representadoEsConyugue
+              : null,
           titular: titularPrep,
           conyugue: conyuguePrep,
           representado: representadoPrep,
@@ -2191,6 +2304,7 @@ const RegistroClientePage = () => {
                         )}
                         mostrarEstadoCivil={false}
                         mostrarRolTramite={true}
+                        esRepresentado={true}
                         mismaDir={mismaDir}
                         onToggleMismaDir={() => setMismaDir((prev) => !prev)}
                       />
@@ -2215,6 +2329,7 @@ const RegistroClientePage = () => {
                     )}
                     mostrarEstadoCivil={true}
                     mostrarRolTramite={true}
+                    esRepresentado={true}
                   />
 
                   {/* Cónyuge no comparece — representado */}
@@ -2236,7 +2351,7 @@ const RegistroClientePage = () => {
                   {esCasadoRepresentado && representadoConyugueComparece && (
                     <div className="border-t-2 border-purple-200">
                       <FormularioPersona
-                        titulo="Datos del cónyuge del representado"
+                        titulo="Datos del cónyuge del Poderdante, Mandante, Representado"
                         datos={conyugueRepresentado}
                         onChange={handleConyugueRepresentadoChange}
                         errors={Object.fromEntries(

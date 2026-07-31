@@ -1,5 +1,11 @@
 import { useNavigate } from "react-router";
-import { FileText, FileSignature, Scale } from "lucide-react";
+import {
+  FileText,
+  FileSignature,
+  Scale,
+  Gift,
+  HandshakeIcon,
+} from "lucide-react";
 
 const tiposContrato = [
   {
@@ -19,18 +25,26 @@ const tiposContrato = [
       "Escritura pública de compromiso de celebrar una compraventa futura.",
     icon: FileSignature,
     path: "/matrices/promesa",
-    disponible: false,
+    disponible: true,
     color: "amber",
   },
   {
-    id: "poder",
-    nombre: "Poder",
-    descripcion:
-      "Escritura pública de autorización para actuar en nombre de otro.",
+    id: "sesion",
+    nombre: "Sesión",
+    descripcion: "Escritura pública de transferencia de derechos o acciones.",
     icon: Scale,
-    path: "/matrices/poder",
-    disponible: false,
+    path: "/matrices/sesion",
+    disponible: true,
     color: "purple",
+  },
+  {
+    id: "donacion",
+    nombre: "Donación",
+    descripcion: "Escritura pública de transferencia gratuita de bienes.",
+    icon: Gift,
+    path: "/matrices/donacion",
+    disponible: true,
+    color: "green",
   },
 ];
 
@@ -53,6 +67,12 @@ const colorMap = {
     border: "border-purple-200",
     hover: "hover:border-purple-400 hover:bg-purple-50",
   },
+  green: {
+    bg: "bg-green-50",
+    icon: "text-green-600",
+    border: "border-green-200",
+    hover: "hover:border-green-400 hover:bg-green-50",
+  },
 };
 
 const MatricesIndexPage = () => {
@@ -67,11 +87,10 @@ const MatricesIndexPage = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {tiposContrato.map((tipo) => {
           const Icon = tipo.icon;
           const colors = colorMap[tipo.color];
-
           return (
             <button
               key={tipo.id}
@@ -91,13 +110,11 @@ const MatricesIndexPage = () => {
                   Próximamente
                 </span>
               )}
-
               <div
                 className={`w-12 h-12 rounded-lg ${colors.bg} flex items-center justify-center mb-4`}
               >
                 <Icon className={`w-6 h-6 ${colors.icon}`} />
               </div>
-
               <h3 className="text-base font-semibold text-gray-900 mb-1">
                 {tipo.nombre}
               </h3>

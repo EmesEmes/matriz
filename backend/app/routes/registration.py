@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.registration_token import RegistrationToken
 from app.models.party import Party
 from app.models.company import Company
+from app.models.representation import Representacion, EstadoRepresentacion
 from app.schemas.registration_token import TokenGenerado, TokenInfo, RegistrationTokenResponse
 from app.schemas.party import PartyCreate, PartyResponse
 from app.schemas.company import CompanyCreate, CompanyResponse
@@ -203,21 +204,69 @@ def registrar_cliente(
             registrar_acceso(db, "registro_publico", "registro_publico", "companies", empresa.ruc, ip)
 
         else:
-            titular_data = PartyCreate(**payload.get("titular", {}))
+            calidad_participacion = payload.get("calidad_participacion", "propios_derechos")
+            representado_es_conyugue = payload.get("representado_es_conyugue")
+
+            titular_raw = payload.get("titular") or {}
+            titular_raw["calidad_participacion"] = calidad_participacion
+            titular_data = PartyCreate(**titular_raw)
+
             conyugue_raw = payload.get("conyugue")
+            representado_raw = payload.get("representado")
+            conyugue_representado_raw = payload.get("conyugue_representado")
 
+            conyugue = None
+            representado = None
+            conyugue_representado = None
+
+            # --- Cónyuge del titular (caso propios_derechos o propios_y_representando con representado != cónyuge) ---
             if conyugue_raw:
-                conyugue_data_dict = conyugue_raw.copy()
-                conyugue_data_dict['partner_document_number'] = titular_data.document_number
-                conyugue = _crear_party_publico(db, PartyCreate(**conyugue_data_dict))
-
-                titular_data_dict = payload.get("titular").copy()
-                titular_data_dict['partner_document_number'] = conyugue_raw.get('document_number')
-                titular = _crear_party_publico(db, PartyCreate(**titular_data_dict))
-
+                conyugue_dict = conyugue_raw.copy()
+                conyugue_dict['partner_document_number'] = titular_data.document_number
+                conyugue = _crear_party_publico(db, PartyCreate(**conyugue_dict))
                 registrar_acceso(db, "registro_publico", "registro_publico", "parties", conyugue.document_number, ip)
-            else:
-                titular = _crear_party_publico(db, titular_data)
+
+            # --- Titular ---
+            titular_dict = titular_raw.copy()
+            if conyugue is not None:
+                titular_dict['partner_document_number'] = conyugue.document_number
+            titular = _crear_party_publico(db, PartyCreate(**titular_dict))
+            registrar_acceso(db, "registro_publico", "registro_publico", "parties", titular.document_number, ip)
+
+            # --- Representado (cuando NO es el cónyuge del titular) ---
+            if representado_raw:
+                representado_dict = representado_raw.copy()
+                representado_dict["calidad_participacion"] = calidad_participacion
+
+                # Cónyuge del representado
+                if conyugue_representado_raw:
+                    cr_dict = conyugue_representado_raw.copy()
+                    cr_dict['partner_document_number'] = representado_dict['document_number']
+                    conyugue_representado = _crear_party_publico(db, PartyCreate(**cr_dict))
+                    registrar_acceso(db, "registro_publico", "registro_publico", "parties", conyugue_representado.document_number, ip)
+                    representado_dict['partner_document_number'] = conyugue_representado.document_number
+
+                representado = _crear_party_publico(db, PartyCreate(**representado_dict))
+                registrar_acceso(db, "registro_publico", "registro_publico", "parties", representado.document_number, ip)
+
+            # --- Relación de representación ---
+            if calidad_participacion in ("representando", "propios_y_representando"):
+                if calidad_participacion == "propios_y_representando" and representado_es_conyugue:
+                    # El representado ES el cónyuge del titular (ya guardado en `conyugue`)
+                    representado_doc = conyugue.document_number if conyugue else None
+                else:
+                    representado_doc = representado.document_number if representado else None
+
+                if representado_doc:
+                    rep = Representacion(
+                        representante_document_number=titular.document_number,
+                        representado_document_number=representado_doc,
+                        es_conyugue=bool(representado_es_conyugue) if calidad_participacion == "propios_y_representando" else False,
+                        calidad_participacion=calidad_participacion,
+                        token=token,
+                        estado=EstadoRepresentacion.pendiente,
+                    )
+                    db.add(rep)
 
             token_obj.usado = True
             token_obj.party_document_number = titular.document_number

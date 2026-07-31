@@ -9,9 +9,14 @@ import { useAuth } from "./context/AuthContext";
 import TestInlinePage from "./pages/TestInlinePage";
 import MatricesIndexPage from "./pages/matrices/MatricesIndexPage";
 import FormularioMatrizCompraventa from "./pages/matrices/compraventa/FormularioCompraventa";
+import FormularioMatrizPromesa from "./pages/matrices/promesa/FormularioPromesa";
+import FormularioMatrizSesion from "./pages/matrices/sesion/FormularioSesion";
+import FormularioMatrizDonacion from "./pages/matrices/donacion/FormularioDonacion";
 import MinutasIndexPage from "./pages/minutas/MinutasIndexPage";
 import FormularioCompraventa from "./pages/minutas/compraventa/FormularioCompraventa";
 import FormularioPromesa from "./pages/minutas/promesa/FormularioPromesa";
+import SeleccionTipoPoderPage from "./pages/minutas/poder/SeleccionTipoPoderPage";
+import FormularioPoder from "./pages/minutas/poder/FormularioPoder";
 import RegistroClientePage from "./pages/registro/RegistroClientePage";
 import GestionTokensPage from "./pages/registro/GestionTokensPage";
 
@@ -115,6 +120,56 @@ function App() {
             <ProtectedRoute>
               <MainLayout>
                 <FormularioMatrizCompraventa />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/matrices/promesa"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <FormularioMatrizPromesa />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/matrices/sesion"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <FormularioMatrizSesion />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/matrices/donacion"
+          element={
+            <ProtectedRoute>
+              <MainLayout>
+                <FormularioMatrizDonacion />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minutas/poder"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
+              <MainLayout>
+                <SeleccionTipoPoderPage />
+              </MainLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/minutas/poder/:tipoPoderId"
+          element={
+            <ProtectedRoute allowedRoles={["admin", "lexdata"]}>
+              <MainLayout>
+                <FormularioPoder />
               </MainLayout>
             </ProtectedRoute>
           }

@@ -43,6 +43,14 @@ class PartyBase(BaseModel):
     pep_cargo: Optional[str] = Field(None, max_length=200)
     pep_anios_trabajo: Optional[int] = None
     pep_grado_relacion: Optional[str] = Field(None, max_length=200)
+    pep_relacion_tipo: Optional[str] = Field(None, max_length=100)
+
+    # Cónyuge no comparece
+    conyugue_comparece: Optional[bool] = True
+    razon_exclusion_conyugue: Optional[str] = Field(None, pattern="^(disolucion|capitulacion|adquirido_solo)$")
+
+    # Calidad de participación
+    calidad_participacion: Optional[str] = Field(None, pattern="^(propios_derechos|representando|propios_y_representando)$")
 
     @field_validator('document_number')
     @classmethod
@@ -73,8 +81,6 @@ class PartyBase(BaseModel):
     @classmethod
     def validate_partner(cls, v, info):
         marital_status = info.data.get('marital_status')
-        if marital_status == 'casado' and not v:
-            raise ValueError('Debe proporcionar documento del cónyuge para estado civil casado')
         if marital_status != 'casado' and v:
             raise ValueError('Solo puede tener cónyuge si el estado civil es casado')
         return v
@@ -114,6 +120,13 @@ class PartyUpdate(BaseModel):
     pep_cargo: Optional[str] = None
     pep_anios_trabajo: Optional[int] = None
     pep_grado_relacion: Optional[str] = None
+    pep_relacion_tipo: Optional[str] = None
+    rol_tramite: Optional[str] = None
+    origen_fondos: Optional[str] = None
+    es_pep_indirecto: Optional[bool] = None
+    conyugue_comparece: Optional[bool] = None
+    razon_exclusion_conyugue: Optional[str] = None
+    calidad_participacion: Optional[str] = None
 
 
 class PartyResponse(PartyBase):

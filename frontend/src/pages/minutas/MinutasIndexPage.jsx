@@ -28,7 +28,7 @@ const tiposContrato = [
     descripcion: "Autorización para que una persona actúe en nombre de otra.",
     icon: Scale,
     path: "/minutas/poder",
-    disponible: false,
+    disponible: true,
     color: "purple",
   },
 ];
