@@ -8,9 +8,10 @@ from app.schemas.document import GenerateMatrizRequest, GenerateMatrizResponse
 from app.middleware.auth import get_current_user
 from app.services.document_generator import generate_matriz_compraventa
 import os
+import logging
 
 router = APIRouter(prefix="/api/documents", tags=["documents"])
-
+logger = logging.getLogger(__name__)
 # Mapeo de tipo_contrato a las claves de partes en el payload
 TIPO_CONTRATO_CONFIG = {
     "compraventa": {
@@ -50,7 +51,15 @@ def generate_matriz(
     """
     try:
         tipo = request.tipo_contrato.lower()
-        config = TIPO_CONTRATO_CONFIG.get(tipo, TIPO_CONTRATO_CONFIG["compraventa"])
+
+        TIPOS_VALIDOS = {"compraventa", "promesa_compraventa", "sesion", "donacion"}
+        if tipo not in TIPOS_VALIDOS:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Tipo de contrato '{tipo}' no válido. Valores permitidos: {', '.join(TIPOS_VALIDOS)}"
+            )
+
+        config = TIPO_CONTRATO_CONFIG.get(tipo)
 
         # Obtener las listas de partes según el tipo de contrato
         partes_map = {
@@ -127,11 +136,13 @@ def generate_matriz(
             "download_url": f"/api/documents/download/{document.id}"
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error generando documento: {e}")
+        logger.error(f"Error generando documento tipo={tipo}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al generar documento: {str(e)}"
+            detail="Error interno al generar el documento. Contacte al administrador."
         )
 
 @router.get("/download/{document_id}")
@@ -140,25 +151,26 @@ def download_document(
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    Descargar documento generado
-    """
-    document = db.query(Document).filter(Document.id == document_id).first()
-    
+    """Descargar documento generado — solo el usuario que lo generó puede descargarlo"""
+    document = db.query(Document).filter(
+        Document.id == document_id,
+        Document.generated_by == current_user.id
+    ).first()
+
     if not document:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Documento no encontrado"
         )
-    
+
     if not os.path.exists(document.file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Archivo no encontrado en el servidor"
         )
-    
+
     filename = f"matriz_{document.protocol_number}.docx"
-    
+
     return FileResponse(
         document.file_path,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

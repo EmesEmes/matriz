@@ -1,3 +1,6 @@
+import re
+
+
 def numero_a_digitos(numero):
     """
     Convierte número a dígitos en letras: 123 -> 'uno dos tres'
@@ -321,3 +324,90 @@ def calcular_edad(fecha_nacimiento_str):
     except Exception as e:
         print(f"⚠️ Error calculando edad de '{fecha_nacimiento_str}': {e}")
         return 0
+
+
+def convertir_numero_casa(numero_str):
+    """
+    Convierte número de casa/predio a palabras con el número entre paréntesis.
+    Ej: 'E13-51' → 'E trece guión cincuenta y uno (E13-51)'
+        '333A'   → 'trescientos treinta y tres A (333A)'
+        '2b'     → 'dos b (2b)'
+        '4'      → 'cuatro (4)'
+    """
+    if not numero_str:
+        return ''
+    s = str(numero_str).strip()
+
+    # Patrón: letra(s) + número + guión + número (ej: E13-51, Oe4-23, S18-35)
+    match_guion = re.match(r'^([A-Za-z]+)(\d+)-(\d+)$', s)
+    if match_guion:
+        letras = match_guion.group(1)
+        n1 = int(match_guion.group(2))
+        n2 = int(match_guion.group(3))
+        palabras = f"{letras} {numero_a_letras(n1)} guión {numero_a_letras(n2)}"
+        return f"{palabras} ({s})"
+
+    # Patrón: número + letra(s) (ej: 333A, 2b)
+    match_num_letra = re.match(r'^(\d+)([A-Za-z]+)$', s)
+    if match_num_letra:
+        n = int(match_num_letra.group(1))
+        letras = match_num_letra.group(2)
+        palabras = f"{numero_a_letras(n)} {letras}"
+        return f"{palabras} ({s})"
+
+    # Patrón: solo número (ej: 4, 99)
+    if s.isdigit():
+        return f"{numero_a_letras(int(s))} ({s})"
+
+    # Sin patrón reconocido — devolver tal cual
+    return s
+
+
+def nivel_a_palabras(nivel_str):
+    """
+    Convierte notación de nivel arquitectónico a palabras notariales.
+    Ej: 'n+3.00' → 'ene más tres punto cero cero (n+3.00)'
+        'n-1.12' → 'ene menos uno punto uno dos (n-1.12)'
+        'PB'     → 'PB'
+    """
+    if not nivel_str:
+        return ''
+    nivel = str(nivel_str).strip()
+
+    match = re.match(r'^([nN])([+\-])(\d+(?:[.,]\d+)?)$', nivel)
+    if not match:
+        return nivel
+
+    letra = 'ene'
+    signo = 'más' if match.group(2) == '+' else 'menos'
+    numero_raw = match.group(3).replace(',', '.')
+
+    try:
+        num = float(numero_raw)
+        parte_entera = int(num)
+        parte_decimal_str = numero_raw.split('.')[1] if '.' in numero_raw else ''
+        palabras_entero = numero_a_letras(parte_entera)
+        if parte_decimal_str:
+            digitos_dec = ' '.join([numero_a_letras(int(d)) for d in parte_decimal_str])
+            palabras_num = f"{palabras_entero} punto {digitos_dec}"
+        else:
+            palabras_num = palabras_entero
+        return f"{letra} {signo} {palabras_num} ({nivel})"
+    except (ValueError, TypeError):
+        return nivel
+
+
+def formatear_dinero(monto):
+    """
+    Convierte monto a formato notarial completo.
+    Ej: 50000 → 'CINCUENTA MIL DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA ($50.000,00 USD)'
+    """
+    if not monto and monto != 0:
+        return ''
+    try:
+        num = float(str(monto))
+        palabras = numero_a_letras(num).upper()
+        num_fmt = f"{num:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+        return f"{palabras} DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA (${num_fmt} USD)"
+    except (ValueError, TypeError):
+        return str(monto)

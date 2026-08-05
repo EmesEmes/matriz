@@ -6,6 +6,7 @@ from app.database import Base
 
 class MinuteType(enum.Enum):
     COMPRAVENTA_INMUEBLE = "compraventa_inmueble"
+    PROMESA_COMPRAVENTA = "promesa_compraventa"
     PODERES = "poderes"
 
 class Minute(Base):

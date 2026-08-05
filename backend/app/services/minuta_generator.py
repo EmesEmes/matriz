@@ -1,12 +1,15 @@
 from docxtpl import DocxTemplate
 from io import BytesIO
 from ..utils.number_to_words import (
-    numero_a_letras, 
-    numero_a_digitos, 
-    formatear_fecha_notarial, 
+    numero_a_letras,
+    numero_a_digitos,
+    formatear_fecha_notarial,
     calcular_edad,
     numero_casa_a_letras,
-    numero_a_ordinal_notaria
+    numero_a_ordinal_notaria,
+    convertir_numero_casa,
+    nivel_a_palabras,
+    formatear_dinero,
 )
 from bs4 import BeautifulSoup
 import re
@@ -99,64 +102,98 @@ def procesar_empresa_data(empresa, numero_global):
     }
 
 
+def construir_direccion(persona):
+    """
+    Construye la dirección física desde los campos individuales.
+    Orden: calle principal + número de casa + y + calle secundaria, sector, parroquia, cantón, provincia
+    """
+    partes = []
+
+    main_street = persona.get('mainStreet', '').strip()
+    number_street = persona.get('numberStreet', '').strip()
+    secondary_street = persona.get('secondaryStreet', '').strip()
+
+    # Calle principal + número + y + calle secundaria
+    if main_street:
+        if number_street:
+            numero_convertido = convertir_numero_casa(number_street)
+            if secondary_street:
+                partes.append(f"{main_street} {numero_convertido} y {secondary_street}")
+            else:
+                partes.append(f"{main_street} {numero_convertido}")
+        else:
+            if secondary_street:
+                partes.append(f"{main_street} y {secondary_street}")
+            else:
+                partes.append(main_street)
+    elif secondary_street:
+        partes.append(secondary_street)
+
+    if persona.get('sector'): partes.append(persona['sector'])
+    if persona.get('parroquia'): partes.append(f"parroquia {persona['parroquia']}")
+    if persona.get('canton'): partes.append(f"cantón {persona['canton']}")
+    if persona.get('province'): partes.append(f"provincia de {persona['province']}")
+
+    return ', '.join(partes)
+
+
 def agrupar_por_conyuges(personas):
     """
     Agrupa personas por cónyuges y solteros.
-    
-    Args:
-        personas: Lista de diccionarios con datos de comparecientes
-        
-    Returns:
-        Lista de grupos: [{'tipo': 'conyuges'/'soltero', 'direccion': '...', 'personas': [...]}]
+    Maneja dos casos:
+    1. El cónyuge viene como compareciente separado en la lista
+    2. El cónyuge viene dentro del objeto persona como 'partner'
     """
     grupos = []
     procesados = set()
-    
+
     for i, persona in enumerate(personas):
         if i in procesados:
             continue
-            
-        # Verificar si está casado y tiene pareja
-        if (persona.get('maritalStatus') == 'casado' and 
-            persona.get('partner') and 
-            persona['partner'].get('documentNumber')):
-            
-            # Buscar el cónyuge en la lista
+
+        direccion = construir_direccion(persona)
+
+        if (persona.get('maritalStatus') == 'casado' and
+                persona.get('conyugueComparece', True) and
+                persona.get('partner') and
+                persona['partner'].get('documentNumber')):
+
             pareja_doc = persona['partner']['documentNumber']
             pareja_idx = None
-            
+
+            # Caso 1: cónyuge como compareciente separado en la lista
             for j, otra_persona in enumerate(personas):
-                if (j != i and 
-                    otra_persona.get('documentNumber') == pareja_doc):
+                if (j != i and
+                        otra_persona.get('documentNumber') == pareja_doc):
                     pareja_idx = j
                     break
-            
+
             if pareja_idx is not None:
-                # Crear grupo de cónyuges
                 grupos.append({
                     'tipo': 'conyuges',
-                    'direccion': persona.get('address', ''),
+                    'direccion': direccion,
                     'personas': [persona, personas[pareja_idx]]
                 })
                 procesados.add(i)
                 procesados.add(pareja_idx)
             else:
-                # No se encontró la pareja, tratar como soltero
+                # Caso 2: cónyuge solo viene como 'partner' dentro del objeto
+                # Lo usamos directamente
+                partner = persona['partner']
                 grupos.append({
-                    'tipo': 'soltero',
-                    'direccion': persona.get('address', ''),
-                    'personas': [persona]
+                    'tipo': 'conyuges',
+                    'direccion': direccion,
+                    'personas': [persona, partner]
                 })
                 procesados.add(i)
         else:
-            # Soltero o sin información de pareja
             grupos.append({
                 'tipo': 'soltero',
-                'direccion': persona.get('address', ''),
+                'direccion': direccion,
                 'personas': [persona]
             })
             procesados.add(i)
-    
+
     return grupos
 
 
@@ -173,32 +210,57 @@ def procesar_persona_data(persona, numero_global):
     """
     nombres_completos = f"{persona.get('names', '')} {persona.get('lastNames', '')}".strip().upper()
     cedula = persona.get('documentNumber', '')
-    telefono = persona.get('phoneNumber', '')
-    
+    telefono = persona.get('phone', '')
+
     # Calcular edad
-    edad = calcular_edad(persona.get('birthdate', ''))
-    
-    # Estado civil
-    estado_civil_map = {
-        'soltero': 'soltero',
-        'casado': 'casado',
-        'divorciado': 'divorciado',
-        'viudo': 'viudo',
-        'union_libre': 'unión libre'
+    edad = calcular_edad(persona.get('birthDate', ''))
+
+    # Estado civil — considerar capitulaciones/disolución
+    marital_status = persona.get('maritalStatus', 'soltero')
+    conyugue_comparece = persona.get('conyugueComparece', True)
+    razon_exclusion = persona.get('razonExclusionConyugue', '')
+
+    RAZON_ESTADO_CIVIL = {
+        'capitulacion': 'casado con capitulaciones matrimoniales',
+        'disolucion': 'casado con disolución de sociedad conyugal',
+        'adquirido_solo': 'casado',  # el bien fue adquirido antes del matrimonio
     }
-    estado_civil = estado_civil_map.get(persona.get('maritalStatus', 'soltero'), 'soltero')
-    
-    # Convertir dirección con números de casa
-    direccion_original = persona.get('address', '')
-    direccion_convertida = direccion_original
-    
-    # Buscar patrones de números de casa (E13-51, Oe4-23, etc.)
-    patron_casa = r'\b([A-Za-z]*\d+[-]\d+)\b'
-    matches = re.findall(patron_casa, direccion_original)
-    for match in matches:
-        numero_letras = numero_casa_a_letras(match)
-        direccion_convertida = direccion_convertida.replace(match, numero_letras)
-    
+
+    if marital_status == 'casado' and not conyugue_comparece and razon_exclusion:
+        estado_civil = RAZON_ESTADO_CIVIL.get(razon_exclusion, 'casado')
+    else:
+        estado_civil_map = {
+            'soltero': 'soltero',
+            'casado': 'casado',
+            'divorciado': 'divorciado',
+            'viudo': 'viudo',
+            'union_libre': 'unión libre'
+        }
+        estado_civil = estado_civil_map.get(marital_status, 'soltero')
+
+    # Nota especial para bien adquirido antes del matrimonio
+    nota_bien_adquirido = (
+        marital_status == 'casado' and
+        not conyugue_comparece and
+        razon_exclusion == 'adquirido_solo'
+    )
+
+    # Construir dirección desde campos individuales (con conversión de números)
+    direccion_convertida = construir_direccion(persona)
+
+    # Procesar cónyuge si existe
+    conyugue = None
+    if persona.get('partner') and estado_civil == 'casado':
+        partner = persona['partner']
+        conyugue = {
+            'nombres_completos': f"{partner.get('names', '')} {partner.get('lastNames', '')}".strip().upper(),
+            'cedula': partner.get('documentNumber', ''),
+            'cedula_palabras': numero_a_digitos(partner.get('documentNumber', '')),
+            'nacionalidad': partner.get('nationality', 'ecuatoriana'),
+            'ocupacion': partner.get('occupation', ''),
+            'profesion': partner.get('profession', ''),
+        }
+
     return {
         'numero': numero_a_letras(numero_global),
         'numero_numerico': numero_global,
@@ -207,59 +269,75 @@ def procesar_persona_data(persona, numero_global):
         'cedula': cedula,
         'cedula_palabras': numero_a_digitos(cedula),
         'edad': edad,
+        'edad_palabras': f"{numero_a_letras(edad)} ({edad})" if edad else '',
         'estado_civil': estado_civil,
+        'conyugue_comparece': conyugue_comparece,
+        'razon_exclusion_conyugue': razon_exclusion,
+        'nota_bien_adquirido': nota_bien_adquirido,
         'profesion': persona.get('profession', ''),
         'ocupacion': persona.get('occupation', ''),
         'telefono': telefono,
         'telefono_palabras': numero_a_digitos(telefono),
         'email': persona.get('email', ''),
         'direccion': direccion_convertida,
+        'conyugue': conyugue,
+        'tiene_conyugue': conyugue is not None and conyugue_comparece,
     }
 
 
 def procesar_linderos(linderos_data, incluir_arriba_abajo=False):
     """
-    Procesa linderos que pueden tener múltiples entradas por dirección.
-    
-    Args:
-        linderos_data: Diccionario con arrays de linderos por dirección
-        incluir_arriba_abajo: Si se deben incluir linderos arriba/abajo
-        
-    Returns:
-        Diccionario procesado para la plantilla
+    Procesa linderos y retorna formato plano que espera la plantilla.
+    linderos.norte_metros_palabras, linderos.norte_colindancia, etc.
     """
     resultado = {}
     direcciones = ['norte', 'sur', 'este', 'oeste']
-    
+
     if incluir_arriba_abajo:
         direcciones.extend(['arriba', 'abajo'])
-    
+
     for direccion in direcciones:
         linderos_lista = linderos_data.get(direccion, [])
-        
+
         if not linderos_lista:
             linderos_lista = [{'metros': '', 'colindancia': ''}]
-        
-        # Procesar cada lindero
-        linderos_procesados = []
+
+        # Tomar el primer lindero (el más común) y concatenar si hay varios
+        metros_total = ''
+        colindancias = []
         for lindero in linderos_lista:
-            metros = lindero.get('metros', '')
-            colindancia = lindero.get('colindancia', '')
-            
-            if metros and colindancia:
-                linderos_procesados.append({
-                    'metros': metros,
-                    'metros_palabras': numero_a_letras(float(metros)) if metros else '',
-                    'colindancia': colindancia
-                })
-        
-        resultado[direccion] = linderos_procesados
-    
+            metros = str(lindero.get('metros', '')).strip()
+            colindancia = lindero.get('colindancia', '').strip()
+            if metros:
+                metros_total = metros  # usar el del primer lindero para metros
+            if colindancia:
+                colindancias.append(colindancia)
+
+        colindancia_str = ', y '.join(colindancias) if colindancias else ''
+
+        try:
+            metros_num = float(metros_total) if metros_total else None
+            metros_palabras = numero_a_letras(metros_num) if metros_num is not None else ''
+            metros_fmt = f"{metros_num:g}" if metros_num is not None else ''
+        except (ValueError, TypeError):
+            metros_palabras = metros_total
+            metros_fmt = metros_total
+
+        resultado[f'{direccion}_metros_palabras'] = f"{metros_palabras} ({metros_fmt})" if metros_palabras else ''
+        resultado[f'{direccion}_colindancia'] = colindancia_str
+        resultado[f'{direccion}_metros'] = metros_total
+
     # Superficie
     superficie = linderos_data.get('superficie', '')
+    try:
+        sup_num = float(superficie) if superficie else None
+        sup_palabras = numero_a_letras(sup_num) if sup_num is not None else ''
+        sup_fmt = f"{sup_num:g}" if sup_num is not None else ''
+        resultado['superficie_palabras'] = f"{sup_palabras} ({sup_fmt})" if sup_palabras else ''
+    except (ValueError, TypeError):
+        resultado['superficie_palabras'] = str(superficie)
     resultado['superficie'] = superficie
-    resultado['superficie_palabras'] = numero_a_letras(float(superficie)) if superficie else ''
-    
+
     return resultado
 
 
@@ -364,6 +442,7 @@ def limpiar_html(html_content):
 
 from pathlib import Path
 from datetime import datetime
+import uuid
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 OUTPUTS_DIR = Path(__file__).parent.parent.parent / "generated_documents"
@@ -497,16 +576,39 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 area_descubierta = inmueble.get('areaDescubierta', '')
                 alicuota_parcial = inmueble.get('alicuotaParcial', '')
 
+                def fmt_area(val):
+                    if not val: return ''
+                    try:
+                        n = float(val)
+                        palabras = numero_a_letras(n)
+                        return f"{palabras} ({n:.2f})"
+                    except: return str(val)
+
+                def fmt_alicuota(val):
+                    if not val: return ''
+                    try:
+                        n = float(val)
+                        palabras = numero_a_letras(n)
+                        val_fmt = str(val).rstrip('0').rstrip('.')
+                        return f"{palabras} ({val_fmt}%)"
+                    except: return str(val)
+
+                num_inmueble = inmueble.get('numero', '').strip() or str(predio.get('numero', ''))
+                num_inmueble_palabras = convertir_numero_casa(num_inmueble) if num_inmueble else ''
+
                 inmueble_data = {
                     'tipo': inmueble.get('tipo', ''),
                     'tipo_otro': inmueble.get('tipoOtro', ''),
-                    'nivel': inmueble.get('nivel', ''),
+                    'numero': num_inmueble,
+                    'numero_palabras': num_inmueble_palabras,
+                    'nivel': nivel_a_palabras(inmueble.get('nivel', '')),
+                    'nivel_raw': inmueble.get('nivel', ''),
                     'area_cubierta': area_cubierta,
-                    'area_cubierta_palabras': numero_a_letras(float(area_cubierta)) if area_cubierta else '',
+                    'area_cubierta_palabras': fmt_area(area_cubierta),
                     'area_descubierta': area_descubierta,
-                    'area_descubierta_palabras': numero_a_letras(float(area_descubierta)) if area_descubierta else '',
+                    'area_descubierta_palabras': fmt_area(area_descubierta),
                     'alicuota_parcial': alicuota_parcial,
-                    'alicuota_parcial_palabras': numero_a_letras(float(alicuota_parcial)) if alicuota_parcial else '',
+                    'alicuota_parcial_palabras': fmt_alicuota(alicuota_parcial),
                 }
                 inmuebles_procesados.append(inmueble_data)
 
@@ -515,15 +617,30 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             else:
                 alicuota_total = predio.get('alicuotaTotal', 0)
 
+            num_predio = predio.get('numero', '')
+            try:
+                num_predio_palabras = f"{numero_a_letras(int(num_predio))} ({num_predio})" if str(num_predio).isdigit() else num_predio
+            except:
+                num_predio_palabras = str(num_predio)
+
+            def fmt_alicuota_total(val):
+                if not val: return ''
+                try:
+                    n = float(val)
+                    palabras = numero_a_letras(n)
+                    val_fmt = f"{n:.10f}".rstrip('0').rstrip('.')
+                    return f"{palabras} ({val_fmt}%)"
+                except: return str(val)
+
             predio_data = {
                 'es_compuesto': predio.get('esCompuesto', False),
                 'tipo': predio.get('tipo', ''),
                 'tipo_otro': predio.get('tipoOtro', ''),
-                'numero': predio.get('numero', ''),
-                'numero_palabras': numero_a_letras(int(predio.get('numero', 0))) if predio.get('numero', '').isdigit() else predio.get('numero', ''),
+                'numero': num_predio,
+                'numero_palabras': num_predio_palabras,
                 'inmuebles': inmuebles_procesados,
                 'alicuota_total': alicuota_total,
-                'alicuota_total_palabras': numero_a_letras(float(alicuota_total)) if alicuota_total else '',
+                'alicuota_total_palabras': fmt_alicuota_total(alicuota_total),
             }
             predios_procesados.append(predio_data)
 
@@ -533,9 +650,16 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
     # UBICACIÓN
     # ============================================
     ubicacion = data.get('ubicacion', {})
+    num_ubicacion = ubicacion.get('numero', '')
+    try:
+        num_ubicacion_palabras = f"{numero_a_letras(int(num_ubicacion))} ({num_ubicacion})" if str(num_ubicacion).isdigit() else num_ubicacion
+    except:
+        num_ubicacion_palabras = str(num_ubicacion)
+
     context['ubicacion'] = {
         'lote': ubicacion.get('lote', ''),
-        'numero': ubicacion.get('numero', ''),
+        'numero': num_ubicacion,
+        'numero_palabras': num_ubicacion_palabras,
         'parroquia': ubicacion.get('parroquia', ''),
         'canton': ubicacion.get('canton', ''),
         'provincia': ubicacion.get('provincia', ''),
@@ -640,9 +764,17 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
         context['precio_manual'] = False
         precio_total = data.get('precioTotal', 0)
 
+        try:
+            precio_num = float(precio_total)
+            precio_palabras = numero_a_letras(precio_num).upper()
+            precio_fmt = f"{precio_num:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            precio_total_str = f"{precio_palabras} DÓLARES DE LOS ESTADOS UNIDOS DE AMÉRICA (${precio_fmt} USD)"
+        except:
+            precio_total_str = str(precio_total)
+
         context['precio'] = {
             'total': precio_total,
-            'total_palabras': numero_a_letras(float(precio_total)).upper() if precio_total else '',
+            'total_palabras': precio_total_str,
             'partes': []
         }
 
@@ -653,7 +785,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             parte_data = {
                 'letra': parte.get('letra', ''),
                 'monto': monto,
-                'monto_palabras': numero_a_letras(float(monto)) if monto else '',
+                'monto_palabras': formatear_dinero(monto),
                 'es_cuotas': parte.get('tipoPago') == 'cuotas',
                 'medio_pago': parte.get('medioPago', ''),
                 'tipo_cheque': parte.get('tipoCheque', ''),
@@ -713,9 +845,8 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
     # ============================================
     doc.render(context)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     user_id = current_user.id if current_user else "unknown"
-    filename = f"minuta_compraventa_{user_id}_{timestamp}.docx"
+    filename = f"minuta_compraventa_{user_id}_{uuid.uuid4().hex[:8]}.docx"
     output_path = OUTPUTS_DIR / filename
 
     doc.save(str(output_path))

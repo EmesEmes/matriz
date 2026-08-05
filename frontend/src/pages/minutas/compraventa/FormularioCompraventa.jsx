@@ -283,6 +283,7 @@ const FormularioCompraventa = () => {
             id: Date.now() + Math.random(),
             tipo: "",
             tipoOtro: "",
+            numero: "",
             nivel: "",
             areaCubierta: "",
             areaDescubierta: "",
@@ -332,6 +333,7 @@ const FormularioCompraventa = () => {
                   id: Date.now() + Math.random(),
                   tipo: "",
                   tipoOtro: "",
+                  numero: "",
                   nivel: "",
                   areaCubierta: "",
                   areaDescubierta: "",
@@ -378,28 +380,7 @@ const FormularioCompraventa = () => {
         if (predio.id === predioId) {
           const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
             if (inmueble.id === inmuebleId) {
-              let newValue = value;
-
-              // NUEVO: Convertir a decimal con 2 decimales para áreas
-              if (
-                (field === "areaCubierta" || field === "areaDescubierta") &&
-                value
-              ) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) {
-                  newValue = num.toFixed(2);
-                }
-              }
-
-              // NUEVO: Convertir a decimal con 10 decimales para alícuotas
-              if (field === "alicuotaParcial" && value) {
-                const num = parseFloat(value);
-                if (!isNaN(num)) {
-                  newValue = num.toFixed(10);
-                }
-              }
-
-              return { ...inmueble, [field]: newValue };
+              return { ...inmueble, [field]: value };
             }
             return inmueble;
           });
@@ -1238,8 +1219,6 @@ const FormularioCompraventa = () => {
         abogado,
       };
 
-      console.log("📦 Payload:", payload);
-
       const response = await apiFetch(API_CONFIG.ENDPOINTS.GENERATE_MINUTA, {
         method: "POST",
         body: JSON.stringify(payload),
@@ -1261,7 +1240,6 @@ const FormularioCompraventa = () => {
         toast.error(data.detail || "Error al generar minuta");
       }
     } catch (error) {
-      console.error("Error:", error);
       toast.error("Error al generar minuta: " + error.message);
     } finally {
       setLoading(false);
@@ -1649,12 +1627,39 @@ const FormularioCompraventa = () => {
                                     />
                                   </div>
                                 )}
+
+                                {/* Número propio del inmueble */}
+                                <div className="col-span-2">
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Número del Inmueble
+                                    <span className="text-gray-400 font-normal ml-1">
+                                      (si es diferente al número del predio)
+                                    </span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={inmueble.numero}
+                                    onChange={(e) =>
+                                      handleInmuebleChange(
+                                        predio.id,
+                                        inmueble.id,
+                                        "numero",
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                    placeholder={`Ej: ${predio.numero || "2b"} (dejar vacío para usar el número del predio)`}
+                                  />
+                                </div>
                               </>
                             )}
 
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Nivel
+                                Nivel{" "}
+                                <span className="text-gray-400 font-normal">
+                                  (opcional)
+                                </span>
                               </label>
                               <input
                                 type="text"
@@ -1674,11 +1679,14 @@ const FormularioCompraventa = () => {
 
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Área Cubierta (m²)
+                                Área Cubierta (m²){" "}
+                                <span className="text-gray-400 font-normal">
+                                  (opcional)
+                                </span>
                               </label>
                               <input
-                                type="number"
-                                step="0.01"
+                                type="text"
+                                inputMode="decimal"
                                 value={inmueble.areaCubierta}
                                 onChange={(e) =>
                                   handleInmuebleChange(
@@ -1688,6 +1696,16 @@ const FormularioCompraventa = () => {
                                     e.target.value,
                                   )
                                 }
+                                onBlur={(e) => {
+                                  const num = parseFloat(e.target.value);
+                                  if (!isNaN(num))
+                                    handleInmuebleChange(
+                                      predio.id,
+                                      inmueble.id,
+                                      "areaCubierta",
+                                      num.toFixed(2),
+                                    );
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 placeholder="Ej: 217.49"
                               />
@@ -1698,11 +1716,14 @@ const FormularioCompraventa = () => {
 
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Área Descubierta (m²)
+                                Área Descubierta (m²){" "}
+                                <span className="text-gray-400 font-normal">
+                                  (opcional)
+                                </span>
                               </label>
                               <input
-                                type="number"
-                                step="0.01"
+                                type="text"
+                                inputMode="decimal"
                                 value={inmueble.areaDescubierta}
                                 onChange={(e) =>
                                   handleInmuebleChange(
@@ -1712,6 +1733,16 @@ const FormularioCompraventa = () => {
                                     e.target.value,
                                   )
                                 }
+                                onBlur={(e) => {
+                                  const num = parseFloat(e.target.value);
+                                  if (!isNaN(num))
+                                    handleInmuebleChange(
+                                      predio.id,
+                                      inmueble.id,
+                                      "areaDescubierta",
+                                      num.toFixed(2),
+                                    );
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 placeholder="Ej: 166.04"
                               />
@@ -1725,8 +1756,8 @@ const FormularioCompraventa = () => {
                                 Alícuota Parcial (%)
                               </label>
                               <input
-                                type="number"
-                                step="0.0000000001"
+                                type="text"
+                                inputMode="decimal"
                                 value={inmueble.alicuotaParcial}
                                 onChange={(e) =>
                                   handleInmuebleChange(
@@ -1736,6 +1767,16 @@ const FormularioCompraventa = () => {
                                     e.target.value,
                                   )
                                 }
+                                onBlur={(e) => {
+                                  const num = parseFloat(e.target.value);
+                                  if (!isNaN(num))
+                                    handleInmuebleChange(
+                                      predio.id,
+                                      inmueble.id,
+                                      "alicuotaParcial",
+                                      num.toFixed(10),
+                                    );
+                                }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 placeholder="Ej: 11.4013256789"
                               />

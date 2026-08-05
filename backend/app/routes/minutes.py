@@ -4,15 +4,18 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any
 import json
 import os
+import logging
 
 from app.database import get_db
-from app.middleware.auth import get_current_user  # Cambio aquí
+from app.middleware.auth import get_current_user
 from app.models.system_user import SystemUser
 from app.models.minute import Minute, MinuteType
 from app.services.minuta_generator import generate_minuta_compraventa
 from app.services.promesa_minuta_generator import generate_promesa_minuta_compraventa
 
 router = APIRouter(prefix="/minutes", tags=["minutes"])
+logger = logging.getLogger(__name__)
+
 
 @router.post("/generate-minuta")
 async def generate_minuta(
@@ -20,29 +23,22 @@ async def generate_minuta(
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    Generar minuta de compraventa de inmueble
-    """
+    """Generar minuta de compraventa de inmueble"""
     try:
-        print("DEBUG - Datos recibidos:", json.dumps(data, indent=2, ensure_ascii=False))
-        
-        # Validar tipo de contrato
         if data.get('tipoContrato') != 'compraventa':
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Solo se soporta tipo de contrato 'compraventa' por ahora"
+                detail="Solo se soporta tipo de contrato 'compraventa' en este endpoint"
             )
-        
-        # Generar el documento
+
         output_path = generate_minuta_compraventa(data, current_user)
-        
+
         if not output_path or not os.path.exists(output_path):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Error al generar el documento"
             )
-        
-        # Guardar en la base de datos
+
         new_minute = Minute(
             minute_type=MinuteType.COMPRAVENTA_INMUEBLE,
             contract_data=json.dumps(data, ensure_ascii=False),
@@ -52,85 +48,84 @@ async def generate_minuta(
         db.add(new_minute)
         db.commit()
         db.refresh(new_minute)
-        
-        # Retornar el archivo
+
         return FileResponse(
             path=output_path,
             filename=f"minuta_{new_minute.id}.docx",
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"ERROR al generar minuta: {str(e)}")
+        logger.error(f"Error al generar minuta de compraventa: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al generar minuta: {str(e)}"
         )
 
+
 @router.get("/")
 async def list_minutes(
     db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)  # Cambio aquí
+    current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    Listar todas las minutas del usuario actual
-    """
+    """Listar todas las minutas del usuario actual"""
     minutes = db.query(Minute).filter(Minute.created_by == current_user.id).all()
     return minutes
+
 
 @router.get("/{minute_id}")
 async def get_minute(
     minute_id: int,
     db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)  # Cambio aquí
+    current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    Obtener una minuta específica
-    """
+    """Obtener una minuta específica"""
     minute = db.query(Minute).filter(
         Minute.id == minute_id,
         Minute.created_by == current_user.id
     ).first()
-    
+
     if not minute:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Minuta no encontrada"
         )
-    
+
     return minute
+
 
 @router.get("/download/{minute_id}")
 async def download_minute(
     minute_id: int,
     db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)  # Cambio aquí
+    current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    Descargar una minuta
-    """
+    """Descargar una minuta"""
     minute = db.query(Minute).filter(
         Minute.id == minute_id,
         Minute.created_by == current_user.id
     ).first()
-    
+
     if not minute:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Minuta no encontrada"
         )
-    
+
     if not os.path.exists(minute.file_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Archivo no encontrado"
         )
-    
+
     return FileResponse(
         path=minute.file_path,
         filename=f"minuta_{minute.id}.docx",
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
+
 
 @router.post("/generate-promesa")
 async def generate_promesa(
@@ -138,13 +133,8 @@ async def generate_promesa(
     db: Session = Depends(get_db),
     current_user: SystemUser = Depends(get_current_user)
 ):
-    """
-    Generar minuta de promesa de compraventa
-    """
+    """Generar minuta de promesa de compraventa"""
     try:
-        import json
-        print("DEBUG PROMESA - Datos recibidos:", json.dumps(data, indent=2, ensure_ascii=False))
-
         output_path = generate_promesa_minuta_compraventa(data, current_user)
 
         if not output_path or not os.path.exists(output_path):
@@ -153,8 +143,9 @@ async def generate_promesa(
                 detail="Error al generar el documento"
             )
 
+        # Bug corregido: usar MinuteType.PROMESA_COMPRAVENTA en lugar de COMPRAVENTA_INMUEBLE
         new_minute = Minute(
-            minute_type=MinuteType.COMPRAVENTA_INMUEBLE,
+            minute_type=MinuteType.PROMESA_COMPRAVENTA,
             contract_data=json.dumps(data, ensure_ascii=False),
             file_path=output_path,
             created_by=current_user.id
@@ -169,8 +160,10 @@ async def generate_promesa(
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"ERROR al generar promesa: {str(e)}")
+        logger.error(f"Error al generar minuta de promesa: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al generar promesa: {str(e)}"

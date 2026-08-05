@@ -3,6 +3,10 @@ from pathlib import Path
 from datetime import datetime
 from app.utils.number_to_words import numero_a_letras, numero_a_digitos, formatear_fecha_notarial
 from app.utils.html_to_richtext import html_to_richtext
+import logging
+import uuid
+
+logger = logging.getLogger(__name__)
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
 OUTPUTS_DIR = Path(__file__).parent.parent.parent / "generated_documents"
@@ -80,7 +84,7 @@ def procesar_compareciente(comp, index):
         'nacionalidad': comp['nacionalidad'],
         'cedula': comp['cedula'],
         'cedulaEnLetras': numero_a_digitos(comp['cedula']),
-        'cedulaEnDigitos': numero_a_digitos(comp['cedula']),
+        'cedulaEnDigitos': comp['cedula'],  # conservar original sin transformar
         'edad': edad,
         'edadEnLetras': numero_a_letras(edad),
         'genero': genero,
@@ -88,7 +92,7 @@ def procesar_compareciente(comp, index):
         'estadoCivilTexto': estado_civil_texto,
         'profesionOcupacion': profesion_ocupacion,
         'telefono': comp.get('telefono', ''),
-        'telefonoEnLetras': numero_a_digitos(int(comp['telefono'])) if comp.get('telefono') and comp['telefono'].isdigit() else '',
+        'telefonoEnLetras': numero_a_digitos(str(comp['telefono'])) if comp.get('telefono') else '',
         'email': comp.get('email', ''),
         'direccion': direccion_completa,
         'provincia': comp.get('provincia', ''),
@@ -289,6 +293,10 @@ def generate_matriz_compraventa(data: dict, template_name: str = "compraventa.do
         'numVendedores': len(vendedores_procesados),
         'numCompradores': len(compradores_procesados),
         
+        # Labels de partes según tipo de contrato
+        'labelParte1': data.get('labelParte1', 'la parte vendedora'),
+        'labelParte2': data.get('labelParte2', 'la parte compradora'),
+        
         # Flags globales
         'hayTerceraEdad': hay_tercera_edad,
         'hayInterprete': hay_interprete,
@@ -309,24 +317,11 @@ def generate_matriz_compraventa(data: dict, template_name: str = "compraventa.do
         'abogadoTexto': '',
     }
     
-    # Convertir minuta a RichText
     if 'abogadoTexto' in data and data['abogadoTexto']:
-        print("DEBUG - Procesando minuta HTML:", data['abogadoTexto'][:100], "...")
         context['abogadoTexto'] = html_to_richtext(data['abogadoTexto'])
-        print("DEBUG - RichText con formato creado")
     else:
-        print("DEBUG - NO hay abogadoTexto en data")
         context['abogadoTexto'] = ''
         
-    print("Contexto preparado:")
-    print(f"- Vendedores: {len(vendedores_procesados)}")
-    print(f"- Compradores: {len(compradores_procesados)}")
-    print(f"- Hay tercera edad: {hay_tercera_edad}")
-    print(f"- Hay intérprete: {hay_interprete}")
-    print(f"- Hay no vidente: {hay_no_vidente}")
-    print(f"- Hay analfabeta: {hay_analfabeta}")
-    print(f"- Hay discapacidad intelectual: {hay_discapacidad_intelectual}")
-    
     # Cargar plantilla
     template_path = TEMPLATES_DIR / template_name
     
@@ -335,25 +330,18 @@ def generate_matriz_compraventa(data: dict, template_name: str = "compraventa.do
     
     doc = DocxTemplate(template_path)
     
-    # Renderizar con autoescape desactivado
     try:
-        print("Renderizando documento...")
         doc.render(context, autoescape=False)
-        print("Documento renderizado exitosamente")
     except Exception as e:
-        print(f"ERROR AL RENDERIZAR: {e}")
         import traceback
         traceback.print_exc()
         raise
     
     # Guardar
     protocol = data.get('numeroProtocolo', 'sin-protocolo')
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"matriz_{protocol}_{timestamp}.docx"
+    filename = f"matriz_{protocol}_{uuid.uuid4().hex[:8]}.docx"
     output_path = OUTPUTS_DIR / filename
     
     doc.save(str(output_path))
-    print(f"Documento guardado en: {output_path}")
-    print("=" * 50)
-    
+
     return str(output_path)

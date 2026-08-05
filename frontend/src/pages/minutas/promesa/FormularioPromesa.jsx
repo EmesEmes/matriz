@@ -358,19 +358,7 @@ const FormularioPromesa = () => {
         if (predio.id !== predioId) return predio;
         const nuevosInmuebles = predio.inmuebles.map((inmueble) => {
           if (inmueble.id !== inmuebleId) return inmueble;
-          let newValue = value;
-          if (
-            (field === "areaCubierta" || field === "areaDescubierta") &&
-            value
-          ) {
-            const num = parseFloat(value);
-            if (!isNaN(num)) newValue = num.toFixed(2);
-          }
-          if (field === "alicuotaParcial" && value) {
-            const num = parseFloat(value);
-            if (!isNaN(num)) newValue = num.toFixed(10);
-          }
-          return { ...inmueble, [field]: newValue };
+          return { ...inmueble, [field]: value };
         });
         let nuevaAlicuotaTotal = predio.alicuotaTotal;
         if (!predio.usarAlicuotaManual) {
@@ -1515,8 +1503,8 @@ const FormularioPromesa = () => {
                                       Área Cubierta (m²)
                                     </label>
                                     <input
-                                      type="number"
-                                      step="0.01"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={inmueble.areaCubierta}
                                       onChange={(e) =>
                                         handleInmuebleChange(
@@ -1526,6 +1514,16 @@ const FormularioPromesa = () => {
                                           e.target.value,
                                         )
                                       }
+                                      onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        if (!isNaN(num))
+                                          handleInmuebleChange(
+                                            predio.id,
+                                            inmueble.id,
+                                            "areaCubierta",
+                                            num.toFixed(2),
+                                          );
+                                      }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                       placeholder="Ej: 217.49"
                                     />
@@ -1538,8 +1536,8 @@ const FormularioPromesa = () => {
                                       Área Descubierta (m²)
                                     </label>
                                     <input
-                                      type="number"
-                                      step="0.01"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={inmueble.areaDescubierta}
                                       onChange={(e) =>
                                         handleInmuebleChange(
@@ -1549,6 +1547,16 @@ const FormularioPromesa = () => {
                                           e.target.value,
                                         )
                                       }
+                                      onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        if (!isNaN(num))
+                                          handleInmuebleChange(
+                                            predio.id,
+                                            inmueble.id,
+                                            "areaDescubierta",
+                                            num.toFixed(2),
+                                          );
+                                      }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                       placeholder="Ej: 166.04"
                                     />
@@ -1561,8 +1569,8 @@ const FormularioPromesa = () => {
                                       Alícuota Parcial (%)
                                     </label>
                                     <input
-                                      type="number"
-                                      step="0.0000000001"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={inmueble.alicuotaParcial}
                                       onChange={(e) =>
                                         handleInmuebleChange(
@@ -1572,6 +1580,16 @@ const FormularioPromesa = () => {
                                           e.target.value,
                                         )
                                       }
+                                      onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        if (!isNaN(num))
+                                          handleInmuebleChange(
+                                            predio.id,
+                                            inmueble.id,
+                                            "alicuotaParcial",
+                                            num.toFixed(10),
+                                          );
+                                      }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                       placeholder="Ej: 11.4013256789"
                                     />
@@ -1590,8 +1608,8 @@ const FormularioPromesa = () => {
                                       Área Cubierta (m²)
                                     </label>
                                     <input
-                                      type="number"
-                                      step="0.01"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={inmueble.areaCubierta}
                                       onChange={(e) =>
                                         handleInmuebleChange(
@@ -1601,6 +1619,16 @@ const FormularioPromesa = () => {
                                           e.target.value,
                                         )
                                       }
+                                      onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        if (!isNaN(num))
+                                          handleInmuebleChange(
+                                            predio.id,
+                                            inmueble.id,
+                                            "areaCubierta",
+                                            num.toFixed(2),
+                                          );
+                                      }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                       placeholder="Ej: 217.49"
                                     />
@@ -1613,8 +1641,8 @@ const FormularioPromesa = () => {
                                       Área Descubierta (m²)
                                     </label>
                                     <input
-                                      type="number"
-                                      step="0.01"
+                                      type="text"
+                                      inputMode="decimal"
                                       value={inmueble.areaDescubierta}
                                       onChange={(e) =>
                                         handleInmuebleChange(
@@ -1624,6 +1652,16 @@ const FormularioPromesa = () => {
                                           e.target.value,
                                         )
                                       }
+                                      onBlur={(e) => {
+                                        const num = parseFloat(e.target.value);
+                                        if (!isNaN(num))
+                                          handleInmuebleChange(
+                                            predio.id,
+                                            inmueble.id,
+                                            "areaDescubierta",
+                                            num.toFixed(2),
+                                          );
+                                      }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                       placeholder="Ej: 166.04"
                                     />

@@ -22,6 +22,7 @@ from .minuta_generator import (
 )
 import re
 from datetime import datetime
+import uuid
 
 
 # ============================================
@@ -533,9 +534,8 @@ def generate_promesa_minuta_compraventa(data: dict, current_user=None) -> str:
 
     file_stream = generate_promesa_minuta(data, str(template_path))
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     user_id = current_user.id if current_user else "unknown"
-    filename = f"minuta_promesa_{user_id}_{timestamp}.docx"
+    filename = f"minuta_promesa_{user_id}_{uuid.uuid4().hex[:8]}.docx"
     output_path = OUTPUTS_DIR / filename
 
     with open(str(output_path), "wb") as f:

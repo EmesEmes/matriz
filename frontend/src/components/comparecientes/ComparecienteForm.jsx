@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Button, FormField, Card } from '../shared';
-import { getProvincias, getCantones } from '../../utils/datosEcuador';
-import { validarCedula } from '../../utils/validarCedula';
-import { transformToSnakeCase } from '../../utils/transformPartyData';
-import { apiFetch } from '../../config/api';
-import API_CONFIG from '../../config/api';
-import { useToast } from '../../hooks/useToast';
-import { Save, X } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Button, FormField, Card } from "../shared";
+import { getProvincias, getCantones } from "../../utils/datosEcuador";
+import { validarCedula } from "../../utils/validarCedula";
+import { transformToSnakeCase } from "../../utils/transformPartyData";
+import { apiFetch } from "../../config/api";
+import API_CONFIG from "../../config/api";
+import { useToast } from "../../hooks/useToast";
+import { Save, X } from "lucide-react";
 
 const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
   const toast = useToast();
@@ -15,94 +15,125 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
   const [errors, setErrors] = useState({});
   const [cantones, setCantones] = useState([]);
   const [partnerCantones, setPartnerCantones] = useState([]);
-  
+
   const [formData, setFormData] = useState({
-    documentNumber: '',
-    names: '',
-    lastNames: '',
-    documentType: 'cedula',
-    gender: '',
-    maritalStatus: '',
-    nationality: 'ecuatoriana',
-    birthDate: '',
-    email: '',
-    phone: '',
-    province: '',
-    canton: '',
-    parroquia: '',
-    sector: '',
-    mainStreet: '',
-    secondaryStreet: '',
-    numberStreet: '',
-    occupation: '',
-    profession: '',
-    partnerDocumentNumber: '',
-    partnerNames: '',
-    partnerLastNames: '',
-    partnerGender: '',
-    partnerNationality: 'ecuatoriana',
-    partnerBirthDate: '',
-    partnerEmail: '',
-    partnerPhone: '',
-    partnerOccupation: '',
-    partnerProfession: '',
+    documentNumber: "",
+    names: "",
+    lastNames: "",
+    documentType: "cedula",
+    gender: "",
+    maritalStatus: "",
+    nationality: "ecuatoriana",
+    birthDate: "",
+    email: "",
+    phone: "",
+    province: "",
+    canton: "",
+    parroquia: "",
+    sector: "",
+    mainStreet: "",
+    secondaryStreet: "",
+    numberStreet: "",
+    occupation: "",
+    profession: "",
+    partnerDocumentNumber: "",
+    partnerNames: "",
+    partnerLastNames: "",
+    partnerGender: "",
+    partnerNationality: "ecuatoriana",
+    partnerBirthDate: "",
+    partnerEmail: "",
+    partnerPhone: "",
+    partnerOccupation: "",
+    partnerProfession: "",
     partnerSameAddress: true,
-    partnerProvince: '',
-    partnerCanton: '',
-    partnerParroquia: '',
-    partnerSector: '',
-    partnerMainStreet: '',
-    partnerSecondaryStreet: '',
-    partnerNumberStreet: ''
+    partnerProvince: "",
+    partnerCanton: "",
+    partnerParroquia: "",
+    partnerSector: "",
+    partnerMainStreet: "",
+    partnerSecondaryStreet: "",
+    partnerNumberStreet: "",
+    // Campos UAFE (opcionales)
+    actividadEconomica: "",
+    empresaTrabajo: "",
+    ingresoMensual: "",
+    esPep: "",
+    esPepIndirecto: "",
+    pepNombre: "",
+    pepInstitucion: "",
+    pepFechaInicio: "",
+    pepCargo: "",
+    pepAniosTrabajo: "",
+    pepGradoRelacion: "",
+    origenFondos: "",
   });
 
   // Cargar datos iniciales - Los datos ya vienen en camelCase
   useEffect(() => {
     if (initialData) {
       const data = initialData;
-      
+
       const newFormData = {
-        documentNumber: data.documentNumber || '',
-        names: data.names || '',
-        lastNames: data.lastNames || '',
-        documentType: data.documentType || 'cedula',
-        gender: data.gender || '',
-        maritalStatus: data.maritalStatus || '',
-        nationality: data.nationality || 'ecuatoriana',
-        birthDate: data.birthDate || '',
-        email: data.email || '',
-        phone: data.phone || '',
-        province: data.province || '',
-        canton: data.canton || '',
-        parroquia: data.parroquia || '',
-        sector: data.sector || '',
-        mainStreet: data.mainStreet || '',
-        secondaryStreet: data.secondaryStreet || '',
-        numberStreet: data.numberStreet || '',
-        occupation: data.occupation || '',
-        profession: data.profession || '',
-        partnerDocumentNumber: data.partner?.documentNumber || '',
-        partnerNames: data.partner?.names || '',
-        partnerLastNames: data.partner?.lastNames || '',
-        partnerGender: data.partner?.gender || '',
-        partnerNationality: data.partner?.nationality || 'ecuatoriana',
-        partnerBirthDate: data.partner?.birthDate || '',
-        partnerEmail: data.partner?.email || '',
-        partnerPhone: data.partner?.phone || '',
-        partnerOccupation: data.partner?.occupation || '',
-        partnerProfession: data.partner?.profession || '',
+        documentNumber: data.documentNumber || "",
+        names: data.names || "",
+        lastNames: data.lastNames || "",
+        documentType: data.documentType || "cedula",
+        gender: data.gender || "",
+        maritalStatus: data.maritalStatus || "",
+        nationality: data.nationality || "ecuatoriana",
+        birthDate: data.birthDate || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        province: data.province || "",
+        canton: data.canton || "",
+        parroquia: data.parroquia || "",
+        sector: data.sector || "",
+        mainStreet: data.mainStreet || "",
+        secondaryStreet: data.secondaryStreet || "",
+        numberStreet: data.numberStreet || "",
+        occupation: data.occupation || "",
+        profession: data.profession || "",
+        partnerDocumentNumber: data.partner?.documentNumber || "",
+        partnerNames: data.partner?.names || "",
+        partnerLastNames: data.partner?.lastNames || "",
+        partnerGender: data.partner?.gender || "",
+        partnerNationality: data.partner?.nationality || "ecuatoriana",
+        partnerBirthDate: data.partner?.birthDate || "",
+        partnerEmail: data.partner?.email || "",
+        partnerPhone: data.partner?.phone || "",
+        partnerOccupation: data.partner?.occupation || "",
+        partnerProfession: data.partner?.profession || "",
         partnerSameAddress: false,
-        partnerProvince: data.partner?.province || '',
-        partnerCanton: data.partner?.canton || '',
-        partnerParroquia: data.partner?.parroquia || '',
-        partnerSector: data.partner?.sector || '',
-        partnerMainStreet: data.partner?.mainStreet || '',
-        partnerSecondaryStreet: data.partner?.secondaryStreet || '',
-        partnerNumberStreet: data.partner?.numberStreet || ''
+        partnerProvince: data.partner?.province || "",
+        partnerCanton: data.partner?.canton || "",
+        partnerParroquia: data.partner?.parroquia || "",
+        partnerSector: data.partner?.sector || "",
+        partnerMainStreet: data.partner?.mainStreet || "",
+        partnerSecondaryStreet: data.partner?.secondaryStreet || "",
+        partnerNumberStreet: data.partner?.numberStreet || "",
+        // Campos UAFE
+        actividadEconomica: data.actividadEconomica || "",
+        empresaTrabajo: data.empresaTrabajo || "",
+        ingresoMensual: data.ingresoMensual || "",
+        esPep: data.esPep === true ? "si" : data.esPep === false ? "no" : "",
+        esPepIndirecto:
+          data.esPepIndirecto === true
+            ? "si"
+            : data.esPepIndirecto === false
+              ? "no"
+              : "",
+        pepNombre: data.pepNombre || "",
+        pepInstitucion: data.pepInstitucion || "",
+        pepFechaInicio: data.pepFechaInicio || "",
+        pepCargo: data.pepCargo || "",
+        pepAniosTrabajo: data.pepAniosTrabajo || "",
+        pepGradoRelacion: data.pepGradoRelacion || "",
+        origenFondos: data.origenFondos || "",
       };
 
       setFormData(newFormData);
-      
+
       if (data.partner) {
         setShowPartnerForm(true);
       }
@@ -114,13 +145,13 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     if (formData.province) {
       const newCantones = getCantones(formData.province);
       setCantones(newCantones);
-      
+
       if (!newCantones.includes(formData.canton)) {
-        setFormData(prev => ({ ...prev, canton: '' }));
+        setFormData((prev) => ({ ...prev, canton: "" }));
       }
     } else {
       setCantones([]);
-      setFormData(prev => ({ ...prev, canton: '' }));
+      setFormData((prev) => ({ ...prev, canton: "" }));
     }
   }, [formData.province]);
 
@@ -129,50 +160,54 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     if (formData.partnerProvince) {
       const newCantones = getCantones(formData.partnerProvince);
       setPartnerCantones(newCantones);
-      
+
       if (!newCantones.includes(formData.partnerCanton)) {
-        setFormData(prev => ({ ...prev, partnerCanton: '' }));
+        setFormData((prev) => ({ ...prev, partnerCanton: "" }));
       }
     } else {
       setPartnerCantones([]);
-      setFormData(prev => ({ ...prev, partnerCanton: '' }));
+      setFormData((prev) => ({ ...prev, partnerCanton: "" }));
     }
   }, [formData.partnerProvince]);
 
   // Mostrar/ocultar formulario de cónyuge
   useEffect(() => {
-    if (formData.maritalStatus === 'casado') {
+    if (formData.maritalStatus === "casado") {
       setShowPartnerForm(true);
     } else {
       setShowPartnerForm(false);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        partnerDocumentNumber: '',
-        partnerNames: '',
-        partnerLastNames: '',
-        partnerGender: '',
-        partnerNationality: 'ecuatoriana',
-        partnerBirthDate: '',
-        partnerEmail: '',
-        partnerPhone: '',
-        partnerOccupation: '',
-        partnerProfession: '',
+        partnerDocumentNumber: "",
+        partnerNames: "",
+        partnerLastNames: "",
+        partnerGender: "",
+        partnerNationality: "ecuatoriana",
+        partnerBirthDate: "",
+        partnerEmail: "",
+        partnerPhone: "",
+        partnerOccupation: "",
+        partnerProfession: "",
         partnerSameAddress: true,
-        partnerProvince: '',
-        partnerCanton: '',
-        partnerParroquia: '',
-        partnerSector: '',
-        partnerMainStreet: '',
-        partnerSecondaryStreet: '',
-        partnerNumberStreet: ''
+        partnerProvince: "",
+        partnerCanton: "",
+        partnerParroquia: "",
+        partnerSector: "",
+        partnerMainStreet: "",
+        partnerSecondaryStreet: "",
+        partnerNumberStreet: "",
       }));
     }
   }, [formData.maritalStatus]);
 
   // Sincronizar dirección del cónyuge
   useEffect(() => {
-    if (formData.partnerSameAddress && showPartnerForm && formData.maritalStatus === 'casado') {
-      setFormData(prev => ({
+    if (
+      formData.partnerSameAddress &&
+      showPartnerForm &&
+      formData.maritalStatus === "casado"
+    ) {
+      setFormData((prev) => ({
         ...prev,
         partnerProvince: prev.province,
         partnerCanton: prev.canton,
@@ -180,7 +215,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         partnerSector: prev.sector,
         partnerMainStreet: prev.mainStreet,
         partnerSecondaryStreet: prev.secondaryStreet,
-        partnerNumberStreet: prev.numberStreet
+        partnerNumberStreet: prev.numberStreet,
       }));
     }
   }, [
@@ -193,18 +228,18 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     formData.secondaryStreet,
     formData.numberStreet,
     showPartnerForm,
-    formData.maritalStatus
+    formData.maritalStatus,
   ]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
-    
+
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -212,86 +247,88 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     const newErrors = {};
 
     if (!validarCedula(formData.documentNumber)) {
-      newErrors.documentNumber = 'Cédula inválida';
+      newErrors.documentNumber = "Cédula inválida";
     }
 
     if (!formData.names.trim()) {
-      newErrors.names = 'Los nombres son requeridos';
+      newErrors.names = "Los nombres son requeridos";
     }
 
     if (!formData.lastNames.trim()) {
-      newErrors.lastNames = 'Los apellidos son requeridos';
+      newErrors.lastNames = "Los apellidos son requeridos";
     }
 
     if (!formData.gender) {
-      newErrors.gender = 'El género es requerido';
+      newErrors.gender = "El género es requerido";
     }
 
     if (!formData.maritalStatus) {
-      newErrors.maritalStatus = 'El estado civil es requerido';
+      newErrors.maritalStatus = "El estado civil es requerido";
     }
 
     if (!formData.birthDate) {
-      newErrors.birthDate = 'La fecha de nacimiento es requerida';
+      newErrors.birthDate = "La fecha de nacimiento es requerida";
     }
 
     if (!formData.province) {
-      newErrors.province = 'La provincia es requerida';
+      newErrors.province = "La provincia es requerida";
     }
 
     if (!formData.canton) {
-      newErrors.canton = 'El cantón es requerido';
+      newErrors.canton = "El cantón es requerido";
     }
 
     if (!formData.parroquia.trim()) {
-      newErrors.parroquia = 'La parroquia es requerida';
+      newErrors.parroquia = "La parroquia es requerida";
     }
 
     if (!formData.mainStreet.trim()) {
-      newErrors.mainStreet = 'La calle principal es requerida';
+      newErrors.mainStreet = "La calle principal es requerida";
     }
 
     if (!formData.occupation.trim()) {
-      newErrors.occupation = 'La ocupación es requerida';
+      newErrors.occupation = "La ocupación es requerida";
     }
 
-    if (showPartnerForm && formData.maritalStatus === 'casado') {
+    if (showPartnerForm && formData.maritalStatus === "casado") {
       if (!validarCedula(formData.partnerDocumentNumber)) {
-        newErrors.partnerDocumentNumber = 'Cédula del cónyuge inválida';
+        newErrors.partnerDocumentNumber = "Cédula del cónyuge inválida";
       }
 
       if (!formData.partnerNames.trim()) {
-        newErrors.partnerNames = 'Los nombres del cónyuge son requeridos';
+        newErrors.partnerNames = "Los nombres del cónyuge son requeridos";
       }
 
       if (!formData.partnerLastNames.trim()) {
-        newErrors.partnerLastNames = 'Los apellidos del cónyuge son requeridos';
+        newErrors.partnerLastNames = "Los apellidos del cónyuge son requeridos";
       }
 
       if (!formData.partnerGender) {
-        newErrors.partnerGender = 'El género del cónyuge es requerido';
+        newErrors.partnerGender = "El género del cónyuge es requerido";
       }
 
       if (!formData.partnerBirthDate) {
-        newErrors.partnerBirthDate = 'La fecha de nacimiento del cónyuge es requerida';
+        newErrors.partnerBirthDate =
+          "La fecha de nacimiento del cónyuge es requerida";
       }
 
       if (!formData.partnerOccupation.trim()) {
-        newErrors.partnerOccupation = 'La ocupación del cónyuge es requerida';
+        newErrors.partnerOccupation = "La ocupación del cónyuge es requerida";
       }
 
       if (!formData.partnerSameAddress) {
         if (!formData.partnerProvince) {
-          newErrors.partnerProvince = 'La provincia del cónyuge es requerida';
+          newErrors.partnerProvince = "La provincia del cónyuge es requerida";
         }
         if (!formData.partnerCanton) {
-          newErrors.partnerCanton = 'El cantón del cónyuge es requerido';
+          newErrors.partnerCanton = "El cantón del cónyuge es requerido";
         }
         if (!formData.partnerParroquia.trim()) {
-          newErrors.partnerParroquia = 'La parroquia del cónyuge es requerida';
+          newErrors.partnerParroquia = "La parroquia del cónyuge es requerida";
         }
         if (!formData.partnerMainStreet.trim()) {
-          newErrors.partnerMainStreet = 'La calle principal del cónyuge es requerida';
+          newErrors.partnerMainStreet =
+            "La calle principal del cónyuge es requerida";
         }
       }
     }
@@ -304,7 +341,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     e.preventDefault();
 
     if (!validateForm()) {
-      toast.error('Por favor corrija los errores en el formulario');
+      toast.error("Por favor corrija los errores en el formulario");
       return;
     }
 
@@ -313,14 +350,38 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     try {
       const dataToSend = transformToSnakeCase(formData);
 
-      if (showPartnerForm && formData.maritalStatus === 'casado') {
+      // Convertir campos UAFE vacíos a null y es_pep a boolean
+      if (!dataToSend.actividad_economica)
+        dataToSend.actividad_economica = null;
+      if (!dataToSend.empresa_trabajo) dataToSend.empresa_trabajo = null;
+      if (!dataToSend.ingreso_mensual) dataToSend.ingreso_mensual = null;
+      if (!dataToSend.origen_fondos) dataToSend.origen_fondos = null;
+      dataToSend.es_pep =
+        formData.esPep === "si" ? true : formData.esPep === "no" ? false : null;
+      dataToSend.es_pep_indirecto =
+        formData.esPepIndirecto === "si"
+          ? true
+          : formData.esPepIndirecto === "no"
+            ? false
+            : null;
+      if (!dataToSend.pep_nombre) dataToSend.pep_nombre = null;
+      if (!dataToSend.pep_institucion) dataToSend.pep_institucion = null;
+      if (!dataToSend.pep_fecha_inicio) dataToSend.pep_fecha_inicio = null;
+      if (!dataToSend.pep_cargo) dataToSend.pep_cargo = null;
+      if (!dataToSend.pep_anios_trabajo) dataToSend.pep_anios_trabajo = null;
+      if (!dataToSend.pep_grado_relacion) dataToSend.pep_grado_relacion = null;
+      // Eliminar campos del frontend que no van al backend
+      delete dataToSend.e_s_pep;
+      delete dataToSend.e_s_pep_indirecto;
+
+      if (showPartnerForm && formData.maritalStatus === "casado") {
         const partnerData = {
           documentNumber: formData.partnerDocumentNumber,
           names: formData.partnerNames,
           lastNames: formData.partnerLastNames,
-          documentType: 'cedula',
+          documentType: "cedula",
           gender: formData.partnerGender,
-          maritalStatus: 'casado',
+          maritalStatus: "casado",
           nationality: formData.partnerNationality,
           birthDate: formData.partnerBirthDate,
           email: formData.partnerEmail,
@@ -333,44 +394,48 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
           secondaryStreet: formData.partnerSecondaryStreet,
           numberStreet: formData.partnerNumberStreet,
           occupation: formData.partnerOccupation,
-          profession: formData.partnerProfession
+          profession: formData.partnerProfession,
         };
 
         dataToSend.partner_document_number = formData.partnerDocumentNumber;
-        
+
         const partnerResponse = await apiFetch(API_CONFIG.ENDPOINTS.PARTIES, {
-          method: 'POST',
-          body: JSON.stringify(transformToSnakeCase(partnerData))
+          method: "POST",
+          body: JSON.stringify(transformToSnakeCase(partnerData)),
         });
 
         if (!partnerResponse.ok) {
           const errorData = await partnerResponse.json();
-          throw new Error(errorData.detail || 'Error al guardar datos del cónyuge');
+          throw new Error(
+            errorData.detail || "Error al guardar datos del cónyuge",
+          );
         }
       }
 
-      const url = initialData 
+      const url = initialData
         ? `${API_CONFIG.ENDPOINTS.PARTIES}/${formData.documentNumber}`
         : API_CONFIG.ENDPOINTS.PARTIES;
 
       const response = await apiFetch(url, {
-        method: initialData ? 'PUT' : 'POST',
-        body: JSON.stringify(dataToSend)
+        method: initialData ? "PUT" : "POST",
+        body: JSON.stringify(dataToSend),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(initialData ? 'Compareciente actualizado' : 'Compareciente creado');
+        toast.success(
+          initialData ? "Compareciente actualizado" : "Compareciente creado",
+        );
         if (onSuccess) {
           onSuccess(data);
         }
       } else {
-        throw new Error(data.detail || 'Error al guardar compareciente');
+        throw new Error(data.detail || "Error al guardar compareciente");
       }
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error.message || 'Error al guardar compareciente');
+      console.error("Error:", error);
+      toast.error(error.message || "Error al guardar compareciente");
     } finally {
       setLoading(false);
     }
@@ -381,7 +446,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
       {/* DATOS PERSONALES */}
       <Card title="Datos Personales">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Número de Cédula" required error={errors.documentNumber}>
+          <FormField
+            label="Número de Cédula"
+            required
+            error={errors.documentNumber}
+          >
             <input
               type="text"
               name="documentNumber"
@@ -472,7 +541,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
             />
           </FormField>
 
-          <FormField label="Fecha de Nacimiento" required error={errors.birthDate}>
+          <FormField
+            label="Fecha de Nacimiento"
+            required
+            error={errors.birthDate}
+          >
             <input
               type="date"
               name="birthDate"
@@ -545,8 +618,10 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               disabled={loading}
             >
               <option value="">Seleccione</option>
-              {getProvincias().map(prov => (
-                <option key={prov} value={prov}>{prov}</option>
+              {getProvincias().map((prov) => (
+                <option key={prov} value={prov}>
+                  {prov}
+                </option>
               ))}
             </select>
           </FormField>
@@ -560,8 +635,10 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               disabled={!formData.province || loading}
             >
               <option value="">Seleccione</option>
-              {cantones.map(cant => (
-                <option key={cant} value={cant}>{cant}</option>
+              {cantones.map((cant) => (
+                <option key={cant} value={cant}>
+                  {cant}
+                </option>
               ))}
             </select>
           </FormField>
@@ -625,10 +702,14 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
       </Card>
 
       {/* DATOS DEL CÓNYUGE */}
-      {showPartnerForm && formData.maritalStatus === 'casado' && (
+      {showPartnerForm && formData.maritalStatus === "casado" && (
         <Card title="Datos del Cónyuge">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField label="Cédula del Cónyuge" required error={errors.partnerDocumentNumber}>
+            <FormField
+              label="Cédula del Cónyuge"
+              required
+              error={errors.partnerDocumentNumber}
+            >
               <input
                 type="text"
                 name="partnerDocumentNumber"
@@ -640,7 +721,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               />
             </FormField>
 
-            <FormField label="Género del Cónyuge" required error={errors.partnerGender}>
+            <FormField
+              label="Género del Cónyuge"
+              required
+              error={errors.partnerGender}
+            >
               <select
                 name="partnerGender"
                 value={formData.partnerGender}
@@ -654,7 +739,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               </select>
             </FormField>
 
-            <FormField label="Nombres del Cónyuge" required error={errors.partnerNames}>
+            <FormField
+              label="Nombres del Cónyuge"
+              required
+              error={errors.partnerNames}
+            >
               <input
                 type="text"
                 name="partnerNames"
@@ -665,7 +754,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               />
             </FormField>
 
-            <FormField label="Apellidos del Cónyuge" required error={errors.partnerLastNames}>
+            <FormField
+              label="Apellidos del Cónyuge"
+              required
+              error={errors.partnerLastNames}
+            >
               <input
                 type="text"
                 name="partnerLastNames"
@@ -687,7 +780,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               />
             </FormField>
 
-            <FormField label="Fecha de Nacimiento" required error={errors.partnerBirthDate}>
+            <FormField
+              label="Fecha de Nacimiento"
+              required
+              error={errors.partnerBirthDate}
+            >
               <input
                 type="date"
                 name="partnerBirthDate"
@@ -720,7 +817,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               />
             </FormField>
 
-            <FormField label="Ocupación" required error={errors.partnerOccupation}>
+            <FormField
+              label="Ocupación"
+              required
+              error={errors.partnerOccupation}
+            >
               <input
                 type="text"
                 name="partnerOccupation"
@@ -752,13 +853,19 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
                   className="w-4 h-4 text-primary-600 rounded focus:ring-primary-500"
                   disabled={loading}
                 />
-                <span className="text-sm text-gray-700">Misma dirección que el titular</span>
+                <span className="text-sm text-gray-700">
+                  Misma dirección que el titular
+                </span>
               </label>
             </div>
 
             {!formData.partnerSameAddress && (
               <>
-                <FormField label="Provincia" required error={errors.partnerProvince}>
+                <FormField
+                  label="Provincia"
+                  required
+                  error={errors.partnerProvince}
+                >
                   <select
                     name="partnerProvince"
                     value={formData.partnerProvince}
@@ -767,8 +874,10 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
                     disabled={loading}
                   >
                     <option value="">Seleccione</option>
-                    {getProvincias().map(prov => (
-                      <option key={prov} value={prov}>{prov}</option>
+                    {getProvincias().map((prov) => (
+                      <option key={prov} value={prov}>
+                        {prov}
+                      </option>
                     ))}
                   </select>
                 </FormField>
@@ -782,13 +891,19 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
                     disabled={!formData.partnerProvince || loading}
                   >
                     <option value="">Seleccione</option>
-                    {partnerCantones.map(cant => (
-                      <option key={cant} value={cant}>{cant}</option>
+                    {partnerCantones.map((cant) => (
+                      <option key={cant} value={cant}>
+                        {cant}
+                      </option>
                     ))}
                   </select>
                 </FormField>
 
-                <FormField label="Parroquia" required error={errors.partnerParroquia}>
+                <FormField
+                  label="Parroquia"
+                  required
+                  error={errors.partnerParroquia}
+                >
                   <input
                     type="text"
                     name="partnerParroquia"
@@ -810,7 +925,11 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
                   />
                 </FormField>
 
-                <FormField label="Calle Principal" required error={errors.partnerMainStreet}>
+                <FormField
+                  label="Calle Principal"
+                  required
+                  error={errors.partnerMainStreet}
+                >
                   <input
                     type="text"
                     name="partnerMainStreet"
@@ -848,6 +967,208 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         </Card>
       )}
 
+      {/* SECCIÓN UAFE — opcional */}
+      <Card title="Información UAFE (opcional)">
+        <p className="text-sm text-gray-500 mb-4">
+          Estos datos son requeridos para el cumplimiento de la Ley de
+          Prevención de Lavado de Activos. No son necesarios para generar
+          minutas o matrices.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Actividad Económica">
+            <select
+              name="actividadEconomica"
+              value={formData.actividadEconomica}
+              onChange={handleChange}
+              className="input-field"
+            >
+              <option value="">Seleccione</option>
+              <option value="independiente">Independiente</option>
+              <option value="empleado">Empleado</option>
+              <option value="jubilado">Jubilado</option>
+              <option value="quehaceres_domesticos">
+                Quehaceres Domésticos
+              </option>
+              <option value="cuidador_hogar">Cuidador del Hogar</option>
+              <option value="estudiante">Estudiante</option>
+              <option value="ninguna">Ninguna</option>
+            </select>
+          </FormField>
+
+          <FormField label="Ingreso Mensual (USD)">
+            <input
+              type="number"
+              name="ingresoMensual"
+              value={formData.ingresoMensual}
+              onChange={handleChange}
+              className="input-field"
+              min="0"
+              step="0.01"
+              placeholder="Ej: 1500"
+            />
+          </FormField>
+
+          {(formData.actividadEconomica === "empleado" ||
+            formData.actividadEconomica === "independiente") && (
+            <FormField
+              label="Empresa o Institución de Trabajo"
+              className="col-span-2"
+            >
+              <input
+                type="text"
+                name="empresaTrabajo"
+                value={formData.empresaTrabajo}
+                onChange={handleChange}
+                className="input-field"
+                placeholder="Ej: Empresa XYZ S.A."
+              />
+            </FormField>
+          )}
+
+          <FormField label="Origen de los Fondos" className="col-span-2">
+            <input
+              type="text"
+              name="origenFondos"
+              value={formData.origenFondos}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Ej: Ahorros personales, sueldo, herencia"
+            />
+          </FormField>
+        </div>
+
+        {/* PEP */}
+        <div className="mt-4 space-y-3">
+          <FormField label="¿Es Persona Políticamente Expuesta (PEP)?">
+            <div className="flex gap-3 mt-1">
+              {["si", "no"].map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      esPep: v,
+                      esPepIndirecto: "",
+                    }))
+                  }
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium ${formData.esPep === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                >
+                  {v === "si" ? "Sí" : "No"}
+                </button>
+              ))}
+            </div>
+          </FormField>
+
+          {formData.esPep === "si" && (
+            <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <FormField label="Institución" className="col-span-2">
+                <input
+                  type="text"
+                  name="pepInstitucion"
+                  value={formData.pepInstitucion}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Ej: Ministerio de Finanzas"
+                />
+              </FormField>
+              <FormField label="Cargo">
+                <input
+                  type="text"
+                  name="pepCargo"
+                  value={formData.pepCargo}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Ej: Director General"
+                />
+              </FormField>
+              <FormField label="Fecha de Inicio">
+                <input
+                  type="date"
+                  name="pepFechaInicio"
+                  value={formData.pepFechaInicio}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+              </FormField>
+              <FormField label="Años de Trabajo">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  name="pepAniosTrabajo"
+                  value={formData.pepAniosTrabajo}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+              </FormField>
+            </div>
+          )}
+
+          {formData.esPep === "no" && (
+            <FormField label="¿Es pariente, amigo o colaborador de un PEP?">
+              <div className="flex gap-3 mt-1">
+                {["si", "no"].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, esPepIndirecto: v }))
+                    }
+                    className={`px-4 py-1.5 rounded-lg text-sm font-medium ${formData.esPepIndirecto === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                  >
+                    {v === "si" ? "Sí" : "No"}
+                  </button>
+                ))}
+              </div>
+            </FormField>
+          )}
+
+          {formData.esPep === "no" && formData.esPepIndirecto === "si" && (
+            <div className="grid grid-cols-2 gap-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+              <FormField label="Nombre del PEP" className="col-span-2">
+                <input
+                  type="text"
+                  name="pepNombre"
+                  value={formData.pepNombre}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Nombre completo del PEP"
+                />
+              </FormField>
+              <FormField label="Institución del PEP" className="col-span-2">
+                <input
+                  type="text"
+                  name="pepInstitucion"
+                  value={formData.pepInstitucion}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+              </FormField>
+              <FormField label="Cargo del PEP">
+                <input
+                  type="text"
+                  name="pepCargo"
+                  value={formData.pepCargo}
+                  onChange={handleChange}
+                  className="input-field"
+                />
+              </FormField>
+              <FormField label="Grado de Relación">
+                <input
+                  type="text"
+                  name="pepGradoRelacion"
+                  value={formData.pepGradoRelacion}
+                  onChange={handleChange}
+                  className="input-field"
+                  placeholder="Ej: Primer grado de consanguinidad"
+                />
+              </FormField>
+            </div>
+          )}
+        </div>
+      </Card>
+
       {/* BOTONES */}
       <div className="flex justify-end gap-3">
         {onCancel && (
@@ -868,7 +1189,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
           disabled={loading}
           icon={<Save className="w-5 h-5" />}
         >
-          {initialData ? 'Actualizar' : 'Guardar'} Compareciente
+          {initialData ? "Actualizar" : "Guardar"} Compareciente
         </Button>
       </div>
     </form>

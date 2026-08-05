@@ -208,9 +208,6 @@ def registrar_cliente(
             representado_es_conyugue = payload.get("representado_es_conyugue")
 
             titular_raw = payload.get("titular") or {}
-            titular_raw["calidad_participacion"] = calidad_participacion
-            titular_data = PartyCreate(**titular_raw)
-
             conyugue_raw = payload.get("conyugue")
             representado_raw = payload.get("representado")
             conyugue_representado_raw = payload.get("conyugue_representado")
@@ -219,15 +216,16 @@ def registrar_cliente(
             representado = None
             conyugue_representado = None
 
-            # --- Cónyuge del titular (caso propios_derechos o propios_y_representando con representado != cónyuge) ---
+            # --- Cónyuge del titular — se guarda primero para obtener su document_number ---
             if conyugue_raw:
                 conyugue_dict = conyugue_raw.copy()
-                conyugue_dict['partner_document_number'] = titular_data.document_number
+                conyugue_dict['partner_document_number'] = titular_raw.get('document_number')
                 conyugue = _crear_party_publico(db, PartyCreate(**conyugue_dict))
                 registrar_acceso(db, "registro_publico", "registro_publico", "parties", conyugue.document_number, ip)
 
-            # --- Titular ---
+            # --- Titular — ahora sí se conoce el document_number del cónyuge ---
             titular_dict = titular_raw.copy()
+            titular_dict["calidad_participacion"] = calidad_participacion
             if conyugue is not None:
                 titular_dict['partner_document_number'] = conyugue.document_number
             titular = _crear_party_publico(db, PartyCreate(**titular_dict))
