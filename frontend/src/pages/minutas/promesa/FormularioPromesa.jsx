@@ -274,6 +274,7 @@ const FormularioPromesa = () => {
             id: Date.now() + Math.random(),
             tipo: "",
             tipoOtro: "",
+            numero: "",
             nivel: "",
             areaCubierta: "",
             areaDescubierta: "",
@@ -317,6 +318,7 @@ const FormularioPromesa = () => {
                   id: Date.now() + Math.random(),
                   tipo: "",
                   tipoOtro: "",
+                  numero: "",
                   nivel: "",
                   areaCubierta: "",
                   areaDescubierta: "",
@@ -1473,6 +1475,30 @@ const FormularioPromesa = () => {
                                       />
                                     </div>
                                   )}
+
+                                  {/* Número propio del inmueble */}
+                                  <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                      Número del Inmueble
+                                      <span className="text-gray-400 font-normal ml-1">
+                                        (si es diferente al número del predio)
+                                      </span>
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={inmueble.numero}
+                                      onChange={(e) =>
+                                        handleInmuebleChange(
+                                          predio.id,
+                                          inmueble.id,
+                                          "numero",
+                                          e.target.value,
+                                        )
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
+                                      placeholder={`Ej: ${predio.numero || "2b"} (dejar vacío para usar el número del predio)`}
+                                    />
+                                  </div>
                                 </>
                               )}
 
@@ -1481,7 +1507,10 @@ const FormularioPromesa = () => {
                                 <>
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Nivel
+                                      Nivel{" "}
+                                      <span className="text-gray-400 font-normal">
+                                        (opcional)
+                                      </span>
                                     </label>
                                     <input
                                       type="text"
@@ -1500,7 +1529,10 @@ const FormularioPromesa = () => {
                                   </div>
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Área Cubierta (m²)
+                                      Área Cubierta (m²){" "}
+                                      <span className="text-gray-400 font-normal">
+                                        (opcional)
+                                      </span>
                                     </label>
                                     <input
                                       type="text"
@@ -1533,7 +1565,10 @@ const FormularioPromesa = () => {
                                   </div>
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Área Descubierta (m²)
+                                      Área Descubierta (m²){" "}
+                                      <span className="text-gray-400 font-normal">
+                                        (opcional)
+                                      </span>
                                     </label>
                                     <input
                                       type="text"
@@ -1587,14 +1622,16 @@ const FormularioPromesa = () => {
                                             predio.id,
                                             inmueble.id,
                                             "alicuotaParcial",
-                                            num.toFixed(10),
+                                            parseFloat(
+                                              num.toPrecision(12),
+                                            ).toString(),
                                           );
                                       }}
                                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                       placeholder="Ej: 11.4013256789"
                                     />
                                     <p className="text-xs text-gray-500 mt-1">
-                                      Hasta 10 decimales
+                                      Los decimales necesarios
                                     </p>
                                   </div>
                                 </>
@@ -1605,7 +1642,10 @@ const FormularioPromesa = () => {
                                 <>
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Área Cubierta (m²)
+                                      Área Cubierta (m²){" "}
+                                      <span className="text-gray-400 font-normal">
+                                        (opcional)
+                                      </span>
                                     </label>
                                     <input
                                       type="text"
@@ -1638,7 +1678,10 @@ const FormularioPromesa = () => {
                                   </div>
                                   <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                      Área Descubierta (m²)
+                                      Área Descubierta (m²){" "}
+                                      <span className="text-gray-400 font-normal">
+                                        (opcional)
+                                      </span>
                                     </label>
                                     <input
                                       type="text"
@@ -1738,8 +1781,8 @@ const FormularioPromesa = () => {
                                 placeholder="Ej: 31.2217256789"
                               />
                               <p className="text-xs text-yellow-700 mt-1">
-                                Hasta 10 decimales. Use este valor si difiere
-                                del calculado automáticamente
+                                Los decimales necesarios. Use este valor si
+                                difiere del calculado automáticamente
                               </p>
                             </div>
                           )}

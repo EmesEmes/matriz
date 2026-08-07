@@ -116,18 +116,22 @@ def numero_a_letras(n):
     
     # Si es float, manejar parte decimal
     if isinstance(n, float):
-        parte_entera = int(n)
-        # Manejar hasta 10 decimales
-        parte_decimal = round((n - parte_entera) * 10000000000)
-        
-        if parte_decimal == 0:
-            return numero_a_letras(parte_entera)
-        
-        # Convertir parte decimal a dígitos
-        parte_decimal_str = str(parte_decimal).rstrip('0')
+        # Convertir a string para preservar los decimales exactos incluyendo ceros iniciales
+        n_str = f"{n:.10f}".rstrip('0')  # hasta 10 decimales, quitar ceros finales
+        if '.' not in n_str:
+            return numero_a_letras(int(n))
+
+        partes = n_str.split('.')
+        parte_entera_str = partes[0]
+        parte_decimal_str = partes[1]  # preserva "03", "012", etc.
+
+        if not parte_decimal_str or int(parte_decimal_str) == 0:
+            return numero_a_letras(int(n))
+
+        # Convertir cada dígito decimal individualmente para preservar ceros iniciales
         digitos_decimales = numero_a_digitos(parte_decimal_str)
-        
-        return f"{numero_a_letras(parte_entera)} coma {digitos_decimales}"
+
+        return f"{numero_a_letras(int(parte_entera_str))} coma {digitos_decimales}"
     
     # Convertir a int para evitar problemas con comparaciones
     n = int(n)

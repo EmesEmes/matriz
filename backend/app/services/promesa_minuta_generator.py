@@ -6,7 +6,10 @@ from ..utils.number_to_words import (
     formatear_fecha_notarial,
     calcular_edad,
     numero_casa_a_letras,
-    numero_a_ordinal_notaria
+    numero_a_ordinal_notaria,
+    convertir_numero_casa,
+    nivel_a_palabras,
+    formatear_dinero,
 )
 # Reutilizar funciones del generador de compraventa
 from .minuta_generator import (
@@ -111,15 +114,15 @@ def procesar_clausula_penal(penal_data: dict, precio_total) -> dict:
             precio = 0
         monto_calculado = round(precio * porcentaje / 100, 2)
 
-        porcentaje_palabras = numero_a_letras(porcentaje).upper()
-        monto_palabras = numero_a_letras(monto_calculado).upper()
+        porcentaje_fmt = f"{porcentaje:g}"
+        porcentaje_palabras = f"{numero_a_letras(porcentaje)} ({porcentaje_fmt}%)"
 
         return {
             'es_porcentaje': True,
             'porcentaje': porcentaje,
             'porcentaje_palabras': porcentaje_palabras,
             'monto': monto_calculado,
-            'monto_palabras': monto_palabras,
+            'monto_palabras': formatear_dinero(monto_calculado),
             'monto_numerico': f"{monto_calculado:,.2f}",
         }
     else:
@@ -127,7 +130,7 @@ def procesar_clausula_penal(penal_data: dict, precio_total) -> dict:
         return {
             'es_porcentaje': False,
             'monto': monto,
-            'monto_palabras': numero_a_letras(monto).upper(),
+            'monto_palabras': formatear_dinero(monto),
             'monto_numerico': f"{monto:,.2f}",
         }
 
@@ -257,16 +260,37 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
                 area_descubierta = inmueble.get('areaDescubierta', '')
                 alicuota_parcial = inmueble.get('alicuotaParcial', '')
 
+                def fmt_area(val):
+                    if not val: return ''
+                    try:
+                        n = float(val)
+                        return f"{numero_a_letras(n)} ({n:.2f})"
+                    except: return str(val)
+
+                def fmt_alicuota(val):
+                    if not val: return ''
+                    try:
+                        n = float(val)
+                        val_fmt = str(val).rstrip('0').rstrip('.')
+                        return f"{numero_a_letras(n)} ({val_fmt}%)"
+                    except: return str(val)
+
+                num_inmueble = inmueble.get('numero', '').strip() or str(predio.get('numero', ''))
+                num_inmueble_palabras = convertir_numero_casa(num_inmueble) if num_inmueble else ''
+
                 inmueble_data = {
                     'tipo': inmueble.get('tipo', ''),
                     'tipo_otro': inmueble.get('tipoOtro', ''),
-                    'nivel': inmueble.get('nivel', ''),
+                    'numero': num_inmueble,
+                    'numero_palabras': num_inmueble_palabras,
+                    'nivel': nivel_a_palabras(inmueble.get('nivel', '')),
+                    'nivel_raw': inmueble.get('nivel', ''),
                     'area_cubierta': area_cubierta,
-                    'area_cubierta_palabras': numero_a_letras(float(area_cubierta)) if area_cubierta else '',
+                    'area_cubierta_palabras': fmt_area(area_cubierta),
                     'area_descubierta': area_descubierta,
-                    'area_descubierta_palabras': numero_a_letras(float(area_descubierta)) if area_descubierta else '',
+                    'area_descubierta_palabras': fmt_area(area_descubierta),
                     'alicuota_parcial': alicuota_parcial,
-                    'alicuota_parcial_palabras': numero_a_letras(float(alicuota_parcial)) if alicuota_parcial else '',
+                    'alicuota_parcial_palabras': fmt_alicuota(alicuota_parcial),
                 }
                 inmuebles_procesados.append(inmueble_data)
 
@@ -275,15 +299,26 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
             else:
                 alicuota_total = predio.get('alicuotaTotal', 0)
 
+            num_predio = predio.get('numero', '')
+            num_predio_palabras = convertir_numero_casa(str(num_predio)) if num_predio else ''
+
+            def fmt_alicuota_total(val):
+                if not val: return ''
+                try:
+                    n = float(val)
+                    val_fmt = f"{n:.10f}".rstrip('0').rstrip('.')
+                    return f"{numero_a_letras(n)} ({val_fmt}%)"
+                except: return str(val)
+
             predio_data = {
                 'es_compuesto': predio.get('esCompuesto', False),
                 'tipo': predio.get('tipo', ''),
                 'tipo_otro': predio.get('tipoOtro', ''),
-                'numero': predio.get('numero', ''),
-                'numero_palabras': numero_a_letras(int(predio.get('numero', 0))) if predio.get('numero', '').isdigit() else predio.get('numero', ''),
+                'numero': num_predio,
+                'numero_palabras': num_predio_palabras,
                 'inmuebles': inmuebles_procesados,
                 'alicuota_total': alicuota_total,
-                'alicuota_total_palabras': numero_a_letras(float(alicuota_total)) if alicuota_total else '',
+                'alicuota_total_palabras': fmt_alicuota_total(alicuota_total),
             }
             predios_procesados.append(predio_data)
 
@@ -309,9 +344,11 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
     # UBICACIÓN
     # ============================================
     ubicacion = data.get('ubicacion', {})
+    num_ubicacion = ubicacion.get('numero', '')
     context['ubicacion'] = {
         'lote': ubicacion.get('lote', ''),
-        'numero': ubicacion.get('numero', ''),
+        'numero': num_ubicacion,
+        'numero_palabras': convertir_numero_casa(str(num_ubicacion)) if num_ubicacion else '',
         'parroquia': ubicacion.get('parroquia', ''),
         'canton': ubicacion.get('canton', ''),
         'provincia': ubicacion.get('provincia', ''),
@@ -412,9 +449,15 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
         context['precio_manual'] = False
         precio_total = data.get('precioTotal', 0)
 
+        try:
+            precio_num = float(precio_total)
+            precio_total_str = formatear_dinero(precio_num)
+        except:
+            precio_total_str = str(precio_total)
+
         context['precio'] = {
             'total': precio_total,
-            'total_palabras': numero_a_letras(float(precio_total)).upper() if precio_total else '',
+            'total_palabras': precio_total_str,
             'partes': []
         }
 
@@ -425,7 +468,7 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
             parte_data = {
                 'letra': parte.get('letra', ''),
                 'monto': monto,
-                'monto_palabras': numero_a_letras(float(monto)).upper() if monto else '',
+                'monto_palabras': formatear_dinero(float(monto)) if monto else '',
                 'es_cuotas': parte.get('tipoPago') == 'cuotas',
                 'medio_pago': parte.get('medioPago', ''),
                 'tipo_cheque': parte.get('tipoCheque', ''),
@@ -442,9 +485,9 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
                 periodicidad = parte.get('periodicidad', '')
 
                 parte_data['numero_cuotas'] = numero_cuotas
-                parte_data['numero_cuotas_palabras'] = numero_a_letras(int(numero_cuotas)) if numero_cuotas else ''
+                parte_data['numero_cuotas_palabras'] = f"{numero_a_letras(int(numero_cuotas))} ({numero_cuotas})" if numero_cuotas else ''
                 parte_data['valor_cuota'] = valor_cuota
-                parte_data['valor_cuota_palabras'] = numero_a_letras(float(valor_cuota)) if valor_cuota else ''
+                parte_data['valor_cuota_palabras'] = formatear_dinero(float(valor_cuota)) if valor_cuota else ''
                 parte_data['periodicidad'] = periodicidad if periodicidad != 'otro' else parte.get('periodicidadOtra', '')
 
             if parte.get('tieneDetalle'):

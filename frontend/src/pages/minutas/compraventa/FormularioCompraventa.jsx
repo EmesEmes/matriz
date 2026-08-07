@@ -1774,14 +1774,16 @@ const FormularioCompraventa = () => {
                                       predio.id,
                                       inmueble.id,
                                       "alicuotaParcial",
-                                      num.toFixed(10),
+                                      parseFloat(
+                                        num.toPrecision(12),
+                                      ).toString(),
                                     );
                                 }}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                 placeholder="Ej: 11.4013256789"
                               />
                               <p className="text-xs text-gray-500 mt-1">
-                                Hasta 10 decimales
+                                Los decimales necesarios
                               </p>
                             </div>
                           </div>
@@ -1852,8 +1854,8 @@ const FormularioCompraventa = () => {
                               placeholder="Ej: 31.2217256789"
                             />
                             <p className="text-xs text-yellow-700 mt-1">
-                              Hasta 10 decimales. Use este valor si difiere del
-                              calculado automáticamente
+                              Los decimales necesarios. Use este valor si
+                              difiere del calculado automáticamente
                             </p>
                           </div>
                         )}
