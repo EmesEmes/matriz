@@ -12,6 +12,7 @@ from app.models.system_user import SystemUser
 from app.models.minute import Minute, MinuteType
 from app.services.minuta_generator import generate_minuta_compraventa
 from app.services.promesa_minuta_generator import generate_promesa_minuta_compraventa
+from app.services.poder_generator import generate_poder
 
 router = APIRouter(prefix="/minutes", tags=["minutes"])
 logger = logging.getLogger(__name__)
@@ -167,4 +168,45 @@ async def generate_promesa(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al generar promesa: {str(e)}"
+        )
+
+@router.post("/generate-poder")
+async def generate_poder_endpoint(
+    data: Dict[Any, Any],
+    db: Session = Depends(get_db),
+    current_user: SystemUser = Depends(get_current_user)
+):
+    """Generar minuta de poder, procuración o delegación"""
+    try:
+        output_path = generate_poder(data, current_user)
+
+        if not output_path or not os.path.exists(output_path):
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al generar el documento"
+            )
+
+        new_minute = Minute(
+            minute_type=MinuteType.PODERES,
+            contract_data=json.dumps(data, ensure_ascii=False),
+            file_path=output_path,
+            created_by=current_user.id
+        )
+        db.add(new_minute)
+        db.commit()
+        db.refresh(new_minute)
+
+        return FileResponse(
+            path=output_path,
+            filename=f"poder_{new_minute.id}.docx",
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al generar poder: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al generar el poder. Contacte al administrador."
         )

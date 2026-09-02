@@ -370,9 +370,10 @@ def convertir_numero_casa(numero_str):
 def nivel_a_palabras(nivel_str):
     """
     Convierte notación de nivel arquitectónico a palabras notariales.
-    Ej: 'n+3.00' → 'ene más tres punto cero cero (n+3.00)'
-        'n-1.12' → 'ene menos uno punto uno dos (n-1.12)'
-        'PB'     → 'PB'
+    Ej: 'n+3.00'  → 'N más tres punto cero cero (n+3.00)'
+        'n-1.12'  → 'N menos uno punto uno dos (n-1.12)'
+        'n+20,03' → 'N más veinte coma cero tres (n+20,03)'
+        'PB'      → 'PB'
     """
     if not nivel_str:
         return ''
@@ -382,20 +383,32 @@ def nivel_a_palabras(nivel_str):
     if not match:
         return nivel
 
-    letra = 'ene'
+    letra = 'N'  # siempre mayúscula
     signo = 'más' if match.group(2) == '+' else 'menos'
-    numero_raw = match.group(3).replace(',', '.')
+    numero_raw = match.group(3)
+
+    # Detectar si usa punto o coma como separador decimal
+    if ',' in numero_raw:
+        separador_palabra = 'coma'
+        partes = numero_raw.split(',')
+    elif '.' in numero_raw:
+        separador_palabra = 'punto'
+        partes = numero_raw.split('.')
+    else:
+        separador_palabra = None
+        partes = [numero_raw]
 
     try:
-        num = float(numero_raw)
-        parte_entera = int(num)
-        parte_decimal_str = numero_raw.split('.')[1] if '.' in numero_raw else ''
+        parte_entera = int(partes[0])
         palabras_entero = numero_a_letras(parte_entera)
-        if parte_decimal_str:
-            digitos_dec = ' '.join([numero_a_letras(int(d)) for d in parte_decimal_str])
-            palabras_num = f"{palabras_entero} punto {digitos_dec}"
+
+        if separador_palabra and len(partes) > 1 and partes[1]:
+            # Convertir cada dígito decimal individualmente para preservar ceros iniciales
+            digitos_dec = ' '.join([numero_a_letras(int(d)) for d in partes[1]])
+            palabras_num = f"{palabras_entero} {separador_palabra} {digitos_dec}"
         else:
             palabras_num = palabras_entero
+
         return f"{letra} {signo} {palabras_num} ({nivel})"
     except (ValueError, TypeError):
         return nivel

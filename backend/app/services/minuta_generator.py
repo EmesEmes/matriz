@@ -261,10 +261,19 @@ def procesar_persona_data(persona, numero_global):
             'profesion': partner.get('profession', ''),
         }
 
+    genero = persona.get('gender', 'masculino').lower()
+    articulo = 'la señora' if genero == 'femenino' else 'el señor'
+    portador = 'portadora' if genero == 'femenino' else 'portador'
+    domiciliado = 'domiciliada' if genero == 'femenino' else 'domiciliado'
+
     return {
         'numero': numero_a_letras(numero_global),
         'numero_numerico': numero_global,
         'nombres_completos': nombres_completos,
+        'genero': genero,
+        'articulo': articulo,
+        'portador': portador,
+        'domiciliado': domiciliado,
         'nacionalidad': persona.get('nationality', 'ecuatoriana'),
         'cedula': cedula,
         'cedula_palabras': numero_a_digitos(cedula),
@@ -587,10 +596,28 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 def fmt_alicuota(val):
                     if not val: return ''
                     try:
-                        n = float(val)
-                        palabras = numero_a_letras(n)
-                        val_fmt = str(val).rstrip('0').rstrip('.')
-                        return f"{palabras} ({val_fmt}%)"
+                        val_str = str(val).strip()
+                        # Detectar separador original
+                        if ',' in val_str:
+                            separador = 'coma'
+                            val_normalizado = val_str.replace(',', '.')
+                        else:
+                            separador = 'punto' if '.' in val_str else None
+                            val_normalizado = val_str
+
+                        n = float(val_normalizado)
+                        parte_entera = int(n)
+                        parte_decimal_str = val_normalizado.split('.')[1].rstrip('0') if '.' in val_normalizado else ''
+
+                        palabras_entero = numero_a_letras(parte_entera)
+                        if parte_decimal_str and separador:
+                            digitos_dec = ' '.join([numero_a_letras(int(d)) for d in parte_decimal_str])
+                            palabras = f"{palabras_entero} {separador} {digitos_dec}"
+                        else:
+                            palabras = palabras_entero
+
+                        val_fmt = val_str.rstrip('0').rstrip('.').rstrip(',')
+                        return f"{palabras} por ciento ({val_fmt}%)"
                     except: return str(val)
 
                 num_inmueble = inmueble.get('numero', '').strip() or str(predio.get('numero', ''))
@@ -626,10 +653,18 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             def fmt_alicuota_total(val):
                 if not val: return ''
                 try:
-                    n = float(val)
-                    palabras = numero_a_letras(n)
+                    n = float(str(val))
                     val_fmt = f"{n:.10f}".rstrip('0').rstrip('.')
-                    return f"{palabras} ({val_fmt}%)"
+                    # Alícuota total siempre viene como número, usar punto
+                    parte_entera = int(n)
+                    parte_decimal_str = val_fmt.split('.')[1] if '.' in val_fmt else ''
+                    palabras_entero = numero_a_letras(parte_entera)
+                    if parte_decimal_str:
+                        digitos_dec = ' '.join([numero_a_letras(int(d)) for d in parte_decimal_str])
+                        palabras = f"{palabras_entero} punto {digitos_dec}"
+                    else:
+                        palabras = palabras_entero
+                    return f"{palabras} por ciento ({val_fmt}%)"
                 except: return str(val)
 
             predio_data = {

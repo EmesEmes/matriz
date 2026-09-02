@@ -270,9 +270,24 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
                 def fmt_alicuota(val):
                     if not val: return ''
                     try:
-                        n = float(val)
-                        val_fmt = str(val).rstrip('0').rstrip('.')
-                        return f"{numero_a_letras(n)} ({val_fmt}%)"
+                        val_str = str(val).strip()
+                        if ',' in val_str:
+                            separador = 'coma'
+                            val_normalizado = val_str.replace(',', '.')
+                        else:
+                            separador = 'punto' if '.' in val_str else None
+                            val_normalizado = val_str
+                        n = float(val_normalizado)
+                        parte_entera = int(n)
+                        parte_decimal_str = val_normalizado.split('.')[1].rstrip('0') if '.' in val_normalizado else ''
+                        palabras_entero = numero_a_letras(parte_entera)
+                        if parte_decimal_str and separador:
+                            digitos_dec = ' '.join([numero_a_letras(int(d)) for d in parte_decimal_str])
+                            palabras = f"{palabras_entero} {separador} {digitos_dec}"
+                        else:
+                            palabras = palabras_entero
+                        val_fmt = val_str.rstrip('0').rstrip('.').rstrip(',')
+                        return f"{palabras} por ciento ({val_fmt}%)"
                     except: return str(val)
 
                 num_inmueble = inmueble.get('numero', '').strip() or str(predio.get('numero', ''))
@@ -305,9 +320,17 @@ def generate_promesa_minuta(data: dict, template_path: str) -> BytesIO:
             def fmt_alicuota_total(val):
                 if not val: return ''
                 try:
-                    n = float(val)
+                    n = float(str(val))
                     val_fmt = f"{n:.10f}".rstrip('0').rstrip('.')
-                    return f"{numero_a_letras(n)} ({val_fmt}%)"
+                    parte_entera = int(n)
+                    parte_decimal_str = val_fmt.split('.')[1] if '.' in val_fmt else ''
+                    palabras_entero = numero_a_letras(parte_entera)
+                    if parte_decimal_str:
+                        digitos_dec = ' '.join([numero_a_letras(int(d)) for d in parte_decimal_str])
+                        palabras = f"{palabras_entero} punto {digitos_dec}"
+                    else:
+                        palabras = palabras_entero
+                    return f"{palabras} por ciento ({val_fmt}%)"
                 except: return str(val)
 
             predio_data = {

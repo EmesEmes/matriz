@@ -20,6 +20,7 @@ const API_CONFIG = {
     GENERATE_MATRIZ: "/api/documents/generate-matriz",
     GENERATE_MINUTA: "/api/minutes/generate-minuta",
     GENERATE_PROMESA: "/api/minutes/generate-promesa",
+    GENERATE_PODER: "/api/minutes/generate-poder",
 
     // Registro de clientes
     GENERAR_TOKEN: "/api/registro/generar-token",
