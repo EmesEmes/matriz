@@ -229,6 +229,7 @@ const ComparecientesPage = () => {
         (isPersona ? (
           <ComparecienteForm
             initialData={currentPersona}
+            isEditing={true}
             onSuccess={handlePersonaSuccess}
             onCancel={() => setView("view")}
           />

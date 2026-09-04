@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, Button } from "../shared";
 import ComparecienteSearch from "./ComparecienteSearch";
 import ComparecienteForm from "./ComparecienteForm";
@@ -38,6 +38,19 @@ const ComparecienteInline = ({
   const [compareciente, setCompareciente] = useState(null);
   const [opcionesEspeciales, setOpcionesEspeciales] =
     useState(INITIAL_OPCIONES);
+  const [documentoBuscado, setDocumentoBuscado] = useState(""); // para prellenar el form
+  const [tipoDocBuscado, setTipoDocBuscado] = useState("cedula"); // 'cedula' | 'pasaporte'
+
+  // Memoizado: solo cambia de referencia cuando el documento/tipo realmente cambian.
+  // Sin esto, cada re-render del padre (ej. cuando un toast desaparece) crea un
+  // objeto nuevo y resetea todo el formulario de creación.
+  const initialDataPrellenado = useMemo(
+    () =>
+      documentoBuscado
+        ? { documentNumber: documentoBuscado, documentType: tipoDocBuscado }
+        : null,
+    [documentoBuscado, tipoDocBuscado],
+  );
   const toast = useToast();
 
   // Precargar datos desde plantilla
@@ -65,7 +78,9 @@ const ComparecienteInline = ({
   };
 
   // ─── Lógica Persona Natural ──────────────────────────────────────────────
-  const handleSearchPersona = async (documentNumber) => {
+  const handleSearchPersona = async (documentNumber, tipoDoc = "cedula") => {
+    setDocumentoBuscado(documentNumber);
+    setTipoDocBuscado(tipoDoc);
     setLoading(true);
     try {
       const response = await apiFetch(
@@ -84,15 +99,23 @@ const ComparecienteInline = ({
         notifyParent(transformed, nuevasOpciones);
         toast.success("Compareciente encontrado");
       } else if (response.status === 404) {
-        toast.info("Compareciente no encontrado. Crear uno nuevo.");
+        toast.info(
+          "No encontrado. Complete los datos para crear el compareciente.",
+        );
         setCompareciente(null);
         setMode("create");
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.detail || "Error al buscar");
+        let msg = "Error al buscar compareciente";
+        try {
+          const errorData = await response.json();
+          msg = errorData.detail || msg;
+        } catch (_e) {
+          // Si no se puede parsear el error, usamos el mensaje por defecto
+        }
+        toast.error(msg);
       }
-    } catch {
-      toast.error("Error al buscar compareciente");
+    } catch (err) {
+      toast.error("Error de conexión al buscar compareciente");
     } finally {
       setLoading(false);
     }
@@ -132,8 +155,8 @@ const ComparecienteInline = ({
         const errorData = await response.json();
         toast.error(errorData.detail || "Error al buscar empresa");
       }
-    } catch {
-      toast.error("Error al buscar empresa");
+    } catch (_err) {
+      toast.error("Error de conexión al buscar empresa");
     } finally {
       setLoading(false);
     }
@@ -233,6 +256,7 @@ const ComparecienteInline = ({
       {/* MODO CREAR (solo persona natural) */}
       {mode === "create" && isPersona && (
         <ComparecienteForm
+          initialData={initialDataPrellenado}
           onSuccess={handleSuccessPersona}
           onCancel={() => setMode("search")}
         />

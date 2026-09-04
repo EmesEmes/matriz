@@ -279,28 +279,21 @@ def numero_a_ordinal_notaria(numero):
 def formatear_fecha_notarial(fecha_str):
     """
     Convierte fecha ISO (YYYY-MM-DD) a formato notarial
-    Ejemplo: 2026-01-28 -> 'martes veinte y ocho de enero del año dos mil veinte y seis'
+    Ejemplo: 2026-01-28 -> 'veinte y ocho de enero del año dos mil veinte y seis'
     """
     from datetime import datetime
-    
-    dias = [
-        "lunes", "martes", "miércoles", "jueves",
-        "viernes", "sábado", "domingo"
-    ]
-    
+
     meses = [
         "enero", "febrero", "marzo", "abril", "mayo", "junio",
         "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
     ]
-    
+
     fecha = datetime.strptime(fecha_str, "%Y-%m-%d")
-    
-    dia_semana = dias[fecha.weekday()]
     dia = dia_mes_letras(fecha.day)
     mes = meses[fecha.month - 1]
     anio = numero_a_letras(fecha.year)
-    
-    return f"{dia_semana} {dia} de {mes} del año {anio}"
+
+    return f"{dia} de {mes} del año {anio}"
 
 
 def calcular_edad(fecha_nacimiento_str):
@@ -334,37 +327,48 @@ def convertir_numero_casa(numero_str):
     """
     Convierte número de casa/predio a palabras con el número entre paréntesis.
     Ej: 'E13-51' → 'E trece guión cincuenta y uno (E13-51)'
+        'A 202'  → 'A doscientos dos (A 202)'
         '333A'   → 'trescientos treinta y tres A (333A)'
         '2b'     → 'dos b (2b)'
         '4'      → 'cuatro (4)'
+    Siempre devuelve letras en MAYÚSCULAS.
     """
     if not numero_str:
         return ''
     s = str(numero_str).strip()
+    s_upper = s.upper()  # siempre mayúsculas en el texto
 
-    # Patrón: letra(s) + número + guión + número (ej: E13-51, Oe4-23, S18-35)
+    # Patrón: letra(s) + número + guión + número (ej: E13-51, Oe4-23)
     match_guion = re.match(r'^([A-Za-z]+)(\d+)-(\d+)$', s)
     if match_guion:
-        letras = match_guion.group(1)
+        letras = match_guion.group(1).upper()
         n1 = int(match_guion.group(2))
         n2 = int(match_guion.group(3))
         palabras = f"{letras} {numero_a_letras(n1)} guión {numero_a_letras(n2)}"
-        return f"{palabras} ({s})"
+        return f"{palabras} ({s_upper})"
+
+    # Patrón: letra(s) + espacio + número (ej: A 202, B 15)
+    match_letra_espacio = re.match(r'^([A-Za-z]+)\s+(\d+)$', s)
+    if match_letra_espacio:
+        letras = match_letra_espacio.group(1).upper()
+        n = int(match_letra_espacio.group(2))
+        palabras = f"{letras} {numero_a_letras(n)}"
+        return f"{palabras} ({s_upper})"
 
     # Patrón: número + letra(s) (ej: 333A, 2b)
     match_num_letra = re.match(r'^(\d+)([A-Za-z]+)$', s)
     if match_num_letra:
         n = int(match_num_letra.group(1))
-        letras = match_num_letra.group(2)
+        letras = match_num_letra.group(2).upper()
         palabras = f"{numero_a_letras(n)} {letras}"
-        return f"{palabras} ({s})"
+        return f"{palabras} ({s_upper})"
 
     # Patrón: solo número (ej: 4, 99)
     if s.isdigit():
         return f"{numero_a_letras(int(s))} ({s})"
 
-    # Sin patrón reconocido — devolver tal cual
-    return s
+    # Sin patrón reconocido — devolver en mayúsculas tal cual
+    return s_upper
 
 
 def nivel_a_palabras(nivel_str):

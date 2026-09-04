@@ -24,6 +24,7 @@ class PartyBase(BaseModel):
     main_street: str = Field(..., min_length=2, max_length=150)
     secondary_street: str = Field(..., min_length=2, max_length=150)
     number_street: str = Field(..., min_length=1, max_length=20)
+    edificio: Optional[str] = Field(None, max_length=200)
     occupation: str = Field(..., min_length=2, max_length=100)
     profession: Optional[str] = Field(None, max_length=100)
 
@@ -108,6 +109,7 @@ class PartyUpdate(BaseModel):
     main_street: Optional[str] = None
     secondary_street: Optional[str] = None
     number_street: Optional[str] = None
+    edificio: Optional[str] = None
     occupation: Optional[str] = None
     profession: Optional[str] = None
     actividad_economica: Optional[str] = None

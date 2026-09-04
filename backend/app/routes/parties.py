@@ -49,7 +49,9 @@ def save_user(
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        import logging
+        logging.getLogger(__name__).error(f"Error guardando compareciente: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al guardar el compareciente. Verifique los datos e intente de nuevo.")
 
 
 @router.get("/{document_number}", response_model=PartyWithPartner)
@@ -96,8 +98,23 @@ def get_user(
             "main_street": user.main_street,
             "secondary_street": user.secondary_street,
             "number_street": user.number_street,
+            "edificio": user.edificio,
             "occupation": user.occupation,
             "profession": user.profession,
+            "conyugue_comparece": user.conyugue_comparece,
+            "razon_exclusion_conyugue": user.razon_exclusion_conyugue,
+            "actividad_economica": user.actividad_economica.value if user.actividad_economica else None,
+            "empresa_trabajo": user.empresa_trabajo,
+            "ingreso_mensual": float(user.ingreso_mensual) if user.ingreso_mensual is not None else None,
+            "origen_fondos": user.origen_fondos,
+            "es_pep": user.es_pep,
+            "es_pep_indirecto": user.es_pep_indirecto,
+            "pep_nombre": user.pep_nombre,
+            "pep_institucion": user.pep_institucion,
+            "pep_fecha_inicio": user.pep_fecha_inicio,
+            "pep_cargo": user.pep_cargo,
+            "pep_anios_trabajo": user.pep_anios_trabajo,
+            "pep_grado_relacion": user.pep_grado_relacion,
             "partner": None
         }
 

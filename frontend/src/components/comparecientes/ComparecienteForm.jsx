@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button, FormField, Card } from "../shared";
+import SeccionUAFEForm from "./SeccionUAFEForm";
 import { getProvincias, getCantones } from "../../utils/datosEcuador";
 import { validarCedula } from "../../utils/validarCedula";
 import { transformToSnakeCase } from "../../utils/transformPartyData";
@@ -8,7 +9,12 @@ import API_CONFIG from "../../config/api";
 import { useToast } from "../../hooks/useToast";
 import { Save, X } from "lucide-react";
 
-const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
+const ComparecienteForm = ({
+  initialData = null,
+  isEditing = false,
+  onSuccess,
+  onCancel,
+}) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
   const [showPartnerForm, setShowPartnerForm] = useState(false);
@@ -23,6 +29,8 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     documentType: "cedula",
     gender: "",
     maritalStatus: "",
+    conyugueComparece: true,
+    razonExclusionConyugue: "",
     nationality: "ecuatoriana",
     birthDate: "",
     email: "",
@@ -34,6 +42,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     mainStreet: "",
     secondaryStreet: "",
     numberStreet: "",
+    edificio: "",
     occupation: "",
     profession: "",
     partnerDocumentNumber: "",
@@ -54,6 +63,19 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     partnerMainStreet: "",
     partnerSecondaryStreet: "",
     partnerNumberStreet: "",
+    // Campos UAFE del cónyuge (opcionales)
+    partnerActividadEconomica: "",
+    partnerEmpresaTrabajo: "",
+    partnerIngresoMensual: "",
+    partnerEsPep: "",
+    partnerEsPepIndirecto: "",
+    partnerPepNombre: "",
+    partnerPepInstitucion: "",
+    partnerPepFechaInicio: "",
+    partnerPepCargo: "",
+    partnerPepAniosTrabajo: "",
+    partnerPepGradoRelacion: "",
+    partnerOrigenFondos: "",
     // Campos UAFE (opcionales)
     actividadEconomica: "",
     empresaTrabajo: "",
@@ -81,6 +103,8 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         documentType: data.documentType || "cedula",
         gender: data.gender || "",
         maritalStatus: data.maritalStatus || "",
+        conyugueComparece: data.conyugueComparece !== false,
+        razonExclusionConyugue: data.razonExclusionConyugue || "",
         nationality: data.nationality || "ecuatoriana",
         birthDate: data.birthDate || "",
         email: data.email || "",
@@ -92,6 +116,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         mainStreet: data.mainStreet || "",
         secondaryStreet: data.secondaryStreet || "",
         numberStreet: data.numberStreet || "",
+        edificio: data.edificio || "",
         occupation: data.occupation || "",
         profession: data.profession || "",
         partnerDocumentNumber: data.partner?.documentNumber || "",
@@ -112,6 +137,29 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         partnerMainStreet: data.partner?.mainStreet || "",
         partnerSecondaryStreet: data.partner?.secondaryStreet || "",
         partnerNumberStreet: data.partner?.numberStreet || "",
+        // Campos UAFE del cónyuge
+        partnerActividadEconomica: data.partner?.actividadEconomica || "",
+        partnerEmpresaTrabajo: data.partner?.empresaTrabajo || "",
+        partnerIngresoMensual: data.partner?.ingresoMensual ?? "",
+        partnerEsPep:
+          data.partner?.esPep === true
+            ? "si"
+            : data.partner?.esPep === false
+              ? "no"
+              : "",
+        partnerEsPepIndirecto:
+          data.partner?.esPepIndirecto === true
+            ? "si"
+            : data.partner?.esPepIndirecto === false
+              ? "no"
+              : "",
+        partnerPepNombre: data.partner?.pepNombre || "",
+        partnerPepInstitucion: data.partner?.pepInstitucion || "",
+        partnerPepFechaInicio: data.partner?.pepFechaInicio || "",
+        partnerPepCargo: data.partner?.pepCargo || "",
+        partnerPepAniosTrabajo: data.partner?.pepAniosTrabajo || "",
+        partnerPepGradoRelacion: data.partner?.pepGradoRelacion || "",
+        partnerOrigenFondos: data.partner?.origenFondos || "",
         // Campos UAFE
         actividadEconomica: data.actividadEconomica || "",
         empresaTrabajo: data.empresaTrabajo || "",
@@ -138,7 +186,12 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         setShowPartnerForm(true);
       }
     }
-  }, [initialData]);
+    // Se depende del documentNumber (valor primitivo estable) en lugar de la
+    // referencia del objeto `initialData` completo — así, si el componente padre
+    // recrea el objeto en cada render (ej. tras un toast), no se resetea el formulario
+    // mientras el documento siga siendo el mismo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialData?.documentNumber]);
 
   // Actualizar cantones cuando cambia la provincia
   useEffect(() => {
@@ -146,12 +199,12 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
       const newCantones = getCantones(formData.province);
       setCantones(newCantones);
 
-      if (!newCantones.includes(formData.canton)) {
-        setFormData((prev) => ({ ...prev, canton: "" }));
-      }
+      setFormData((prev) =>
+        newCantones.includes(prev.canton) ? prev : { ...prev, canton: "" },
+      );
     } else {
       setCantones([]);
-      setFormData((prev) => ({ ...prev, canton: "" }));
+      setFormData((prev) => (prev.canton ? { ...prev, canton: "" } : prev));
     }
   }, [formData.province]);
 
@@ -161,18 +214,33 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
       const newCantones = getCantones(formData.partnerProvince);
       setPartnerCantones(newCantones);
 
-      if (!newCantones.includes(formData.partnerCanton)) {
-        setFormData((prev) => ({ ...prev, partnerCanton: "" }));
-      }
+      setFormData((prev) =>
+        newCantones.includes(prev.partnerCanton)
+          ? prev
+          : { ...prev, partnerCanton: "" },
+      );
     } else {
       setPartnerCantones([]);
-      setFormData((prev) => ({ ...prev, partnerCanton: "" }));
+      setFormData((prev) =>
+        prev.partnerCanton ? { ...prev, partnerCanton: "" } : prev,
+      );
     }
   }, [formData.partnerProvince]);
 
-  // Mostrar/ocultar formulario de cónyuge
+  // Resetear pregunta de cónyuge cuando deja de ser casado
   useEffect(() => {
-    if (formData.maritalStatus === "casado") {
+    if (formData.maritalStatus !== "casado") {
+      setFormData((prev) => ({
+        ...prev,
+        conyugueComparece: true,
+        razonExclusionConyugue: "",
+      }));
+    }
+  }, [formData.maritalStatus]);
+
+  // Mostrar/ocultar formulario de cónyuge — solo si es casado Y el cónyuge comparece
+  useEffect(() => {
+    if (formData.maritalStatus === "casado" && formData.conyugueComparece) {
       setShowPartnerForm(true);
     } else {
       setShowPartnerForm(false);
@@ -198,7 +266,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         partnerNumberStreet: "",
       }));
     }
-  }, [formData.maritalStatus]);
+  }, [formData.maritalStatus, formData.conyugueComparece]);
 
   // Sincronizar dirección del cónyuge
   useEffect(() => {
@@ -264,6 +332,15 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
 
     if (!formData.maritalStatus) {
       newErrors.maritalStatus = "El estado civil es requerido";
+    }
+
+    if (
+      formData.maritalStatus === "casado" &&
+      !formData.conyugueComparece &&
+      !formData.razonExclusionConyugue
+    ) {
+      newErrors.razonExclusionConyugue =
+        "Seleccione la razón por la que el cónyuge no comparece";
     }
 
     if (!formData.birthDate) {
@@ -350,6 +427,15 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
     try {
       const dataToSend = transformToSnakeCase(formData);
 
+      // Campos que transformToSnakeCase no mapea — se agregan manualmente
+      dataToSend.edificio = formData.edificio || null;
+      dataToSend.conyugue_comparece =
+        formData.maritalStatus === "casado" ? formData.conyugueComparece : true;
+      dataToSend.razon_exclusion_conyugue =
+        formData.maritalStatus === "casado" && !formData.conyugueComparece
+          ? formData.razonExclusionConyugue
+          : null;
+
       // Convertir campos UAFE vacíos a null y es_pep a boolean
       if (!dataToSend.actividad_economica)
         dataToSend.actividad_economica = null;
@@ -399,9 +485,37 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
 
         dataToSend.partner_document_number = formData.partnerDocumentNumber;
 
+        const partnerPayload = transformToSnakeCase(partnerData);
+        partnerPayload.actividad_economica =
+          formData.partnerActividadEconomica || null;
+        partnerPayload.empresa_trabajo = formData.partnerEmpresaTrabajo || null;
+        partnerPayload.ingreso_mensual = formData.partnerIngresoMensual || null;
+        partnerPayload.origen_fondos = formData.partnerOrigenFondos || null;
+        partnerPayload.es_pep =
+          formData.partnerEsPep === "si"
+            ? true
+            : formData.partnerEsPep === "no"
+              ? false
+              : null;
+        partnerPayload.es_pep_indirecto =
+          formData.partnerEsPepIndirecto === "si"
+            ? true
+            : formData.partnerEsPepIndirecto === "no"
+              ? false
+              : null;
+        partnerPayload.pep_nombre = formData.partnerPepNombre || null;
+        partnerPayload.pep_institucion = formData.partnerPepInstitucion || null;
+        partnerPayload.pep_fecha_inicio =
+          formData.partnerPepFechaInicio || null;
+        partnerPayload.pep_cargo = formData.partnerPepCargo || null;
+        partnerPayload.pep_anios_trabajo =
+          formData.partnerPepAniosTrabajo || null;
+        partnerPayload.pep_grado_relacion =
+          formData.partnerPepGradoRelacion || null;
+
         const partnerResponse = await apiFetch(API_CONFIG.ENDPOINTS.PARTIES, {
           method: "POST",
-          body: JSON.stringify(transformToSnakeCase(partnerData)),
+          body: JSON.stringify(partnerPayload),
         });
 
         if (!partnerResponse.ok) {
@@ -412,30 +526,54 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         }
       }
 
-      const url = initialData
-        ? `${API_CONFIG.ENDPOINTS.PARTIES}/${formData.documentNumber}`
-        : API_CONFIG.ENDPOINTS.PARTIES;
-
-      const response = await apiFetch(url, {
-        method: initialData ? "PUT" : "POST",
+      // El backend hace upsert en POST /api/users — no existe endpoint PUT
+      const response = await apiFetch(API_CONFIG.ENDPOINTS.PARTIES, {
+        method: "POST",
         body: JSON.stringify(dataToSend),
       });
 
-      const data = await response.json();
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (_e) {
+        // El backend no devolvió JSON válido (ej. error 405/500 en HTML)
+      }
 
       if (response.ok) {
         toast.success(
-          initialData ? "Compareciente actualizado" : "Compareciente creado",
+          isEditing ? "Compareciente actualizado" : "Compareciente creado",
         );
         if (onSuccess) {
           onSuccess(data);
         }
+      } else if (response.status === 405) {
+        throw new Error(
+          "Operación no permitida por el servidor (405). Verifique que esté creando y no editando un registro inexistente.",
+        );
+      } else if (response.status === 404) {
+        throw new Error("No se encontró el registro a actualizar.");
+      } else if (response.status === 422) {
+        const detalle = Array.isArray(data?.detail)
+          ? data.detail.map((d) => d.msg).join(", ")
+          : data?.detail ||
+            "Datos inválidos. Revise los campos del formulario.";
+        throw new Error(detalle);
+      } else if (response.status >= 500) {
+        throw new Error(
+          "Error interno del servidor. Intente de nuevo o contacte al administrador.",
+        );
       } else {
-        throw new Error(data.detail || "Error al guardar compareciente");
+        throw new Error(
+          data?.detail ||
+            `Error al guardar compareciente (código ${response.status})`,
+        );
       }
     } catch (error) {
-      console.error("Error:", error);
-      toast.error(error.message || "Error al guardar compareciente");
+      const msg =
+        typeof error?.message === "string"
+          ? error.message
+          : "Error inesperado al guardar el compareciente. Intente de nuevo.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -529,6 +667,68 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               <option value="union_libre">Unión Libre</option>
             </select>
           </FormField>
+
+          {formData.maritalStatus === "casado" && (
+            <div className="col-span-2 p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
+              <FormField label="¿El cónyuge comparece en este trámite?">
+                <div className="flex gap-3 mt-1">
+                  {["si", "no"].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      disabled={loading}
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          conyugueComparece: v === "si",
+                          razonExclusionConyugue:
+                            v === "si" ? "" : prev.razonExclusionConyugue,
+                        }))
+                      }
+                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        formData.conyugueComparece === (v === "si")
+                          ? "bg-blue-600 text-white"
+                          : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {v === "si" ? "Sí" : "No"}
+                    </button>
+                  ))}
+                </div>
+              </FormField>
+
+              {!formData.conyugueComparece && (
+                <FormField
+                  label="Razón por la que no comparece"
+                  required
+                  error={errors.razonExclusionConyugue}
+                >
+                  <select
+                    value={formData.razonExclusionConyugue}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        razonExclusionConyugue: e.target.value,
+                      }))
+                    }
+                    className="input-field text-sm"
+                    disabled={loading}
+                  >
+                    <option value="">Seleccione una razón</option>
+                    <option value="disolucion">
+                      Disolución de sociedad conyugal
+                    </option>
+                    <option value="capitulacion">
+                      Capitulación matrimonial
+                    </option>
+                    <option value="adquirido_solo">
+                      Bien adquirido soltero/viudo/divorciado
+                    </option>
+                  </select>
+                </FormField>
+              )}
+            </div>
+          )}
 
           <FormField label="Nacionalidad" required>
             <input
@@ -694,12 +894,33 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
               value={formData.numberStreet}
               onChange={handleChange}
               className="input-field"
-              placeholder="Ej: N24-660"
+              placeholder="Ej: N24-660 o E13-51"
+              disabled={loading}
+            />
+          </FormField>
+
+          <FormField
+            label="Edificio / Conjunto / Departamento"
+            className="col-span-2"
+          >
+            <input
+              type="text"
+              name="edificio"
+              value={formData.edificio || ""}
+              onChange={handleChange}
+              className="input-field"
+              placeholder="Ej: Edificio Porticello departamento 3B (opcional)"
               disabled={loading}
             />
           </FormField>
         </div>
       </Card>
+
+      <SeccionUAFEForm
+        titulo="Información UAFE (opcional)"
+        get={(key) => formData[key] ?? ""}
+        set={(key, value) => setFormData((prev) => ({ ...prev, [key]: value }))}
+      />
 
       {/* DATOS DEL CÓNYUGE */}
       {showPartnerForm && formData.maritalStatus === "casado" && (
@@ -967,207 +1188,22 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
         </Card>
       )}
 
-      {/* SECCIÓN UAFE — opcional */}
-      <Card title="Información UAFE (opcional)">
-        <p className="text-sm text-gray-500 mb-4">
-          Estos datos son requeridos para el cumplimiento de la Ley de
-          Prevención de Lavado de Activos. No son necesarios para generar
-          minutas o matrices.
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Actividad Económica">
-            <select
-              name="actividadEconomica"
-              value={formData.actividadEconomica}
-              onChange={handleChange}
-              className="input-field"
-            >
-              <option value="">Seleccione</option>
-              <option value="independiente">Independiente</option>
-              <option value="empleado">Empleado</option>
-              <option value="jubilado">Jubilado</option>
-              <option value="quehaceres_domesticos">
-                Quehaceres Domésticos
-              </option>
-              <option value="cuidador_hogar">Cuidador del Hogar</option>
-              <option value="estudiante">Estudiante</option>
-              <option value="ninguna">Ninguna</option>
-            </select>
-          </FormField>
-
-          <FormField label="Ingreso Mensual (USD)">
-            <input
-              type="number"
-              name="ingresoMensual"
-              value={formData.ingresoMensual}
-              onChange={handleChange}
-              className="input-field"
-              min="0"
-              step="0.01"
-              placeholder="Ej: 1500"
-            />
-          </FormField>
-
-          {(formData.actividadEconomica === "empleado" ||
-            formData.actividadEconomica === "independiente") && (
-            <FormField
-              label="Empresa o Institución de Trabajo"
-              className="col-span-2"
-            >
-              <input
-                type="text"
-                name="empresaTrabajo"
-                value={formData.empresaTrabajo}
-                onChange={handleChange}
-                className="input-field"
-                placeholder="Ej: Empresa XYZ S.A."
-              />
-            </FormField>
-          )}
-
-          <FormField label="Origen de los Fondos" className="col-span-2">
-            <input
-              type="text"
-              name="origenFondos"
-              value={formData.origenFondos}
-              onChange={handleChange}
-              className="input-field"
-              placeholder="Ej: Ahorros personales, sueldo, herencia"
-            />
-          </FormField>
-        </div>
-
-        {/* PEP */}
-        <div className="mt-4 space-y-3">
-          <FormField label="¿Es Persona Políticamente Expuesta (PEP)?">
-            <div className="flex gap-3 mt-1">
-              {["si", "no"].map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      esPep: v,
-                      esPepIndirecto: "",
-                    }))
-                  }
-                  className={`px-4 py-1.5 rounded-lg text-sm font-medium ${formData.esPep === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                >
-                  {v === "si" ? "Sí" : "No"}
-                </button>
-              ))}
-            </div>
-          </FormField>
-
-          {formData.esPep === "si" && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <FormField label="Institución" className="col-span-2">
-                <input
-                  type="text"
-                  name="pepInstitucion"
-                  value={formData.pepInstitucion}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="Ej: Ministerio de Finanzas"
-                />
-              </FormField>
-              <FormField label="Cargo">
-                <input
-                  type="text"
-                  name="pepCargo"
-                  value={formData.pepCargo}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="Ej: Director General"
-                />
-              </FormField>
-              <FormField label="Fecha de Inicio">
-                <input
-                  type="date"
-                  name="pepFechaInicio"
-                  value={formData.pepFechaInicio}
-                  onChange={handleChange}
-                  className="input-field"
-                />
-              </FormField>
-              <FormField label="Años de Trabajo">
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  name="pepAniosTrabajo"
-                  value={formData.pepAniosTrabajo}
-                  onChange={handleChange}
-                  className="input-field"
-                />
-              </FormField>
-            </div>
-          )}
-
-          {formData.esPep === "no" && (
-            <FormField label="¿Es pariente, amigo o colaborador de un PEP?">
-              <div className="flex gap-3 mt-1">
-                {["si", "no"].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({ ...prev, esPepIndirecto: v }))
-                    }
-                    className={`px-4 py-1.5 rounded-lg text-sm font-medium ${formData.esPepIndirecto === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
-                  >
-                    {v === "si" ? "Sí" : "No"}
-                  </button>
-                ))}
-              </div>
-            </FormField>
-          )}
-
-          {formData.esPep === "no" && formData.esPepIndirecto === "si" && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
-              <FormField label="Nombre del PEP" className="col-span-2">
-                <input
-                  type="text"
-                  name="pepNombre"
-                  value={formData.pepNombre}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="Nombre completo del PEP"
-                />
-              </FormField>
-              <FormField label="Institución del PEP" className="col-span-2">
-                <input
-                  type="text"
-                  name="pepInstitucion"
-                  value={formData.pepInstitucion}
-                  onChange={handleChange}
-                  className="input-field"
-                />
-              </FormField>
-              <FormField label="Cargo del PEP">
-                <input
-                  type="text"
-                  name="pepCargo"
-                  value={formData.pepCargo}
-                  onChange={handleChange}
-                  className="input-field"
-                />
-              </FormField>
-              <FormField label="Grado de Relación">
-                <input
-                  type="text"
-                  name="pepGradoRelacion"
-                  value={formData.pepGradoRelacion}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="Ej: Primer grado de consanguinidad"
-                />
-              </FormField>
-            </div>
-          )}
-        </div>
-      </Card>
+      {showPartnerForm && formData.maritalStatus === "casado" && (
+        <SeccionUAFEForm
+          titulo="Información UAFE del Cónyuge (opcional)"
+          descripcion="Datos opcionales del cónyuge para cumplimiento UAFE. Si no aplica, puede dejarse en blanco."
+          get={(key) =>
+            formData["partner" + key.charAt(0).toUpperCase() + key.slice(1)] ??
+            ""
+          }
+          set={(key, value) =>
+            setFormData((prev) => ({
+              ...prev,
+              ["partner" + key.charAt(0).toUpperCase() + key.slice(1)]: value,
+            }))
+          }
+        />
+      )}
 
       {/* BOTONES */}
       <div className="flex justify-end gap-3">
@@ -1189,7 +1225,7 @@ const ComparecienteForm = ({ initialData = null, onSuccess, onCancel }) => {
           disabled={loading}
           icon={<Save className="w-5 h-5" />}
         >
-          {initialData ? "Actualizar" : "Guardar"} Compareciente
+          {isEditing ? "Actualizar" : "Guardar"} Compareciente
         </Button>
       </div>
     </form>

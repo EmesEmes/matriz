@@ -10,6 +10,347 @@ import { useToast } from "../../../hooks/useToast";
 import { apiFetch } from "../../../config/api";
 import API_CONFIG from "../../../config/api";
 
+const AclaratoriaHistoriaItem = ({
+  aclaratoria,
+  path,
+  nivel = 0,
+  onChange,
+  onEliminar,
+  onAgregar,
+  rootAclaratorias,
+}) => (
+  <div
+    className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
+  >
+    <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+      <div className="flex justify-between items-center">
+        <h5 className="font-medium text-gray-900">
+          Aclaratoria {path.map((i) => i + 1).join(".")}
+        </h5>
+        <button
+          onClick={() => onEliminar(path)}
+          className="text-red-600 hover:text-red-800 font-medium text-sm"
+        >
+          Eliminar
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Título de adquisición
+          </label>
+          <select
+            value={aclaratoria.titulo}
+            onChange={(e) => onChange(path, "titulo", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="">Seleccionar</option>
+            <option value="compraventa">Compraventa</option>
+            <option value="donacion">Donación</option>
+            <option value="permuta">Permuta</option>
+            <option value="adjudicacion">Adjudicación</option>
+            <option value="sucesion">Sucesión</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        {aclaratoria.titulo === "otro" && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Especificar título
+            </label>
+            <input
+              type="text"
+              value={aclaratoria.tituloOtro}
+              onChange={(e) => onChange(path, "tituloOtro", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+        )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Adquirido de
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.adquiridoDe}
+            onChange={(e) =>
+              onChange(path, "adquiridoDe", e.target.value.toUpperCase())
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fecha de otorgamiento
+          </label>
+          <input
+            type="date"
+            value={aclaratoria.fechaOtorgamiento}
+            onChange={(e) =>
+              onChange(path, "fechaOtorgamiento", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Número de notaría
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.numeroNotaria}
+            onChange={(e) => onChange(path, "numeroNotaria", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            placeholder="Ej: primera, 14, 22"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Se convertirá automáticamente
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Cantón de la notaría
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.cantonNotaria}
+            onChange={(e) => onChange(path, "cantonNotaria", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Notario
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.notario}
+            onChange={(e) =>
+              onChange(path, "notario", e.target.value.toUpperCase())
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fecha de inscripción
+          </label>
+          <input
+            type="date"
+            value={aclaratoria.fechaInscripcion}
+            onChange={(e) => onChange(path, "fechaInscripcion", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Cantón de inscripción
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.cantonInscripcion}
+            onChange={(e) =>
+              onChange(path, "cantonInscripcion", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Si es igual, se mostrará "del mismo cantón"
+          </p>
+        </div>
+      </div>
+
+      {/* Aclaratorias anidadas */}
+      {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
+        <div className="space-y-2">
+          {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
+            <AclaratoriaHistoriaItem
+              key={subAclaratoria.id}
+              aclaratoria={subAclaratoria}
+              path={[...path, index]}
+              nivel={nivel + 1}
+              onChange={onChange}
+              onEliminar={onEliminar}
+              onAgregar={onAgregar}
+              rootAclaratorias={rootAclaratorias}
+            />
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={() =>
+          onAgregar([
+            ...path,
+            path.length > 0
+              ? path[path.length - 1]
+              : rootAclaratorias.indexOf(aclaratoria),
+          ])
+        }
+        className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
+      >
+        + Agregar aclaratoria a esta entrada
+      </button>
+    </div>
+  </div>
+);
+
+const AclaratoriaDeclaratoriaItem = ({
+  aclaratoria,
+  path,
+  nivel = 0,
+  onChange,
+  onEliminar,
+  onAgregar,
+  rootAclaratorias,
+}) => (
+  <div
+    className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
+  >
+    <div className="bg-gray-50 p-4 rounded-lg space-y-4">
+      <div className="flex justify-between items-center">
+        <h5 className="font-medium text-gray-900">
+          Aclaratoria {path.map((i) => i + 1).join(".")}
+        </h5>
+        <button
+          onClick={() => onEliminar(path)}
+          className="text-red-600 hover:text-red-800 font-medium text-sm"
+        >
+          Eliminar
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fecha de otorgamiento
+          </label>
+          <input
+            type="date"
+            value={aclaratoria.fechaOtorgamiento}
+            onChange={(e) =>
+              onChange(path, "fechaOtorgamiento", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Número de notaría
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.numeroNotaria}
+            onChange={(e) => onChange(path, "numeroNotaria", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            placeholder="Ej: primera, 14, 22"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Se convertirá automáticamente
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Cantón de la notaría
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.cantonNotaria}
+            onChange={(e) => onChange(path, "cantonNotaria", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Notario
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.notario}
+            onChange={(e) =>
+              onChange(path, "notario", e.target.value.toUpperCase())
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fecha de inscripción
+          </label>
+          <input
+            type="date"
+            value={aclaratoria.fechaInscripcion}
+            onChange={(e) => onChange(path, "fechaInscripcion", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Cantón de inscripción
+          </label>
+          <input
+            type="text"
+            value={aclaratoria.cantonInscripcion}
+            onChange={(e) =>
+              onChange(path, "cantonInscripcion", e.target.value)
+            }
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Si es igual, se mostrará "del mismo cantón"
+          </p>
+        </div>
+      </div>
+
+      {/* Aclaratorias anidadas */}
+      {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
+        <div className="space-y-2">
+          {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
+            <AclaratoriaDeclaratoriaItem
+              key={subAclaratoria.id}
+              aclaratoria={subAclaratoria}
+              path={[...path, index]}
+              nivel={nivel + 1}
+              onChange={onChange}
+              onEliminar={onEliminar}
+              onAgregar={onAgregar}
+              rootAclaratorias={rootAclaratorias}
+            />
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={() =>
+          onAgregar([
+            ...path,
+            path.length > 0
+              ? path[path.length - 1]
+              : rootAclaratorias.indexOf(aclaratoria),
+          ])
+        }
+        className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
+      >
+        + Agregar aclaratoria a esta entrada
+      </button>
+    </div>
+  </div>
+);
+
 const FormularioCompraventa = () => {
   const toast = useToast();
 
@@ -553,6 +894,16 @@ const FormularioCompraventa = () => {
   // ============================================
   // FUNCIONES - ACLARATORIAS DECLARATORIA (NUEVO: Recursivas)
   // ============================================
+  // Handler para campos simples de declaratoria — evita pérdida de focus
+  const handleDeclaratoriaFieldChange = (field, value) => {
+    setDeclaratoriaFormulario((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Handler para campos simples de historia — evita pérdida de focus
+  const handleHistoriaFieldChange = (field, value) => {
+    setHistoriaFormulario((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleAgregarAclaratoriaDeclaratoria = (path = []) => {
     const nuevaAclaratoria = {
       id: Date.now(),
@@ -746,394 +1097,6 @@ const FormularioCompraventa = () => {
   // ============================================
   // COMPONENTES RECURSIVOS - ACLARATORIAS
   // ============================================
-  const AclaratoriaHistoriaItem = ({ aclaratoria, path, nivel = 0 }) => (
-    <div
-      className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
-    >
-      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-        <div className="flex justify-between items-center">
-          <h5 className="font-medium text-gray-900">
-            Aclaratoria {path.map((i) => i + 1).join(".")}
-          </h5>
-          <button
-            onClick={() => handleEliminarAclaratoriaHistoria(path)}
-            className="text-red-600 hover:text-red-800 font-medium text-sm"
-          >
-            Eliminar
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Título de adquisición
-            </label>
-            <select
-              value={aclaratoria.titulo}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(path, "titulo", e.target.value)
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="">Seleccionar</option>
-              <option value="compraventa">Compraventa</option>
-              <option value="donacion">Donación</option>
-              <option value="permuta">Permuta</option>
-              <option value="adjudicacion">Adjudicación</option>
-              <option value="sucesion">Sucesión</option>
-              <option value="otro">Otro</option>
-            </select>
-          </div>
-
-          {aclaratoria.titulo === "otro" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Especificar título
-              </label>
-              <input
-                type="text"
-                value={aclaratoria.tituloOtro}
-                onChange={(e) =>
-                  handleAclaratoriaHistoriaChange(
-                    path,
-                    "tituloOtro",
-                    e.target.value,
-                  )
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Adquirido de
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.adquiridoDe}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "adquiridoDe",
-                  e.target.value.toUpperCase(),
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de otorgamiento
-            </label>
-            <input
-              type="date"
-              value={aclaratoria.fechaOtorgamiento}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "fechaOtorgamiento",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Número de notaría
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.numeroNotaria}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "numeroNotaria",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="Ej: primera, 14, 22"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Se convertirá automáticamente
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de la notaría
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.cantonNotaria}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "cantonNotaria",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notario
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.notario}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "notario",
-                  e.target.value.toUpperCase(),
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de inscripción
-            </label>
-            <input
-              type="date"
-              value={aclaratoria.fechaInscripcion}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "fechaInscripcion",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de inscripción
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.cantonInscripcion}
-              onChange={(e) =>
-                handleAclaratoriaHistoriaChange(
-                  path,
-                  "cantonInscripcion",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Si es igual, se mostrará "del mismo cantón"
-            </p>
-          </div>
-        </div>
-
-        {/* Aclaratorias anidadas */}
-        {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
-          <div className="space-y-2">
-            {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
-              <AclaratoriaHistoriaItem
-                key={subAclaratoria.id}
-                aclaratoria={subAclaratoria}
-                path={[...path, index]}
-                nivel={nivel + 1}
-              />
-            ))}
-          </div>
-        )}
-
-        <button
-          onClick={() =>
-            handleAgregarAclaratoriaHistoria([
-              ...path,
-              path.length > 0
-                ? path[path.length - 1]
-                : historiaFormulario.aclaratorias.indexOf(aclaratoria),
-            ])
-          }
-          className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
-        >
-          + Agregar aclaratoria a esta entrada
-        </button>
-      </div>
-    </div>
-  );
-
-  const AclaratoriaDeclaratoriaItem = ({ aclaratoria, path, nivel = 0 }) => (
-    <div
-      className={`border-l-2 border-primary-300 pl-4 ${nivel > 0 ? "mt-4" : ""}`}
-    >
-      <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-        <div className="flex justify-between items-center">
-          <h5 className="font-medium text-gray-900">
-            Aclaratoria {path.map((i) => i + 1).join(".")}
-          </h5>
-          <button
-            onClick={() => handleEliminarAclaratoriaDeclaratoria(path)}
-            className="text-red-600 hover:text-red-800 font-medium text-sm"
-          >
-            Eliminar
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de otorgamiento
-            </label>
-            <input
-              type="date"
-              value={aclaratoria.fechaOtorgamiento}
-              onChange={(e) =>
-                handleAclaratoriaDeclaratoriaChange(
-                  path,
-                  "fechaOtorgamiento",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Número de notaría
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.numeroNotaria}
-              onChange={(e) =>
-                handleAclaratoriaDeclaratoriaChange(
-                  path,
-                  "numeroNotaria",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              placeholder="Ej: primera, 14, 22"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Se convertirá automáticamente
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de la notaría
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.cantonNotaria}
-              onChange={(e) =>
-                handleAclaratoriaDeclaratoriaChange(
-                  path,
-                  "cantonNotaria",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Notario
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.notario}
-              onChange={(e) =>
-                handleAclaratoriaDeclaratoriaChange(
-                  path,
-                  "notario",
-                  e.target.value.toUpperCase(),
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Fecha de inscripción
-            </label>
-            <input
-              type="date"
-              value={aclaratoria.fechaInscripcion}
-              onChange={(e) =>
-                handleAclaratoriaDeclaratoriaChange(
-                  path,
-                  "fechaInscripcion",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Cantón de inscripción
-            </label>
-            <input
-              type="text"
-              value={aclaratoria.cantonInscripcion}
-              onChange={(e) =>
-                handleAclaratoriaDeclaratoriaChange(
-                  path,
-                  "cantonInscripcion",
-                  e.target.value,
-                )
-              }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Si es igual, se mostrará "del mismo cantón"
-            </p>
-          </div>
-        </div>
-
-        {/* Aclaratorias anidadas */}
-        {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
-          <div className="space-y-2">
-            {aclaratoria.aclaratorias.map((subAclaratoria, index) => (
-              <AclaratoriaDeclaratoriaItem
-                key={subAclaratoria.id}
-                aclaratoria={subAclaratoria}
-                path={[...path, index]}
-                nivel={nivel + 1}
-              />
-            ))}
-          </div>
-        )}
-
-        <button
-          onClick={() =>
-            handleAgregarAclaratoriaDeclaratoria([
-              ...path,
-              path.length > 0
-                ? path[path.length - 1]
-                : declaratoriaFormulario.aclaratorias.indexOf(aclaratoria),
-            ])
-          }
-          className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
-        >
-          + Agregar aclaratoria a esta entrada
-        </button>
-      </div>
-    </div>
-  );
 
   // ============================================
   // FUNCIÓN - GENERAR MINUTA
@@ -1236,11 +1199,25 @@ const FormularioCompraventa = () => {
         document.body.removeChild(a);
         toast.success("Minuta generada exitosamente");
       } else {
-        const data = await response.json();
-        toast.error(data.detail || "Error al generar minuta");
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (_e) {
+          // respuesta no-JSON
+        }
+        const detalle = Array.isArray(data?.detail)
+          ? data.detail.map((d) => d.msg).join(", ")
+          : data?.detail;
+        toast.error(
+          detalle || `Error al generar minuta (código ${response.status})`,
+        );
       }
     } catch (error) {
-      toast.error("Error al generar minuta: " + error.message);
+      const msg =
+        typeof error?.message === "string"
+          ? error.message
+          : "Error de conexión al generar la minuta.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -1540,6 +1517,28 @@ const FormularioCompraventa = () => {
                         placeholder="Ej: 2"
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Número Predial{" "}
+                        <span className="text-gray-400 font-normal">
+                          (opcional)
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        value={predio.numeroPredial || ""}
+                        onChange={(e) =>
+                          handlePredioChange(
+                            predio.id,
+                            "numeroPredial",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ej: 3785047"
+                      />
+                    </div>
                   </div>
 
                   {/* Inmuebles del predio */}
@@ -1809,7 +1808,10 @@ const FormularioCompraventa = () => {
                             Alícuota Total Calculada:
                           </span>
                           <span className="text-lg font-bold text-green-700">
-                            {predio.alicuotaTotal.toFixed(10)}%
+                            {parseFloat(
+                              predio.alicuotaTotal.toPrecision(12),
+                            ).toString()}
+                            %
                           </span>
                         </div>
                       </div>
@@ -2246,10 +2248,10 @@ const FormularioCompraventa = () => {
                       type="date"
                       value={historiaFormulario.fechaOtorgamiento}
                       onChange={(e) =>
-                        setHistoriaFormulario({
-                          ...historiaFormulario,
-                          fechaOtorgamiento: e.target.value,
-                        })
+                        handleHistoriaFieldChange(
+                          "fechaOtorgamiento",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     />
@@ -2263,10 +2265,10 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={historiaFormulario.numeroNotaria}
                       onChange={(e) =>
-                        setHistoriaFormulario({
-                          ...historiaFormulario,
-                          numeroNotaria: e.target.value,
-                        })
+                        handleHistoriaFieldChange(
+                          "numeroNotaria",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: primera, 14, 22"
@@ -2284,10 +2286,10 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={historiaFormulario.cantonNotaria}
                       onChange={(e) =>
-                        setHistoriaFormulario({
-                          ...historiaFormulario,
-                          cantonNotaria: e.target.value,
-                        })
+                        handleHistoriaFieldChange(
+                          "cantonNotaria",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: Quito"
@@ -2312,6 +2314,25 @@ const FormularioCompraventa = () => {
                     />
                   </div>
 
+                  <div className="col-span-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={historiaFormulario.esSuplente || false}
+                        onChange={(e) =>
+                          setHistoriaFormulario({
+                            ...historiaFormulario,
+                            esSuplente: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700">
+                        El notario es suplente
+                      </span>
+                    </label>
+                  </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fecha de Inscripción
@@ -2320,10 +2341,10 @@ const FormularioCompraventa = () => {
                       type="date"
                       value={historiaFormulario.fechaInscripcion}
                       onChange={(e) =>
-                        setHistoriaFormulario({
-                          ...historiaFormulario,
-                          fechaInscripcion: e.target.value,
-                        })
+                        handleHistoriaFieldChange(
+                          "fechaInscripcion",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     />
@@ -2337,10 +2358,10 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={historiaFormulario.cantonInscripcion}
                       onChange={(e) =>
-                        setHistoriaFormulario({
-                          ...historiaFormulario,
-                          cantonInscripcion: e.target.value,
-                        })
+                        handleHistoriaFieldChange(
+                          "cantonInscripcion",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: Quito"
@@ -2506,6 +2527,27 @@ const FormularioCompraventa = () => {
                       </div>
 
                       <div className="col-span-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={
+                              historiaFormulario.causanteEsSuplente || false
+                            }
+                            onChange={(e) =>
+                              setHistoriaFormulario({
+                                ...historiaFormulario,
+                                causanteEsSuplente: e.target.checked,
+                              })
+                            }
+                            className="w-4 h-4 rounded text-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">
+                            El notario es suplente
+                          </span>
+                        </label>
+                      </div>
+
+                      <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Fecha de Inscripción
                         </label>
@@ -2556,6 +2598,10 @@ const FormularioCompraventa = () => {
                           key={aclaratoria.id}
                           aclaratoria={aclaratoria}
                           path={[index]}
+                          onChange={handleAclaratoriaHistoriaChange}
+                          onEliminar={handleEliminarAclaratoriaHistoria}
+                          onAgregar={handleAgregarAclaratoriaHistoria}
+                          rootAclaratorias={historiaFormulario.aclaratorias}
                         />
                       ),
                     )}
@@ -2590,10 +2636,10 @@ const FormularioCompraventa = () => {
                       type="date"
                       value={declaratoriaFormulario.fechaOtorgamiento}
                       onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          fechaOtorgamiento: e.target.value,
-                        })
+                        handleDeclaratoriaFieldChange(
+                          "fechaOtorgamiento",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     />
@@ -2607,10 +2653,10 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={declaratoriaFormulario.numeroNotaria}
                       onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          numeroNotaria: e.target.value,
-                        })
+                        handleDeclaratoriaFieldChange(
+                          "numeroNotaria",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: primera, 14, 22"
@@ -2628,10 +2674,10 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={declaratoriaFormulario.cantonNotaria}
                       onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          cantonNotaria: e.target.value,
-                        })
+                        handleDeclaratoriaFieldChange(
+                          "cantonNotaria",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: Quito"
@@ -2646,14 +2692,33 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={declaratoriaFormulario.notario}
                       onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          notario: e.target.value.toUpperCase(),
-                        })
+                        handleDeclaratoriaFieldChange(
+                          "notario",
+                          e.target.value.toUpperCase(),
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
                       placeholder="Ej: PAOLA ANDRADE TORRES"
                     />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={declaratoriaFormulario.esSuplente || false}
+                        onChange={(e) =>
+                          setDeclaratoriaFormulario({
+                            ...declaratoriaFormulario,
+                            esSuplente: e.target.checked,
+                          })
+                        }
+                        className="w-4 h-4 rounded text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700">
+                        El notario es suplente
+                      </span>
+                    </label>
                   </div>
 
                   <div>
@@ -2664,10 +2729,10 @@ const FormularioCompraventa = () => {
                       type="date"
                       value={declaratoriaFormulario.fechaInscripcion}
                       onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          fechaInscripcion: e.target.value,
-                        })
+                        handleDeclaratoriaFieldChange(
+                          "fechaInscripcion",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                     />
@@ -2681,10 +2746,10 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={declaratoriaFormulario.cantonInscripcion}
                       onChange={(e) =>
-                        setDeclaratoriaFormulario({
-                          ...declaratoriaFormulario,
-                          cantonInscripcion: e.target.value,
-                        })
+                        handleDeclaratoriaFieldChange(
+                          "cantonInscripcion",
+                          e.target.value,
+                        )
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                       placeholder="Ej: Quito"
@@ -2706,6 +2771,10 @@ const FormularioCompraventa = () => {
                           key={aclaratoria.id}
                           aclaratoria={aclaratoria}
                           path={[index]}
+                          onChange={handleAclaratoriaDeclaratoriaChange}
+                          onEliminar={handleEliminarAclaratoriaDeclaratoria}
+                          onAgregar={handleAgregarAclaratoriaDeclaratoria}
+                          rootAclaratorias={declaratoriaFormulario.aclaratorias}
                         />
                       ),
                     )}

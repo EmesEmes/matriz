@@ -105,13 +105,14 @@ def procesar_empresa_data(empresa, numero_global):
 def construir_direccion(persona):
     """
     Construye la dirección física desde los campos individuales.
-    Orden: calle principal + número de casa + y + calle secundaria, sector, parroquia, cantón, provincia
+    Orden: calle principal + número + y + calle secundaria + edificio/depto, sector, parroquia, cantón, provincia
     """
     partes = []
 
     main_street = persona.get('mainStreet', '').strip()
     number_street = persona.get('numberStreet', '').strip()
     secondary_street = persona.get('secondaryStreet', '').strip()
+    edificio = persona.get('edificio', '').strip()
 
     # Calle principal + número + y + calle secundaria
     if main_street:
@@ -128,6 +129,10 @@ def construir_direccion(persona):
                 partes.append(main_street)
     elif secondary_street:
         partes.append(secondary_street)
+
+    # Edificio/conjunto/departamento
+    if edificio:
+        partes.append(edificio)
 
     if persona.get('sector'): partes.append(persona['sector'])
     if persona.get('parroquia'): partes.append(f"parroquia {persona['parroquia']}")
@@ -283,8 +288,8 @@ def procesar_persona_data(persona, numero_global):
         'conyugue_comparece': conyugue_comparece,
         'razon_exclusion_conyugue': razon_exclusion,
         'nota_bien_adquirido': nota_bien_adquirido,
-        'profesion': persona.get('profession', ''),
-        'ocupacion': persona.get('occupation', ''),
+        'profesion': persona.get('profession', '').strip(),
+        'ocupacion': persona.get('occupation', '').strip(),
         'telefono': telefono,
         'telefono_palabras': numero_a_digitos(telefono),
         'email': persona.get('email', ''),
@@ -294,10 +299,27 @@ def procesar_persona_data(persona, numero_global):
     }
 
 
+def normalizar_numero(val_str):
+    """Normaliza un string numérico que puede usar coma o punto como decimal."""
+    if not val_str:
+        return None
+    s = str(val_str).strip()
+    # Si tiene coma Y punto -> coma es separador de miles (ej: 1.308,40) -> quitar punto, cambiar coma
+    if ',' in s and '.' in s:
+        s = s.replace('.', '').replace(',', '.')
+    elif ',' in s:
+        # Solo coma -> es decimal (ej: 64,92 -> 64.92)
+        s = s.replace(',', '.')
+    try:
+        return float(s)
+    except (ValueError, TypeError):
+        return None
+
+
 def procesar_linderos(linderos_data, incluir_arriba_abajo=False):
     """
     Procesa linderos y retorna formato plano que espera la plantilla.
-    linderos.norte_metros_palabras, linderos.norte_colindancia, etc.
+    Acepta coma o punto como separador decimal, preservando el que el usuario usó.
     """
     resultado = {}
     direcciones = ['norte', 'sur', 'este', 'oeste']
@@ -311,39 +333,40 @@ def procesar_linderos(linderos_data, incluir_arriba_abajo=False):
         if not linderos_lista:
             linderos_lista = [{'metros': '', 'colindancia': ''}]
 
-        # Tomar el primer lindero (el más común) y concatenar si hay varios
         metros_total = ''
         colindancias = []
         for lindero in linderos_lista:
             metros = str(lindero.get('metros', '')).strip()
             colindancia = lindero.get('colindancia', '').strip()
+            # Quitar un "con " inicial si el usuario ya lo escribió, para evitar "con con..."
+            if colindancia.lower().startswith('con '):
+                colindancia = colindancia[4:].strip()
             if metros:
-                metros_total = metros  # usar el del primer lindero para metros
+                metros_total = metros
             if colindancia:
                 colindancias.append(colindancia)
 
         colindancia_str = ', y '.join(colindancias) if colindancias else ''
 
-        try:
-            metros_num = float(metros_total) if metros_total else None
-            metros_palabras = numero_a_letras(metros_num) if metros_num is not None else ''
-            metros_fmt = f"{metros_num:g}" if metros_num is not None else ''
-        except (ValueError, TypeError):
-            metros_palabras = metros_total
+        metros_num = normalizar_numero(metros_total)
+        if metros_num is not None:
+            metros_palabras = numero_a_letras(metros_num)
+            # Preservar el separador decimal original que usó el usuario
             metros_fmt = metros_total
-
-        resultado[f'{direccion}_metros_palabras'] = f"{metros_palabras} ({metros_fmt})" if metros_palabras else ''
+            resultado[f'{direccion}_metros_palabras'] = f"{metros_palabras} ({metros_fmt})"
+        else:
+            resultado[f'{direccion}_metros_palabras'] = ''
         resultado[f'{direccion}_colindancia'] = colindancia_str
         resultado[f'{direccion}_metros'] = metros_total
 
     # Superficie
     superficie = linderos_data.get('superficie', '')
-    try:
-        sup_num = float(superficie) if superficie else None
-        sup_palabras = numero_a_letras(sup_num) if sup_num is not None else ''
-        sup_fmt = f"{sup_num:g}" if sup_num is not None else ''
-        resultado['superficie_palabras'] = f"{sup_palabras} ({sup_fmt})" if sup_palabras else ''
-    except (ValueError, TypeError):
+    sup_num = normalizar_numero(superficie)
+    if sup_num is not None:
+        sup_palabras = numero_a_letras(sup_num)
+        sup_fmt = str(superficie)
+        resultado['superficie_palabras'] = f"{sup_palabras} ({sup_fmt})"
+    else:
         resultado['superficie_palabras'] = str(superficie)
     resultado['superficie'] = superficie
 
@@ -588,9 +611,15 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 def fmt_area(val):
                     if not val: return ''
                     try:
-                        n = float(val)
+                        val_str = str(val).strip()
+                        val_normalizado = val_str.replace(',', '.')
+                        n = float(val_normalizado)
                         palabras = numero_a_letras(n)
-                        return f"{palabras} ({n:.2f})"
+                        # Preservar el separador que el usuario usó originalmente
+                        val_fmt = f"{n:.2f}"
+                        if ',' in val_str:
+                            val_fmt = val_fmt.replace('.', ',')
+                        return f"{palabras} ({val_fmt})"
                     except: return str(val)
 
                 def fmt_alicuota(val):
@@ -623,9 +652,18 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 num_inmueble = inmueble.get('numero', '').strip() or str(predio.get('numero', ''))
                 num_inmueble_palabras = convertir_numero_casa(num_inmueble) if num_inmueble else ''
 
+                # Si el predio NO es compuesto, el tipo se define a nivel de predio
+                # (el formulario oculta el campo tipo del inmueble en ese caso)
+                if predio.get('esCompuesto'):
+                    tipo_inmueble = inmueble.get('tipo', '')
+                    tipo_otro_inmueble = inmueble.get('tipoOtro', '')
+                else:
+                    tipo_inmueble = inmueble.get('tipo', '') or predio.get('tipo', '')
+                    tipo_otro_inmueble = inmueble.get('tipoOtro', '') or predio.get('tipoOtro', '')
+
                 inmueble_data = {
-                    'tipo': inmueble.get('tipo', ''),
-                    'tipo_otro': inmueble.get('tipoOtro', ''),
+                    'tipo': tipo_inmueble,
+                    'tipo_otro': tipo_otro_inmueble,
                     'numero': num_inmueble,
                     'numero_palabras': num_inmueble_palabras,
                     'nivel': nivel_a_palabras(inmueble.get('nivel', '')),
@@ -645,10 +683,8 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 alicuota_total = predio.get('alicuotaTotal', 0)
 
             num_predio = predio.get('numero', '')
-            try:
-                num_predio_palabras = f"{numero_a_letras(int(num_predio))} ({num_predio})" if str(num_predio).isdigit() else num_predio
-            except:
-                num_predio_palabras = str(num_predio)
+            num_predio_palabras = convertir_numero_casa(str(num_predio)) if num_predio else ''
+            num_predial = predio.get('numeroPredial', '')
 
             def fmt_alicuota_total(val):
                 if not val: return ''
@@ -673,6 +709,8 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 'tipo_otro': predio.get('tipoOtro', ''),
                 'numero': num_predio,
                 'numero_palabras': num_predio_palabras,
+                'numero_predial': num_predial,
+                'tiene_numero_predial': bool(num_predial),
                 'inmuebles': inmuebles_procesados,
                 'alicuota_total': alicuota_total,
                 'alicuota_total_palabras': fmt_alicuota_total(alicuota_total),
@@ -686,10 +724,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
     # ============================================
     ubicacion = data.get('ubicacion', {})
     num_ubicacion = ubicacion.get('numero', '')
-    try:
-        num_ubicacion_palabras = f"{numero_a_letras(int(num_ubicacion))} ({num_ubicacion})" if str(num_ubicacion).isdigit() else num_ubicacion
-    except:
-        num_ubicacion_palabras = str(num_ubicacion)
+    num_ubicacion_palabras = convertir_numero_casa(str(num_ubicacion)) if num_ubicacion else ''
 
     context['ubicacion'] = {
         'lote': ubicacion.get('lote', ''),
@@ -720,6 +755,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             'numero_notaria_palabras': numero_a_ordinal_notaria(historia.get('numeroNotaria', '')) if historia.get('numeroNotaria') else '',
             'canton_notaria': historia.get('cantonNotaria', ''),
             'notario': historia.get('notario', ''),
+            'es_suplente': historia.get('esSuplente', False),
             'fecha_inscripcion': formatear_fecha_notarial(historia.get('fechaInscripcion', '')) if historia.get('fechaInscripcion') else '',
             'canton_inscripcion': historia.get('cantonInscripcion', ''),
             'mismo_canton': historia.get('cantonNotaria', '').lower() == historia.get('cantonInscripcion', '').lower() if historia.get('cantonNotaria') and historia.get('cantonInscripcion') else False,
@@ -733,6 +769,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             'causante_numero_notaria_palabras': numero_a_ordinal_notaria(historia.get('causanteNumeroNotaria', '')) if historia.get('causanteNumeroNotaria') else '',
             'causante_canton_notaria': historia.get('causanteCantonNotaria', ''),
             'causante_notario': historia.get('causanteNotario', ''),
+            'causante_es_suplente': historia.get('causanteEsSuplente', False),
             'causante_fecha_inscripcion': formatear_fecha_notarial(historia.get('causanteFechaInscripcion', '')) if historia.get('causanteFechaInscripcion') else '',
             'causante_canton_inscripcion': historia.get('causanteCantonInscripcion', ''),
             'causante_mismo_canton': historia.get('causanteCantonNotaria', '').lower() == historia.get('causanteCantonInscripcion', '').lower() if historia.get('causanteCantonNotaria') and historia.get('causanteCantonInscripcion') else False,
@@ -757,6 +794,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 'numero_notaria_palabras': numero_a_ordinal_notaria(declaratoria.get('numeroNotaria', '')) if declaratoria.get('numeroNotaria') else '',
                 'canton_notaria': declaratoria.get('cantonNotaria', ''),
                 'notario': declaratoria.get('notario', ''),
+                'es_suplente': declaratoria.get('esSuplente', False),
                 'fecha_inscripcion': formatear_fecha_notarial(declaratoria.get('fechaInscripcion', '')) if declaratoria.get('fechaInscripcion') else '',
                 'canton_inscripcion': declaratoria.get('cantonInscripcion', ''),
                 'mismo_canton': declaratoria.get('cantonNotaria', '').lower() == declaratoria.get('cantonInscripcion', '').lower() if declaratoria.get('cantonNotaria') and declaratoria.get('cantonInscripcion') else False,
@@ -825,10 +863,13 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 'medio_pago': parte.get('medioPago', ''),
                 'tipo_cheque': parte.get('tipoCheque', ''),
                 'momento_pago': parte.get('momentoPago', ''),
+                'momento_pago_otro': parte.get('momentoOtro', ''),
                 'momento_otro': parte.get('momentoOtro', ''),
                 'es_credito': parte.get('esCreditoBancario', False),
+                'entidad_credito': parte.get('nombreBanco', ''),
                 'nombre_banco': parte.get('nombreBanco', ''),
                 'cuenta_destino': parte.get('cuentaDestino', ''),
+                'detalle_transferencia': '',
             }
 
             if parte_data['es_cuotas']:
