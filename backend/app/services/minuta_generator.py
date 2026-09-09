@@ -10,6 +10,7 @@ from ..utils.number_to_words import (
     convertir_numero_casa,
     nivel_a_palabras,
     formatear_dinero,
+    limpiar_nombre_notario,
 )
 from bs4 import BeautifulSoup
 import re
@@ -393,11 +394,13 @@ def procesar_aclaratorias_historia(aclaratorias):
             'titulo': aclaratoria.get('titulo', ''),
             'titulo_otro': aclaratoria.get('tituloOtro', ''),
             'adquirido_de': aclaratoria.get('adquiridoDe', ''),
+            'descripcion': aclaratoria.get('descripcion', ''),
             'fecha_otorgamiento': formatear_fecha_notarial(aclaratoria.get('fechaOtorgamiento', '')) if aclaratoria.get('fechaOtorgamiento') else '',
             'numero_notaria': aclaratoria.get('numeroNotaria', ''),
             'numero_notaria_palabras': numero_a_ordinal_notaria(aclaratoria.get('numeroNotaria', '')) if aclaratoria.get('numeroNotaria') else '',
             'canton_notaria': aclaratoria.get('cantonNotaria', ''),
-            'notario': aclaratoria.get('notario', ''),
+            'notario': limpiar_nombre_notario(aclaratoria.get('notario', '')),
+            'es_suplente': aclaratoria.get('esSuplente', False),
             'fecha_inscripcion': formatear_fecha_notarial(aclaratoria.get('fechaInscripcion', '')) if aclaratoria.get('fechaInscripcion') else '',
             'canton_inscripcion': aclaratoria.get('cantonInscripcion', ''),
             'mismo_canton': aclaratoria.get('cantonNotaria', '').lower() == aclaratoria.get('cantonInscripcion', '').lower() if aclaratoria.get('cantonNotaria') and aclaratoria.get('cantonInscripcion') else False,
@@ -431,11 +434,13 @@ def procesar_aclaratorias_declaratoria(aclaratorias):
     
     for aclaratoria in aclaratorias:
         acl_procesada = {
+            'descripcion': aclaratoria.get('descripcion', ''),
             'fecha_otorgamiento': formatear_fecha_notarial(aclaratoria.get('fechaOtorgamiento', '')) if aclaratoria.get('fechaOtorgamiento') else '',
             'numero_notaria': aclaratoria.get('numeroNotaria', ''),
             'numero_notaria_palabras': numero_a_ordinal_notaria(aclaratoria.get('numeroNotaria', '')) if aclaratoria.get('numeroNotaria') else '',
             'canton_notaria': aclaratoria.get('cantonNotaria', ''),
-            'notario': aclaratoria.get('notario', ''),
+            'notario': limpiar_nombre_notario(aclaratoria.get('notario', '')),
+            'es_suplente': aclaratoria.get('esSuplente', False),
             'fecha_inscripcion': formatear_fecha_notarial(aclaratoria.get('fechaInscripcion', '')) if aclaratoria.get('fechaInscripcion') else '',
             'canton_inscripcion': aclaratoria.get('cantonInscripcion', ''),
             'mismo_canton': aclaratoria.get('cantonNotaria', '').lower() == aclaratoria.get('cantonInscripcion', '').lower() if aclaratoria.get('cantonNotaria') and aclaratoria.get('cantonInscripcion') else False,
@@ -619,7 +624,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                         val_fmt = f"{n:.2f}"
                         if ',' in val_str:
                             val_fmt = val_fmt.replace('.', ',')
-                        return f"{palabras} ({val_fmt})"
+                        return f"{palabras} metros cuadrados ({val_fmt}m2)"
                     except: return str(val)
 
                 def fmt_alicuota(val):
@@ -710,6 +715,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 'numero': num_predio,
                 'numero_palabras': num_predio_palabras,
                 'numero_predial': num_predial,
+                'numero_predial_palabras': f"{numero_a_digitos(num_predial)} ({num_predial})" if num_predial else '',
                 'tiene_numero_predial': bool(num_predial),
                 'inmuebles': inmuebles_procesados,
                 'alicuota_total': alicuota_total,
@@ -736,16 +742,24 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
     }
 
     # ============================================
-    # HISTORIA DE DOMINIO
+    # HISTORIA DE DOMINIO (soporta múltiples partes de adquisición)
     # ============================================
-    if data.get('modoHistoria') == 'redactar':
-        context['historia_manual'] = True
-        context['historia_texto'] = limpiar_html(data.get('historiaManual', ''))
-    else:
-        context['historia_manual'] = False
-        historia = data.get('historiaFormulario', {})
+    def procesar_historia_parte(historia, numero_parte, total_partes):
+        """Procesa una parte de adquisición de la historia de dominio."""
+        porcentaje = historia.get('porcentaje', '')
+        porcentaje_palabras = ''
+        if total_partes > 1 and porcentaje not in ('', None):
+            try:
+                pct = float(str(porcentaje).replace(',', '.'))
+                pct_fmt = str(porcentaje).rstrip('0').rstrip('.').rstrip(',') if ('.' in str(porcentaje) or ',' in str(porcentaje)) else str(porcentaje)
+                porcentaje_palabras = f"{numero_a_letras(pct)} por ciento ({pct_fmt}%)"
+            except (ValueError, TypeError):
+                porcentaje_palabras = str(porcentaje)
 
-        context['historia'] = {
+        parte = {
+            'numero_parte': numero_parte,
+            'tiene_porcentaje': bool(porcentaje_palabras),
+            'porcentaje_palabras': porcentaje_palabras,
             'titulo': historia.get('titulo', ''),
             'titulo_otro': historia.get('tituloOtro', ''),
             'tipo_sucesion': historia.get('tipoSucesion', ''),
@@ -754,7 +768,8 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             'numero_notaria': historia.get('numeroNotaria', ''),
             'numero_notaria_palabras': numero_a_ordinal_notaria(historia.get('numeroNotaria', '')) if historia.get('numeroNotaria') else '',
             'canton_notaria': historia.get('cantonNotaria', ''),
-            'notario': historia.get('notario', ''),
+            'notario': limpiar_nombre_notario(historia.get('notario', '')),
+            'genero_notario': historia.get('generoNotario', ''),
             'es_suplente': historia.get('esSuplente', False),
             'fecha_inscripcion': formatear_fecha_notarial(historia.get('fechaInscripcion', '')) if historia.get('fechaInscripcion') else '',
             'canton_inscripcion': historia.get('cantonInscripcion', ''),
@@ -768,14 +783,35 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             'causante_numero_notaria': historia.get('causanteNumeroNotaria', ''),
             'causante_numero_notaria_palabras': numero_a_ordinal_notaria(historia.get('causanteNumeroNotaria', '')) if historia.get('causanteNumeroNotaria') else '',
             'causante_canton_notaria': historia.get('causanteCantonNotaria', ''),
-            'causante_notario': historia.get('causanteNotario', ''),
+            'causante_notario': limpiar_nombre_notario(historia.get('causanteNotario', '')),
+            'causante_genero_notario': historia.get('causanteGeneroNotario', ''),
             'causante_es_suplente': historia.get('causanteEsSuplente', False),
             'causante_fecha_inscripcion': formatear_fecha_notarial(historia.get('causanteFechaInscripcion', '')) if historia.get('causanteFechaInscripcion') else '',
             'causante_canton_inscripcion': historia.get('causanteCantonInscripcion', ''),
             'causante_mismo_canton': historia.get('causanteCantonNotaria', '').lower() == historia.get('causanteCantonInscripcion', '').lower() if historia.get('causanteCantonNotaria') and historia.get('causanteCantonInscripcion') else False,
         }
+        parte['aclaratorias'] = procesar_aclaratorias_historia(historia.get('aclaratorias', []))
+        return parte
 
-        context['historia']['aclaratorias'] = procesar_aclaratorias_historia(historia.get('aclaratorias', []))
+    if data.get('modoHistoria') == 'redactar':
+        context['historia_manual'] = True
+        context['historia_texto'] = limpiar_html(data.get('historiaManual', ''))
+        context['historia_partes'] = []
+    else:
+        context['historia_manual'] = False
+        historia_partes_raw = data.get('historiaPartes', [])
+        # Compatibilidad: si llega el formato antiguo (un solo objeto historiaFormulario)
+        if not historia_partes_raw and data.get('historiaFormulario'):
+            historia_partes_raw = [data.get('historiaFormulario')]
+
+        total_partes = len(historia_partes_raw)
+        context['historia_partes'] = [
+            procesar_historia_parte(h, i + 1, total_partes)
+            for i, h in enumerate(historia_partes_raw)
+        ]
+        # Alias de compatibilidad — algunas plantillas/código previo referencian 'historia'
+        # como la primera parte cuando solo hay una.
+        context['historia'] = context['historia_partes'][0] if context['historia_partes'] else {}
 
     # ============================================
     # DECLARATORIA (solo horizontal)
@@ -793,7 +829,8 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 'numero_notaria': declaratoria.get('numeroNotaria', ''),
                 'numero_notaria_palabras': numero_a_ordinal_notaria(declaratoria.get('numeroNotaria', '')) if declaratoria.get('numeroNotaria') else '',
                 'canton_notaria': declaratoria.get('cantonNotaria', ''),
-                'notario': declaratoria.get('notario', ''),
+                'notario': limpiar_nombre_notario(declaratoria.get('notario', '')),
+                'genero_notario': declaratoria.get('generoNotario', ''),
                 'es_suplente': declaratoria.get('esSuplente', False),
                 'fecha_inscripcion': formatear_fecha_notarial(declaratoria.get('fechaInscripcion', '')) if declaratoria.get('fechaInscripcion') else '',
                 'canton_inscripcion': declaratoria.get('cantonInscripcion', ''),

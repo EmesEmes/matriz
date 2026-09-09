@@ -132,11 +132,27 @@ const AclaratoriaHistoriaItem = ({
           <input
             type="text"
             value={aclaratoria.notario}
-            onChange={(e) =>
-              onChange(path, "notario", e.target.value.toUpperCase())
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            onChange={(e) => onChange(path, "notario", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            placeholder="Ej: Alex David Mejía Viteri"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Puede incluir "Doctor/a", se quita automáticamente.
+          </p>
+        </div>
+
+        <div className="flex items-end pb-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={aclaratoria.esSuplente || false}
+              onChange={(e) => onChange(path, "esSuplente", e.target.checked)}
+              className="w-4 h-4 rounded text-blue-600"
+            />
+            <span className="text-sm text-gray-700">
+              El notario es suplente
+            </span>
+          </label>
         </div>
 
         <div>
@@ -169,6 +185,18 @@ const AclaratoriaHistoriaItem = ({
         </div>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Descripción de lo aclarado/modificado
+        </label>
+        <textarea
+          value={aclaratoria.descripcion || ""}
+          onChange={(e) => onChange(path, "descripcion", e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+          rows={3}
+          placeholder="Ej: se aclaró que el porcentaje adquirido corresponde al cincuenta por ciento (50%) y no al total del inmueble..."
+        />
+      </div>
       {/* Aclaratorias anidadas */}
       {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
         <div className="space-y-2">
@@ -279,11 +307,27 @@ const AclaratoriaDeclaratoriaItem = ({
           <input
             type="text"
             value={aclaratoria.notario}
-            onChange={(e) =>
-              onChange(path, "notario", e.target.value.toUpperCase())
-            }
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            onChange={(e) => onChange(path, "notario", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            placeholder="Ej: Alex David Mejía Viteri"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Puede incluir "Doctor/a", se quita automáticamente.
+          </p>
+        </div>
+
+        <div className="flex items-end pb-2">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={aclaratoria.esSuplente || false}
+              onChange={(e) => onChange(path, "esSuplente", e.target.checked)}
+              className="w-4 h-4 rounded text-blue-600"
+            />
+            <span className="text-sm text-gray-700">
+              El notario es suplente
+            </span>
+          </label>
         </div>
 
         <div>
@@ -316,6 +360,18 @@ const AclaratoriaDeclaratoriaItem = ({
         </div>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Descripción de lo aclarado/modificado
+        </label>
+        <textarea
+          value={aclaratoria.descripcion || ""}
+          onChange={(e) => onChange(path, "descripcion", e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 text-sm"
+          rows={3}
+          placeholder="Ej: se aclaró que el porcentaje adquirido corresponde al cincuenta por ciento (50%) y no al total del inmueble..."
+        />
+      </div>
       {/* Aclaratorias anidadas */}
       {aclaratoria.aclaratorias && aclaratoria.aclaratorias.length > 0 && (
         <div className="space-y-2">
@@ -346,6 +402,437 @@ const AclaratoriaDeclaratoriaItem = ({
         className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
       >
         + Agregar aclaratoria a esta entrada
+      </button>
+    </div>
+  </div>
+);
+
+// Formulario de una parte ADICIONAL de adquisición (2da, 3ra, etc.)
+// Componente a nivel de módulo — evita el bug de pérdida de foco.
+const HistoriaParteForm = ({
+  parte,
+  index,
+  onFieldChange,
+  onEliminar,
+  onAgregarAclaratoria,
+  onEliminarAclaratoria,
+  onAclaratoriaChange,
+}) => (
+  <div className="bg-white rounded-xl shadow-sm border-2 border-amber-200 p-6 space-y-4">
+    <div className="flex justify-between items-center">
+      <h3 className="text-lg font-semibold text-gray-900">
+        Parte de Adquisición {index + 2}
+      </h3>
+      <button
+        onClick={() => onEliminar(index)}
+        className="text-red-600 hover:text-red-800 font-medium text-sm"
+      >
+        Eliminar esta parte
+      </button>
+    </div>
+
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Porcentaje adquirido en esta parte
+        </label>
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="0.01"
+          value={parte.porcentaje}
+          onChange={(e) => onFieldChange(index, "porcentaje", e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Ej: 50"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Título de adquisición
+        </label>
+        <select
+          value={parte.titulo}
+          onChange={(e) => onFieldChange(index, "titulo", e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="">Seleccionar</option>
+          <option value="compraventa">Compraventa</option>
+          <option value="donacion">Donación</option>
+          <option value="permuta">Permuta</option>
+          <option value="adjudicacion">Adjudicación</option>
+          <option value="sucesion">Sucesión</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+
+      {parte.titulo === "otro" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Especificar título
+          </label>
+          <input
+            type="text"
+            value={parte.tituloOtro}
+            onChange={(e) => onFieldChange(index, "tituloOtro", e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          />
+        </div>
+      )}
+
+      <div className="col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Adquirido de
+        </label>
+        <input
+          type="text"
+          value={parte.adquiridoDe}
+          onChange={(e) =>
+            onFieldChange(index, "adquiridoDe", e.target.value.toUpperCase())
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+          placeholder="Nombre de quien(es) vendieron/transfirieron esta parte"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Fecha de otorgamiento
+        </label>
+        <input
+          type="date"
+          value={parte.fechaOtorgamiento}
+          onChange={(e) =>
+            onFieldChange(index, "fechaOtorgamiento", e.target.value)
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Número de notaría
+        </label>
+        <input
+          type="text"
+          value={parte.numeroNotaria}
+          onChange={(e) =>
+            onFieldChange(index, "numeroNotaria", e.target.value)
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Ej: primera, 14, 22"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Cantón de la notaría
+        </label>
+        <input
+          type="text"
+          value={parte.cantonNotaria}
+          onChange={(e) =>
+            onFieldChange(index, "cantonNotaria", e.target.value)
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Notario/Notaria
+        </label>
+        <input
+          type="text"
+          value={parte.notario}
+          onChange={(e) => onFieldChange(index, "notario", e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          placeholder="Ej: Ángela Tamara Campuzano Carriel"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Puede incluir "Doctor/a", se quita automáticamente.
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Género del Notario
+        </label>
+        <select
+          value={parte.generoNotario || ""}
+          onChange={(e) =>
+            onFieldChange(index, "generoNotario", e.target.value)
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="">Seleccione</option>
+          <option value="masculino">Masculino</option>
+          <option value="femenino">Femenino</option>
+        </select>
+      </div>
+
+      <div className="col-span-2">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={parte.esSuplente || false}
+            onChange={(e) =>
+              onFieldChange(index, "esSuplente", e.target.checked)
+            }
+            className="w-4 h-4 rounded text-blue-600"
+          />
+          <span className="text-sm text-gray-700">El notario es suplente</span>
+        </label>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Fecha de inscripción
+        </label>
+        <input
+          type="date"
+          value={parte.fechaInscripcion}
+          onChange={(e) =>
+            onFieldChange(index, "fechaInscripcion", e.target.value)
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Cantón de inscripción
+        </label>
+        <input
+          type="text"
+          value={parte.cantonInscripcion}
+          onChange={(e) =>
+            onFieldChange(index, "cantonInscripcion", e.target.value)
+          }
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Si es igual, se mostrará "del mismo cantón"
+        </p>
+      </div>
+    </div>
+
+    {/* Sucesión / causante */}
+    {parte.titulo === "sucesion" && (
+      <div className="border-t pt-4 space-y-4">
+        <h4 className="font-medium text-gray-900">Datos del Causante</h4>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Nombre del causante
+            </label>
+            <input
+              type="text"
+              value={parte.nombreCausante}
+              onChange={(e) =>
+                onFieldChange(
+                  index,
+                  "nombreCausante",
+                  e.target.value.toUpperCase(),
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              El causante adquirió de
+            </label>
+            <input
+              type="text"
+              value={parte.causanteAdquiridoDe}
+              onChange={(e) =>
+                onFieldChange(
+                  index,
+                  "causanteAdquiridoDe",
+                  e.target.value.toUpperCase(),
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Título de adquisición del causante
+            </label>
+            <select
+              value={parte.causanteTitulo}
+              onChange={(e) =>
+                onFieldChange(index, "causanteTitulo", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Seleccionar</option>
+              <option value="compraventa">Compraventa</option>
+              <option value="donacion">Donación</option>
+              <option value="permuta">Permuta</option>
+              <option value="adjudicacion">Adjudicación</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+          {parte.causanteTitulo === "otro" && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Especificar título
+              </label>
+              <input
+                type="text"
+                value={parte.causanteTituloOtro}
+                onChange={(e) =>
+                  onFieldChange(index, "causanteTituloOtro", e.target.value)
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de otorgamiento
+            </label>
+            <input
+              type="date"
+              value={parte.causanteFechaOtorgamiento}
+              onChange={(e) =>
+                onFieldChange(
+                  index,
+                  "causanteFechaOtorgamiento",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Número de notaría
+            </label>
+            <input
+              type="text"
+              value={parte.causanteNumeroNotaria}
+              onChange={(e) =>
+                onFieldChange(index, "causanteNumeroNotaria", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantón de la notaría
+            </label>
+            <input
+              type="text"
+              value={parte.causanteCantonNotaria}
+              onChange={(e) =>
+                onFieldChange(index, "causanteCantonNotaria", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notario/Notaria
+            </label>
+            <input
+              type="text"
+              value={parte.causanteNotario}
+              onChange={(e) =>
+                onFieldChange(index, "causanteNotario", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Género del Notario
+            </label>
+            <select
+              value={parte.causanteGeneroNotario || ""}
+              onChange={(e) =>
+                onFieldChange(index, "causanteGeneroNotario", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">Seleccione</option>
+              <option value="masculino">Masculino</option>
+              <option value="femenino">Femenino</option>
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={parte.causanteEsSuplente || false}
+                onChange={(e) =>
+                  onFieldChange(index, "causanteEsSuplente", e.target.checked)
+                }
+                className="w-4 h-4 rounded text-blue-600"
+              />
+              <span className="text-sm text-gray-700">
+                El notario es suplente
+              </span>
+            </label>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Fecha de inscripción
+            </label>
+            <input
+              type="date"
+              value={parte.causanteFechaInscripcion}
+              onChange={(e) =>
+                onFieldChange(index, "causanteFechaInscripcion", e.target.value)
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cantón de inscripción
+            </label>
+            <input
+              type="text"
+              value={parte.causanteCantonInscripcion}
+              onChange={(e) =>
+                onFieldChange(
+                  index,
+                  "causanteCantonInscripcion",
+                  e.target.value,
+                )
+              }
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Aclaratorias de esta parte */}
+    <div className="border-t pt-4 space-y-3">
+      <h4 className="font-medium text-gray-900">Aclaratorias de esta parte</h4>
+      {parte.aclaratorias.map((aclaratoria, aIndex) => (
+        <AclaratoriaHistoriaItem
+          key={aclaratoria.id}
+          aclaratoria={aclaratoria}
+          path={[aIndex]}
+          onChange={(path, field, value) =>
+            onAclaratoriaChange(index, path, field, value)
+          }
+          onEliminar={(path) => onEliminarAclaratoria(index, path)}
+          onAgregar={(path) => onAgregarAclaratoria(index, path)}
+          rootAclaratorias={parte.aclaratorias}
+        />
+      ))}
+      <button
+        onClick={() => onAgregarAclaratoria(index, [])}
+        className="text-sm px-3 py-2 bg-primary-100 text-primary-700 rounded hover:bg-primary-200 transition-colors"
+      >
+        + Agregar aclaratoria a esta parte
       </button>
     </div>
   </div>
@@ -397,6 +884,7 @@ const FormularioCompraventa = () => {
     tituloOtro: "",
     tipoSucesion: "",
     adquiridoDe: "",
+    porcentaje: "",
     fechaOtorgamiento: "",
     numeroNotaria: "",
     cantonNotaria: "",
@@ -418,6 +906,136 @@ const FormularioCompraventa = () => {
     aclaratorias: [],
   });
 
+  // Partes ADICIONALES de adquisición (cuando la propiedad se compró en más de
+  // una transacción, ej. 50% de una manera y 50% de otra). Por defecto vacío —
+  // el 95% de los casos usa solo `historiaFormulario` de arriba, sin cambios.
+  const [historiaPartesAdicionales, setHistoriaPartesAdicionales] = useState(
+    [],
+  );
+
+  const nuevaParteHistoria = () => ({
+    id: Date.now() + Math.random(),
+    titulo: "",
+    tituloOtro: "",
+    tipoSucesion: "",
+    adquiridoDe: "",
+    porcentaje: "",
+    fechaOtorgamiento: "",
+    numeroNotaria: "",
+    cantonNotaria: "",
+    notario: "",
+    generoNotario: "",
+    esSuplente: false,
+    fechaInscripcion: "",
+    cantonInscripcion: "",
+    nombreCausante: "",
+    causanteAdquiridoDe: "",
+    causanteTitulo: "",
+    causanteTituloOtro: "",
+    causanteFechaOtorgamiento: "",
+    causanteNumeroNotaria: "",
+    causanteCantonNotaria: "",
+    causanteNotario: "",
+    causanteGeneroNotario: "",
+    causanteEsSuplente: false,
+    causanteFechaInscripcion: "",
+    causanteCantonInscripcion: "",
+    aclaratorias: [],
+  });
+
+  const handleAgregarParteHistoria = () => {
+    setHistoriaPartesAdicionales((prev) => [...prev, nuevaParteHistoria()]);
+  };
+
+  const handleEliminarParteHistoria = (index) => {
+    setHistoriaPartesAdicionales((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleParteHistoriaFieldChange = (index, field, value) => {
+    setHistoriaPartesAdicionales((prev) =>
+      prev.map((parte, i) =>
+        i === index ? { ...parte, [field]: value } : parte,
+      ),
+    );
+  };
+
+  // Aclaratorias dentro de una parte adicional (path = [subIndices...])
+  const handleAgregarAclaratoriaParteHistoria = (parteIndex, path = []) => {
+    const nueva = {
+      id: Date.now(),
+      titulo: "",
+      tituloOtro: "",
+      adquiridoDe: "",
+      descripcion: "",
+      fechaOtorgamiento: "",
+      numeroNotaria: "",
+      cantonNotaria: "",
+      notario: "",
+      esSuplente: false,
+      fechaInscripcion: "",
+      cantonInscripcion: "",
+      aclaratorias: [],
+    };
+    setHistoriaPartesAdicionales((prev) =>
+      prev.map((parte, i) => {
+        if (i !== parteIndex) return parte;
+        if (path.length === 0) {
+          return { ...parte, aclaratorias: [...parte.aclaratorias, nueva] };
+        }
+        const nuevaParte = { ...parte };
+        let current = nuevaParte;
+        for (let j = 0; j < path.length - 1; j++) {
+          current = current.aclaratorias[path[j]];
+        }
+        current.aclaratorias[path[path.length - 1]].aclaratorias.push(nueva);
+        return nuevaParte;
+      }),
+    );
+  };
+
+  const handleEliminarAclaratoriaParteHistoria = (parteIndex, path) => {
+    setHistoriaPartesAdicionales((prev) =>
+      prev.map((parte, i) => {
+        if (i !== parteIndex) return parte;
+        const nuevaParte = { ...parte };
+        if (path.length === 1) {
+          nuevaParte.aclaratorias = nuevaParte.aclaratorias.filter(
+            (_, k) => k !== path[0],
+          );
+          return nuevaParte;
+        }
+        let current = nuevaParte;
+        for (let j = 0; j < path.length - 2; j++) {
+          current = current.aclaratorias[path[j]];
+        }
+        current.aclaratorias[path[path.length - 2]].aclaratorias =
+          current.aclaratorias[path[path.length - 2]].aclaratorias.filter(
+            (_, k) => k !== path[path.length - 1],
+          );
+        return nuevaParte;
+      }),
+    );
+  };
+
+  const handleAclaratoriaParteHistoriaChange = (
+    parteIndex,
+    path,
+    field,
+    value,
+  ) => {
+    setHistoriaPartesAdicionales((prev) =>
+      prev.map((parte, i) => {
+        if (i !== parteIndex) return parte;
+        const nuevaParte = { ...parte };
+        let current = nuevaParte;
+        for (let j = 0; j < path.length - 1; j++) {
+          current = current.aclaratorias[path[j]];
+        }
+        current.aclaratorias[path[path.length - 1]][field] = value;
+        return nuevaParte;
+      }),
+    );
+  };
   // ============================================
   // DECLARATORIA (SOLO HORIZONTAL)
   // ============================================
@@ -562,6 +1180,8 @@ const FormularioCompraventa = () => {
       setHistoriaManual(contenido.historiaManual);
     if (contenido.historiaFormulario !== undefined)
       setHistoriaFormulario(contenido.historiaFormulario);
+    if (contenido.historiaPartesAdicionales !== undefined)
+      setHistoriaPartesAdicionales(contenido.historiaPartesAdicionales);
     if (contenido.modoDeclaratoria !== undefined)
       setModoDeclaratoria(contenido.modoDeclaratoria);
     if (contenido.declaratoriaManual !== undefined)
@@ -828,10 +1448,12 @@ const FormularioCompraventa = () => {
       titulo: "",
       tituloOtro: "",
       adquiridoDe: "",
+      descripcion: "",
       fechaOtorgamiento: "",
       numeroNotaria: "",
       cantonNotaria: "",
       notario: "",
+      esSuplente: false,
       fechaInscripcion: "",
       cantonInscripcion: "",
       aclaratorias: [],
@@ -907,10 +1529,12 @@ const FormularioCompraventa = () => {
   const handleAgregarAclaratoriaDeclaratoria = (path = []) => {
     const nuevaAclaratoria = {
       id: Date.now(),
+      descripcion: "",
       fechaOtorgamiento: "",
       numeroNotaria: "",
       cantonNotaria: "",
       notario: "",
+      esSuplente: false,
       fechaInscripcion: "",
       cantonInscripcion: "",
       aclaratorias: [],
@@ -1152,8 +1776,10 @@ const FormularioCompraventa = () => {
         },
         modoHistoria,
         historiaManual: modoHistoria === "redactar" ? historiaManual : null,
-        historiaFormulario:
-          modoHistoria === "formulario" ? historiaFormulario : null,
+        historiaPartes:
+          modoHistoria === "formulario"
+            ? [historiaFormulario, ...historiaPartesAdicionales]
+            : null,
         modoDeclaratoria:
           tipoPropiedad === "horizontal" ? modoDeclaratoria : null,
         declaratoriaManual:
@@ -2240,6 +2866,29 @@ const FormularioCompraventa = () => {
                       </div>
                     )}
 
+                  {historiaPartesAdicionales.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Porcentaje adquirido en esta parte
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={historiaFormulario.porcentaje}
+                        onChange={(e) =>
+                          handleHistoriaFieldChange(
+                            "porcentaje",
+                            e.target.value,
+                          )
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        placeholder="Ej: 50"
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Fecha de Otorgamiento
@@ -2304,14 +2953,35 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={historiaFormulario.notario}
                       onChange={(e) =>
-                        setHistoriaFormulario({
-                          ...historiaFormulario,
-                          notario: e.target.value.toUpperCase(),
-                        })
+                        handleHistoriaFieldChange("notario", e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-                      placeholder="Ej: ALEX DAVID MEJÍA VITERI"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: Alex David Mejía Viteri"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Escriba el nombre normal (puede incluir "Doctor/a", se
+                      quita automáticamente).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Género del Notario
+                    </label>
+                    <select
+                      value={historiaFormulario.generoNotario || ""}
+                      onChange={(e) =>
+                        handleHistoriaFieldChange(
+                          "generoNotario",
+                          e.target.value,
+                        )
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">Seleccione</option>
+                      <option value="masculino">Masculino</option>
+                      <option value="femenino">Femenino</option>
+                    </select>
                   </div>
 
                   <div className="col-span-2">
@@ -2508,7 +3178,7 @@ const FormularioCompraventa = () => {
                         />
                       </div>
 
-                      <div className="col-span-2">
+                      <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Notario/Notaria
                         </label>
@@ -2516,14 +3186,38 @@ const FormularioCompraventa = () => {
                           type="text"
                           value={historiaFormulario.causanteNotario}
                           onChange={(e) =>
-                            setHistoriaFormulario({
-                              ...historiaFormulario,
-                              causanteNotario: e.target.value.toUpperCase(),
-                            })
+                            handleHistoriaFieldChange(
+                              "causanteNotario",
+                              e.target.value,
+                            )
                           }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-                          placeholder="Ej: ROBERTO DUEÑAS"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                          placeholder="Ej: Roberto Dueñas"
                         />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Escriba el nombre normal (puede incluir "Doctor/a", se
+                          quita automáticamente).
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Género del Notario
+                        </label>
+                        <select
+                          value={historiaFormulario.causanteGeneroNotario || ""}
+                          onChange={(e) =>
+                            handleHistoriaFieldChange(
+                              "causanteGeneroNotario",
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                        >
+                          <option value="">Seleccione</option>
+                          <option value="masculino">Masculino</option>
+                          <option value="femenino">Femenino</option>
+                        </select>
                       </div>
 
                       <div className="col-span-2">
@@ -2614,6 +3308,64 @@ const FormularioCompraventa = () => {
                 >
                   + Agregar Aclaratoria
                 </button>
+
+                {/* NUEVO: Partes adicionales de adquisición */}
+                {historiaPartesAdicionales.length > 0 && (
+                  <div className="space-y-6 border-t-2 border-amber-200 pt-6 mt-2">
+                    {(() => {
+                      const totalPorcentaje =
+                        (parseFloat(historiaFormulario.porcentaje) || 0) +
+                        historiaPartesAdicionales.reduce(
+                          (acc, p) => acc + (parseFloat(p.porcentaje) || 0),
+                          0,
+                        );
+                      const cuadra = Math.abs(totalPorcentaje - 100) < 0.01;
+                      return (
+                        <div
+                          className={`p-3 rounded-lg border text-sm font-medium ${
+                            cuadra
+                              ? "bg-green-50 border-green-200 text-green-800"
+                              : "bg-amber-50 border-amber-200 text-amber-800"
+                          }`}
+                        >
+                          Total adquirido entre todas las partes:{" "}
+                          {totalPorcentaje}%{" "}
+                          {cuadra ? "✓" : "⚠️ debería sumar 100%"}
+                        </div>
+                      );
+                    })()}
+
+                    {historiaPartesAdicionales.map((parte, index) => (
+                      <HistoriaParteForm
+                        key={parte.id}
+                        parte={parte}
+                        index={index}
+                        onFieldChange={handleParteHistoriaFieldChange}
+                        onEliminar={handleEliminarParteHistoria}
+                        onAgregarAclaratoria={
+                          handleAgregarAclaratoriaParteHistoria
+                        }
+                        onEliminarAclaratoria={
+                          handleEliminarAclaratoriaParteHistoria
+                        }
+                        onAclaratoriaChange={
+                          handleAclaratoriaParteHistoriaChange
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleAgregarParteHistoria}
+                  className="w-full px-4 py-2 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition-colors font-medium border border-amber-300"
+                >
+                  + Agregar Otra Parte de Adquisición
+                </button>
+                <p className="text-xs text-gray-500 -mt-2">
+                  Use esto solo si la propiedad se adquirió en más de una
+                  transacción (ej. 50% de una manera y 50% de otra).
+                </p>
               </div>
             )}
           />
@@ -2692,14 +3444,35 @@ const FormularioCompraventa = () => {
                       type="text"
                       value={declaratoriaFormulario.notario}
                       onChange={(e) =>
+                        handleDeclaratoriaFieldChange("notario", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                      placeholder="Ej: Paola Andrade Torres"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Escriba el nombre normal (puede incluir "Doctor/a", se
+                      quita automáticamente).
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Género del Notario
+                    </label>
+                    <select
+                      value={declaratoriaFormulario.generoNotario || ""}
+                      onChange={(e) =>
                         handleDeclaratoriaFieldChange(
-                          "notario",
-                          e.target.value.toUpperCase(),
+                          "generoNotario",
+                          e.target.value,
                         )
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 uppercase"
-                      placeholder="Ej: PAOLA ANDRADE TORRES"
-                    />
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="">Seleccione</option>
+                      <option value="masculino">Masculino</option>
+                      <option value="femenino">Femenino</option>
+                    </select>
                   </div>
 
                   <div className="col-span-2">
@@ -4500,6 +5273,7 @@ const FormularioCompraventa = () => {
           modoHistoria,
           historiaManual,
           historiaFormulario,
+          historiaPartesAdicionales,
           modoDeclaratoria,
           declaratoriaManual,
           declaratoriaFormulario,

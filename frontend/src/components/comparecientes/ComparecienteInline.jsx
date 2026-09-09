@@ -266,6 +266,7 @@ const ComparecienteInline = ({
       {mode === "edit" && isPersona && (
         <ComparecienteForm
           initialData={compareciente}
+          isEditing={true}
           onSuccess={handleSuccessPersona}
           onCancel={handleCancelEdit}
         />

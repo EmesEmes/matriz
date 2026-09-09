@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button, FormField, Card } from "../shared";
 import SeccionUAFEForm from "./SeccionUAFEForm";
 import { getProvincias, getCantones } from "../../utils/datosEcuador";
@@ -19,8 +19,6 @@ const ComparecienteForm = ({
   const [loading, setLoading] = useState(false);
   const [showPartnerForm, setShowPartnerForm] = useState(false);
   const [errors, setErrors] = useState({});
-  const [cantones, setCantones] = useState([]);
-  const [partnerCantones, setPartnerCantones] = useState([]);
 
   const [formData, setFormData] = useState({
     documentNumber: "",
@@ -193,39 +191,19 @@ const ComparecienteForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialData?.documentNumber]);
 
-  // Actualizar cantones cuando cambia la provincia
-  useEffect(() => {
-    if (formData.province) {
-      const newCantones = getCantones(formData.province);
-      setCantones(newCantones);
-
-      setFormData((prev) =>
-        newCantones.includes(prev.canton) ? prev : { ...prev, canton: "" },
-      );
-    } else {
-      setCantones([]);
-      setFormData((prev) => (prev.canton ? { ...prev, canton: "" } : prev));
-    }
-  }, [formData.province]);
-
-  // Actualizar cantones del partner
-  useEffect(() => {
-    if (formData.partnerProvince) {
-      const newCantones = getCantones(formData.partnerProvince);
-      setPartnerCantones(newCantones);
-
-      setFormData((prev) =>
-        newCantones.includes(prev.partnerCanton)
-          ? prev
-          : { ...prev, partnerCanton: "" },
-      );
-    } else {
-      setPartnerCantones([]);
-      setFormData((prev) =>
-        prev.partnerCanton ? { ...prev, partnerCanton: "" } : prev,
-      );
-    }
-  }, [formData.partnerProvince]);
+  // Cantones derivados de la provincia — sin useEffect, sin condición de carrera.
+  // Al cargar datos (edición), provincia y cantón llegan juntos en un solo setFormData,
+  // así que esta lista siempre está sincronizada con el valor real, sin importar el orden
+  // en que React procese los efectos.
+  const cantones = useMemo(
+    () => (formData.province ? getCantones(formData.province) : []),
+    [formData.province],
+  );
+  const partnerCantones = useMemo(
+    () =>
+      formData.partnerProvince ? getCantones(formData.partnerProvince) : [],
+    [formData.partnerProvince],
+  );
 
   // Resetear pregunta de cónyuge cuando deja de ser casado
   useEffect(() => {
@@ -301,6 +279,35 @@ const ComparecienteForm = ({
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Al cambiar la provincia manualmente, resetear el cantón si ya no aplica
+    // a la nueva provincia (esto NO afecta la carga inicial de datos al editar,
+    // porque en ese caso provincia y cantón se setean juntos en un solo golpe).
+    if (name === "province") {
+      const nuevosCantones = getCantones(value);
+      setFormData((prev) => ({
+        ...prev,
+        province: value,
+        canton: nuevosCantones.includes(prev.canton) ? prev.canton : "",
+      }));
+      if (errors.province) setErrors((prev) => ({ ...prev, province: "" }));
+      return;
+    }
+
+    if (name === "partnerProvince") {
+      const nuevosCantones = getCantones(value);
+      setFormData((prev) => ({
+        ...prev,
+        partnerProvince: value,
+        partnerCanton: nuevosCantones.includes(prev.partnerCanton)
+          ? prev.partnerCanton
+          : "",
+      }));
+      if (errors.partnerProvince)
+        setErrors((prev) => ({ ...prev, partnerProvince: "" }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -887,7 +894,7 @@ const ComparecienteForm = ({
             />
           </FormField>
 
-          <FormField label="Número">
+          <FormField label="Número (opcional)">
             <input
               type="text"
               name="numberStreet"
@@ -1172,7 +1179,7 @@ const ComparecienteForm = ({
                   />
                 </FormField>
 
-                <FormField label="Número">
+                <FormField label="Número (opcional)">
                   <input
                     type="text"
                     name="partnerNumberStreet"

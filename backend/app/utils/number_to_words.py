@@ -418,6 +418,35 @@ def nivel_a_palabras(nivel_str):
         return nivel
 
 
+TITULOS_NOTARIALES = [
+    'doctora', 'doctor', 'dra.', 'dr.', 'dra', 'dr',
+    'abogada', 'abogado', 'abg.', 'abg', 'ab.', 'ab',
+    'licenciada', 'licenciado', 'lcda.', 'lcdo.', 'lcda', 'lcdo',
+    'ingeniera', 'ingeniero', 'ing.', 'ing',
+    'arquitecta', 'arquitecto', 'arq.', 'arq',
+]
+
+
+def limpiar_nombre_notario(nombre):
+    """
+    Quita un título/tratamiento inicial (Doctor, Doctora, Dr., Ab., etc.) si el
+    usuario lo escribió junto al nombre, y devuelve el nombre en MAYÚSCULAS.
+    Ej: 'Doctora Miriam Herrera' -> 'MIRIAM HERRERA'
+        'Dr. Juan Pérez'         -> 'JUAN PÉREZ'
+        'Miriam Herrera'         -> 'MIRIAM HERRERA'
+    """
+    if not nombre:
+        return ''
+    nombre = nombre.strip()
+    partes = nombre.split(' ', 1)
+    if len(partes) == 2:
+        primera_palabra = partes[0].lower().rstrip('.')
+        titulos_normalizados = [t.rstrip('.') for t in TITULOS_NOTARIALES]
+        if primera_palabra in titulos_normalizados:
+            nombre = partes[1]
+    return nombre.strip().upper()
+
+
 def formatear_dinero(monto):
     """
     Convierte monto a formato notarial completo.

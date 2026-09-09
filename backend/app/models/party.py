@@ -54,8 +54,8 @@ class Party(Base):
     birth_date = Column(Date, nullable=False)
 
     # Contacto
-    email = Column(String(100), nullable=False, unique=True)
-    phone = Column(String(15), nullable=False)
+    email = Column(String(100), nullable=False, unique=False)
+    phone = Column(String(15), nullable=False, unique=False)
 
     # Dirección
     province = Column(String(50), nullable=False)
@@ -64,8 +64,9 @@ class Party(Base):
     sector = Column(String(100), nullable=True)
     main_street = Column(String(150), nullable=False)
     secondary_street = Column(String(150), nullable=False)
-    number_street = Column(String(20), nullable=False)
-    edificio = Column(String(200), nullable=True)
+    number_street = Column(String(20), nullable=True)
+    edificio = Column(String(200), nullable=True) 
+
     # Ocupación
     occupation = Column(String(100), nullable=False)
     profession = Column(String(100), nullable=True)
