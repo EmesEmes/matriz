@@ -11,9 +11,46 @@ from ..utils.number_to_words import (
     nivel_a_palabras,
     formatear_dinero,
     limpiar_nombre_notario,
+    formatear_referencia_notario,
 )
 from bs4 import BeautifulSoup
 import re
+
+
+# ============================================
+# MAPEOS DE TEXTO — título de adquisición y tipo de sucesión
+# (el <select> del frontend envía valores sin tildes; aquí se convierten
+# al texto legible correcto antes de insertarse en el documento)
+# ============================================
+TITULOS_ADQUISICION = {
+    'compraventa': 'compraventa',
+    'donacion': 'donación',
+    'permuta': 'permuta',
+    'adjudicacion': 'adjudicación',
+    'sucesion': 'sucesión',
+}
+
+TIPOS_SUCESION = {
+    'testamento': 'testamento',
+    'posesion_efectiva': 'posesión efectiva',
+}
+
+
+def formatear_titulo_adquisicion(titulo, titulo_otro=''):
+    """Convierte el value crudo del select (ej. 'donacion', 'posesion_efectiva')
+    al texto legible con tildes (ej. 'donación'). 'otro' usa el texto libre."""
+    if not titulo:
+        return ''
+    if titulo == 'otro':
+        return titulo_otro or ''
+    return TITULOS_ADQUISICION.get(titulo, titulo)
+
+
+def formatear_tipo_sucesion(tipo):
+    """Convierte 'posesion_efectiva' -> 'posesión efectiva', etc."""
+    if not tipo:
+        return ''
+    return TIPOS_SUCESION.get(tipo, tipo)
 
 
 def procesar_empresa_data(empresa, numero_global):
@@ -317,6 +354,32 @@ def normalizar_numero(val_str):
         return None
 
 
+def convertir_numeros_en_texto(texto):
+    """
+    Busca cualquier número suelto dentro de un texto libre (ej. colindancias
+    como 'zanja, y lote 3') y lo convierte a 'letras (número)', dejando el
+    resto del texto intacto. Soporta enteros y decimales con coma o punto.
+    Ej: 'lote 3' -> 'lote tres (3)'
+        'km 4.5' -> 'km cuatro punto cinco (4.5)'
+    """
+    if not texto:
+        return texto
+
+    def reemplazar(match):
+        original = match.group(0)
+        num_normalizado = normalizar_numero(original)
+        if num_normalizado is None:
+            return original
+        if num_normalizado == int(num_normalizado) and '.' not in original and ',' not in original:
+            palabras = numero_a_letras(int(num_normalizado))
+        else:
+            palabras = numero_a_letras(num_normalizado)
+        return f"{palabras} ({original})"
+
+    # Números con posible decimal (coma o punto), evitando partir palabras
+    return re.sub(r'\d+(?:[.,]\d+)?', reemplazar, texto)
+
+
 def procesar_linderos(linderos_data, incluir_arriba_abajo=False):
     """
     Procesa linderos y retorna formato plano que espera la plantilla.
@@ -348,13 +411,14 @@ def procesar_linderos(linderos_data, incluir_arriba_abajo=False):
                 colindancias.append(colindancia)
 
         colindancia_str = ', y '.join(colindancias) if colindancias else ''
+        colindancia_str = convertir_numeros_en_texto(colindancia_str)
 
         metros_num = normalizar_numero(metros_total)
         if metros_num is not None:
             metros_palabras = numero_a_letras(metros_num)
             # Preservar el separador decimal original que usó el usuario
             metros_fmt = metros_total
-            resultado[f'{direccion}_metros_palabras'] = f"{metros_palabras} ({metros_fmt})"
+            resultado[f'{direccion}_metros_palabras'] = f"{metros_palabras} metros ({metros_fmt}m)"
         else:
             resultado[f'{direccion}_metros_palabras'] = ''
         resultado[f'{direccion}_colindancia'] = colindancia_str
@@ -366,7 +430,7 @@ def procesar_linderos(linderos_data, incluir_arriba_abajo=False):
     if sup_num is not None:
         sup_palabras = numero_a_letras(sup_num)
         sup_fmt = str(superficie)
-        resultado['superficie_palabras'] = f"{sup_palabras} ({sup_fmt})"
+        resultado['superficie_palabras'] = f"{sup_palabras} metros cuadrados ({sup_fmt}m2)"
     else:
         resultado['superficie_palabras'] = str(superficie)
     resultado['superficie'] = superficie
@@ -393,6 +457,7 @@ def procesar_aclaratorias_historia(aclaratorias):
         acl_procesada = {
             'titulo': aclaratoria.get('titulo', ''),
             'titulo_otro': aclaratoria.get('tituloOtro', ''),
+            'titulo_texto': formatear_titulo_adquisicion(aclaratoria.get('titulo', ''), aclaratoria.get('tituloOtro', '')),
             'adquirido_de': aclaratoria.get('adquiridoDe', ''),
             'descripcion': aclaratoria.get('descripcion', ''),
             'fecha_otorgamiento': formatear_fecha_notarial(aclaratoria.get('fechaOtorgamiento', '')) if aclaratoria.get('fechaOtorgamiento') else '',
@@ -756,13 +821,36 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             except (ValueError, TypeError):
                 porcentaje_palabras = str(porcentaje)
 
+        # Se pasa el nombre TAL COMO lo escribió el usuario (sin limpiar antes)
+        # para que formatear_referencia_notario extraiga el título real
+        # (Doctor/Abogado/Ingeniero/etc.) y aplique el género correspondiente.
+        notario_referencia = formatear_referencia_notario(
+            historia.get('generoNotario', ''),
+            historia.get('esSuplente', False),
+            historia.get('numeroNotaria', ''),
+            historia.get('cantonNotaria', ''),
+            historia.get('notario', ''),
+        )
+
+        causante_notario_referencia = formatear_referencia_notario(
+            historia.get('causanteGeneroNotario', ''),
+            historia.get('causanteEsSuplente', False),
+            historia.get('causanteNumeroNotaria', ''),
+            historia.get('causanteCantonNotaria', ''),
+            historia.get('causanteNotario', ''),
+        )
+
         parte = {
             'numero_parte': numero_parte,
             'tiene_porcentaje': bool(porcentaje_palabras),
             'porcentaje_palabras': porcentaje_palabras,
+            'notario_referencia': notario_referencia,
+            'causante_notario_referencia': causante_notario_referencia,
             'titulo': historia.get('titulo', ''),
             'titulo_otro': historia.get('tituloOtro', ''),
+            'titulo_texto': formatear_titulo_adquisicion(historia.get('titulo', ''), historia.get('tituloOtro', '')),
             'tipo_sucesion': historia.get('tipoSucesion', ''),
+            'tipo_sucesion_texto': formatear_tipo_sucesion(historia.get('tipoSucesion', '')),
             'adquirido_de': historia.get('adquiridoDe', ''),
             'fecha_otorgamiento': formatear_fecha_notarial(historia.get('fechaOtorgamiento', '')) if historia.get('fechaOtorgamiento') else '',
             'numero_notaria': historia.get('numeroNotaria', ''),
@@ -779,6 +867,7 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             'causante_adquirido_de': historia.get('causanteAdquiridoDe', ''),
             'causante_titulo': historia.get('causanteTitulo', ''),
             'causante_titulo_otro': historia.get('causanteTituloOtro', ''),
+            'causante_titulo_texto': formatear_titulo_adquisicion(historia.get('causanteTitulo', ''), historia.get('causanteTituloOtro', '')),
             'causante_fecha_otorgamiento': formatear_fecha_notarial(historia.get('causanteFechaOtorgamiento', '')) if historia.get('causanteFechaOtorgamiento') else '',
             'causante_numero_notaria': historia.get('causanteNumeroNotaria', ''),
             'causante_numero_notaria_palabras': numero_a_ordinal_notaria(historia.get('causanteNumeroNotaria', '')) if historia.get('causanteNumeroNotaria') else '',
@@ -824,7 +913,16 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
             context['declaratoria_manual'] = False
             declaratoria = data.get('declaratoriaFormulario', {})
 
+            declaratoria_notario_referencia = formatear_referencia_notario(
+                declaratoria.get('generoNotario', ''),
+                declaratoria.get('esSuplente', False),
+                declaratoria.get('numeroNotaria', ''),
+                declaratoria.get('cantonNotaria', ''),
+                declaratoria.get('notario', ''),
+            )
+
             context['declaratoria'] = {
+                'notario_referencia': declaratoria_notario_referencia,
                 'fecha_otorgamiento': formatear_fecha_notarial(declaratoria.get('fechaOtorgamiento', '')) if declaratoria.get('fechaOtorgamiento') else '',
                 'numero_notaria': declaratoria.get('numeroNotaria', ''),
                 'numero_notaria_palabras': numero_a_ordinal_notaria(declaratoria.get('numeroNotaria', '')) if declaratoria.get('numeroNotaria') else '',
@@ -892,6 +990,12 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
         for parte in partes_pago:
             monto = parte.get('monto', 0)
 
+            momento_otro_raw = parte.get('momentoOtro', '')
+            if parte.get('momentoEsFecha') and momento_otro_raw:
+                momento_otro_texto = formatear_fecha_notarial(momento_otro_raw)
+            else:
+                momento_otro_texto = momento_otro_raw
+
             parte_data = {
                 'letra': parte.get('letra', ''),
                 'monto': monto,
@@ -900,8 +1004,8 @@ def generate_minuta_compraventa(data: dict, current_user=None) -> str:
                 'medio_pago': parte.get('medioPago', ''),
                 'tipo_cheque': parte.get('tipoCheque', ''),
                 'momento_pago': parte.get('momentoPago', ''),
-                'momento_pago_otro': parte.get('momentoOtro', ''),
-                'momento_otro': parte.get('momentoOtro', ''),
+                'momento_pago_otro': momento_otro_texto,
+                'momento_otro': momento_otro_texto,
                 'es_credito': parte.get('esCreditoBancario', False),
                 'entidad_credito': parte.get('nombreBanco', ''),
                 'nombre_banco': parte.get('nombreBanco', ''),

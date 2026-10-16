@@ -1100,6 +1100,7 @@ const FormularioCompraventa = () => {
       tipoCheque: "",
       momentoPago: "",
       momentoOtro: "",
+      momentoEsFecha: false,
       esCreditoBancario: false,
       nombreBanco: "",
       cuentaDestino: "",
@@ -1624,6 +1625,7 @@ const FormularioCompraventa = () => {
         tipoCheque: "",
         momentoPago: "",
         momentoOtro: "",
+        momentoEsFecha: false,
         esCreditoBancario: false,
         nombreBanco: "",
         cuentaDestino: "",
@@ -1685,6 +1687,10 @@ const FormularioCompraventa = () => {
           }
 
           if (field === "momentoPago" && value !== "otro") {
+            updated.momentoOtro = "";
+          }
+
+          if (field === "momentoEsFecha") {
             updated.momentoOtro = "";
           }
 
@@ -2820,12 +2826,13 @@ const FormularioCompraventa = () => {
                         </div>
 
                         <h4 className="font-semibold text-blue-900 pt-3 border-t border-blue-300">
-                          Datos del Causante
+                          Datos del Causante / Causantes
                         </h4>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Nombre completo del Causante (de quien heredaron)
+                            Nombre completo del Causante / los Causantes (de
+                            quien heredaron)
                           </label>
                           <input
                             type="text"
@@ -4811,23 +4818,66 @@ const FormularioCompraventa = () => {
 
                               {/* Si es Otro momento */}
                               {parte.momentoPago === "otro" && (
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Especifique el momento de pago
+                                <div className="space-y-2">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={parte.momentoEsFecha || false}
+                                      onChange={(e) =>
+                                        handlePartePagoChange(
+                                          parte.id,
+                                          "momentoEsFecha",
+                                          e.target.checked,
+                                        )
+                                      }
+                                      className="w-4 h-4 rounded text-blue-600"
+                                    />
+                                    <span className="text-sm text-gray-700">
+                                      Es una fecha específica
+                                    </span>
                                   </label>
-                                  <input
-                                    type="text"
-                                    value={parte.momentoOtro}
-                                    onChange={(e) =>
-                                      handlePartePagoChange(
-                                        parte.id,
-                                        "momentoOtro",
-                                        e.target.value,
-                                      )
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-                                    placeholder="Ej: dentro de 30 días hábiles"
-                                  />
+
+                                  {parte.momentoEsFecha ? (
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Fecha de pago
+                                      </label>
+                                      <input
+                                        type="date"
+                                        value={parte.momentoOtro}
+                                        onChange={(e) =>
+                                          handlePartePagoChange(
+                                            parte.id,
+                                            "momentoOtro",
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                      />
+                                      <p className="text-xs text-gray-500 mt-1">
+                                        Se convertirá automáticamente a letras
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div>
+                                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Especifique el momento de pago
+                                      </label>
+                                      <input
+                                        type="text"
+                                        value={parte.momentoOtro}
+                                        onChange={(e) =>
+                                          handlePartePagoChange(
+                                            parte.id,
+                                            "momentoOtro",
+                                            e.target.value,
+                                          )
+                                        }
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                        placeholder="Ej: dentro de 30 días hábiles"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </>

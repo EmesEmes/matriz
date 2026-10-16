@@ -147,7 +147,7 @@ def numero_a_letras(n):
         23: "veintitrés",
         24: "veinticuatro",
         25: "veinticinco",
-        26: "veintidós",
+        26: "veintiséis",
         27: "veintisiete",
         28: "veintiocho",
         29: "veintinueve"
@@ -222,6 +222,92 @@ def numero_a_letras(n):
     if resto == 0:
         return f"{numero_a_letras(millones)} millones"
     return f"{numero_a_letras(millones)} millones {numero_a_letras(resto)}"
+
+
+ORDINALES_FEMENINO = {
+    1: "Primera", 2: "Segunda", 3: "Tercera", 4: "Cuarta", 5: "Quinta",
+    6: "Sexta", 7: "Séptima", 8: "Octava", 9: "Novena", 10: "Décima",
+    11: "Undécima", 12: "Duodécima", 13: "Décimo Tercera", 14: "Décimo Cuarta",
+    15: "Décimo Quinta", 16: "Décimo Sexta", 17: "Décimo Séptima",
+    18: "Décimo Octava", 19: "Décimo Novena"
+}
+ORDINALES_MASCULINO = {
+    1: "Primero", 2: "Segundo", 3: "Tercero", 4: "Cuarto", 5: "Quinto",
+    6: "Sexto", 7: "Séptimo", 8: "Octavo", 9: "Noveno", 10: "Décimo",
+    11: "Undécimo", 12: "Duodécimo", 13: "Décimo Tercero", 14: "Décimo Cuarto",
+    15: "Décimo Quinto", 16: "Décimo Sexto", 17: "Décimo Séptimo",
+    18: "Décimo Octavo", 19: "Décimo Noveno"
+}
+DECENAS_FEMENINO = {
+    20: "Vigésima", 30: "Trigésima", 40: "Cuadragésima", 50: "Quincuagésima",
+    60: "Sexagésima", 70: "Septuagésima", 80: "Octogésima", 90: "Nonagésima"
+}
+DECENAS_MASCULINO = {
+    20: "Vigésimo", 30: "Trigésimo", 40: "Cuadragésimo", 50: "Quincuagésimo",
+    60: "Sexagésimo", 70: "Septuagésimo", 80: "Octogésimo", 90: "Nonagésimo"
+}
+
+
+def numero_a_ordinal_genero(numero, genero='femenino'):
+    """
+    Convierte número a ordinal con concordancia de género completa (ambas
+    partes del ordinal compuesto en el mismo género, sin mezclar).
+    Ej: numero_a_ordinal_genero(12, 'masculino') -> 'Duodécimo'
+        numero_a_ordinal_genero(22, 'masculino') -> 'Vigésimo Segundo'
+        numero_a_ordinal_genero(22, 'femenino')  -> 'Vigésima Segunda'
+    """
+    if isinstance(numero, str):
+        import re
+        match = re.search(r'\d+', numero)
+        if match:
+            numero = int(match.group())
+        else:
+            return numero
+
+    numero = int(numero)
+    es_masculino = genero == 'masculino'
+    especiales = ORDINALES_MASCULINO if es_masculino else ORDINALES_FEMENINO
+    decenas = DECENAS_MASCULINO if es_masculino else DECENAS_FEMENINO
+
+    if numero in especiales:
+        return especiales[numero]
+
+    if 20 <= numero < 100:
+        decena = (numero // 10) * 10
+        unidad = numero % 10
+        if unidad == 0:
+            return decenas[decena]
+        return f"{decenas[decena]} {especiales[unidad]}"
+
+    return f"Número {numero}"
+
+
+def formatear_referencia_notario(genero, es_suplente, numero_notaria, canton_notaria, nombre_notario_raw):
+    """
+    Arma la referencia completa al notario como persona (no como oficina),
+    con género, suplencia, ordinal concordado, y el tratamiento tal como lo
+    escribió el usuario (Doctor/Abogado/Ingeniero/etc.) con su género correcto.
+    Si el usuario no escribió ningún tratamiento, no se agrega ninguno.
+    Ej: 'Doctora Miriam Herrera' + femenino -> 'la notaria ..., doctora MIRIAM HERRERA'
+        'Abogado Juan Pérez' + masculino    -> 'el notario ..., abogado JUAN PÉREZ'
+        'Juan Pérez' + masculino            -> 'el notario ..., JUAN PÉREZ'
+    """
+    genero = genero if genero in ('masculino', 'femenino') else 'femenino'
+    es_femenino = genero == 'femenino'
+    persona = 'la notaria' if es_femenino else 'el notario'
+    suplente_txt = 'Suplente ' if es_suplente else ''
+    ordinal = numero_a_ordinal_genero(numero_notaria, genero) if numero_notaria else ''
+
+    titulo_base, nombre_limpio = separar_titulo_nombre(nombre_notario_raw)
+    if titulo_base:
+        tratamiento = TITULOS_NOTARIALES_GENERO[titulo_base][genero] + ' '
+    else:
+        tratamiento = ''
+
+    texto = f"{persona} {suplente_txt}{ordinal} del cantón {canton_notaria}"
+    if nombre_limpio:
+        texto += f", {tratamiento}{nombre_limpio}"
+    return texto
 
 
 def numero_a_ordinal_notaria(numero):
@@ -367,6 +453,12 @@ def convertir_numero_casa(numero_str):
     if s.isdigit():
         return f"{numero_a_letras(int(s))} ({s})"
 
+    # Patrón: lista de números separados por "y"/"," (ej: '1 y 2', '1, 2 y 3')
+    # Cada número recibe su propio paréntesis, preservando el separador tal
+    # como lo escribió el usuario (incluida su capitalización, ej. "Y").
+    if re.match(r'^\d+([\s,]+[yY]\s+\d+|[\s,]+\d+)*$', s):
+        return re.sub(r'\d+', lambda m: f"{numero_a_letras(int(m.group(0)))} ({m.group(0)})", s)
+
     # Sin patrón reconocido — devolver en mayúsculas tal cual
     return s_upper
 
@@ -418,6 +510,23 @@ def nivel_a_palabras(nivel_str):
         return nivel
 
 
+VARIANTES_TITULO_NOTARIAL = {
+    'doctor': 'doctor', 'doctora': 'doctor', 'dr': 'doctor', 'dra': 'doctor',
+    'abogado': 'abogado', 'abogada': 'abogado', 'ab': 'abogado', 'abg': 'abogado',
+    'ingeniero': 'ingeniero', 'ingeniera': 'ingeniero', 'ing': 'ingeniero',
+    'licenciado': 'licenciado', 'licenciada': 'licenciado', 'lcdo': 'licenciado', 'lcda': 'licenciado',
+    'arquitecto': 'arquitecto', 'arquitecta': 'arquitecto', 'arq': 'arquitecto',
+}
+
+TITULOS_NOTARIALES_GENERO = {
+    'doctor': {'masculino': 'doctor', 'femenino': 'doctora'},
+    'abogado': {'masculino': 'abogado', 'femenino': 'abogada'},
+    'ingeniero': {'masculino': 'ingeniero', 'femenino': 'ingeniera'},
+    'licenciado': {'masculino': 'licenciado', 'femenino': 'licenciada'},
+    'arquitecto': {'masculino': 'arquitecto', 'femenino': 'arquitecta'},
+}
+
+# Lista de todos los títulos que existen (para retrocompatibilidad con limpiar_nombre_notario)
 TITULOS_NOTARIALES = [
     'doctora', 'doctor', 'dra.', 'dr.', 'dra', 'dr',
     'abogada', 'abogado', 'abg.', 'abg', 'ab.', 'ab',
@@ -425,6 +534,28 @@ TITULOS_NOTARIALES = [
     'ingeniera', 'ingeniero', 'ing.', 'ing',
     'arquitecta', 'arquitecto', 'arq.', 'arq',
 ]
+
+
+def separar_titulo_nombre(nombre):
+    """
+    Separa el título/tratamiento (si el usuario lo escribió) del nombre.
+    Retorna (titulo_base, nombre_limpio) donde titulo_base es una clave de
+    TITULOS_NOTARIALES_GENERO ('doctor', 'abogado', etc.) o None si no
+    escribió ningún título — en ese caso no se debe agregar tratamiento alguno.
+    Ej: 'Doctora Miriam Herrera' -> ('doctor', 'MIRIAM HERRERA')
+        'Abogado Juan Pérez'    -> ('abogado', 'JUAN PÉREZ')
+        'Miriam Herrera'        -> (None, 'MIRIAM HERRERA')
+    """
+    if not nombre:
+        return None, ''
+    nombre = nombre.strip()
+    partes = nombre.split(' ', 1)
+    if len(partes) == 2:
+        primera_palabra = partes[0].lower().rstrip('.')
+        if primera_palabra in VARIANTES_TITULO_NOTARIAL:
+            titulo_base = VARIANTES_TITULO_NOTARIAL[primera_palabra]
+            return titulo_base, partes[1].strip().upper()
+    return None, nombre.strip().upper()
 
 
 def limpiar_nombre_notario(nombre):
@@ -435,16 +566,8 @@ def limpiar_nombre_notario(nombre):
         'Dr. Juan Pérez'         -> 'JUAN PÉREZ'
         'Miriam Herrera'         -> 'MIRIAM HERRERA'
     """
-    if not nombre:
-        return ''
-    nombre = nombre.strip()
-    partes = nombre.split(' ', 1)
-    if len(partes) == 2:
-        primera_palabra = partes[0].lower().rstrip('.')
-        titulos_normalizados = [t.rstrip('.') for t in TITULOS_NOTARIALES]
-        if primera_palabra in titulos_normalizados:
-            nombre = partes[1]
-    return nombre.strip().upper()
+    _, nombre_limpio = separar_titulo_nombre(nombre)
+    return nombre_limpio
 
 
 def formatear_dinero(monto):
