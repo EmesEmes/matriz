@@ -43,6 +43,12 @@ const ComparecienteOptions = ({ options, onChange }) => {
                 <option value="adquirido_solo">
                   Bien adquirido soltero/viudo/divorciado
                 </option>
+                <option value="no_requiere_adquirente">
+                  No se requiere comparecencia (cónyuge adquirente)
+                </option>
+                <option value="titulo_gratuito">
+                  Adquiere a título gratuito
+                </option>
               </select>
             </FormField>
           )}

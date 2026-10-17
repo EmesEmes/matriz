@@ -1,16 +1,10 @@
-import { useState } from "react";
-
 const RichTextEditor = ({
-  value,
   onChange,
   placeholder = "Escriba aquí...",
   minHeight = "16rem",
 }) => {
-  const [content, setContent] = useState("");
-
   const handleInput = (e) => {
     const htmlContent = e.currentTarget.innerHTML;
-    setContent(htmlContent);
     if (onChange) {
       onChange(htmlContent);
     }

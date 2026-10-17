@@ -63,6 +63,33 @@ export const transformToCamelCase = (data) => {
       repOccupation: data.rep_occupation || "",
       repProfession: data.rep_profession || "",
       repPosition: data.rep_position || "",
+      // Información financiera / UAFE de la empresa
+      ingresoMensual: data.ingreso_mensual ?? "",
+      egresoMensual: data.egreso_mensual ?? "",
+      actividadEmpresa: data.actividad_empresa || "",
+      rolTramite: data.rol_tramite || "",
+      origenFondos: data.origen_fondos || "",
+      controladaSupercias: data.controlada_supercias ?? null,
+      socios: data.socios || [],
+      referenciaSupercias: data.referencia_supercias || "",
+      anexoSociosNombre: data.anexo_socios_nombre || "",
+      // Información financiera / UAFE del representante legal
+      repActividadEconomica: data.rep_actividad_economica || "",
+      repEmpresaTrabajo: data.rep_empresa_trabajo || "",
+      repIngresoMensual: data.rep_ingreso_mensual ?? "",
+      repRolTramite: data.rep_rol_tramite || "",
+      repOrigenFondos: data.rep_origen_fondos || "",
+      repEsPep: data.rep_es_pep ?? null,
+      repEsPepIndirecto: data.rep_es_pep_indirecto ?? null,
+      repPepNombre: data.rep_pep_nombre || "",
+      repPepInstitucion: data.rep_pep_institucion || "",
+      repPepCargo: data.rep_pep_cargo || "",
+      repPepFechaInicio: data.rep_pep_fecha_inicio || "",
+      repPepYaNoEjerce: data.rep_pep_ya_no_ejerce === true,
+      repPepFechaFin: data.rep_pep_fecha_fin || "",
+      repPepRelacionTipo: data.rep_pep_relacion_tipo || "",
+      repPepGradoRelacion: data.rep_pep_grado_relacion || "",
+      repPatrimonio: data.rep_patrimonio || null,
     };
   }
 
@@ -104,6 +131,11 @@ export const transformToCamelCase = (data) => {
     pepCargo: data.pep_cargo || "",
     pepAniosTrabajo: data.pep_anios_trabajo || "",
     pepGradoRelacion: data.pep_grado_relacion || "",
+    pepRelacionTipo: data.pep_relacion_tipo || "",
+    pepYaNoEjerce: data.pep_ya_no_ejerce === true,
+    pepFechaFin: data.pep_fecha_fin || "",
+    patrimonio: data.patrimonio || null,
+    rolTramite: data.rol_tramite || "",
     partner: data.partner ? transformToCamelCase(data.partner) : null,
   };
 };

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import Optional
+from typing import Optional, Any
 from datetime import date
 from decimal import Decimal
 
@@ -33,7 +33,7 @@ class PartyBase(BaseModel):
     empresa_trabajo: Optional[str] = Field(None, max_length=200)
     ingreso_mensual: Optional[Decimal] = None
     rol_tramite: Optional[str] = Field(None, pattern="^(vendedor|adquirente)$")
-    origen_fondos: Optional[str] = Field(None, max_length=500)
+    origen_fondos: Optional[str] = Field(None, max_length=3000)
     es_pep: Optional[bool] = None
     es_pep_indirecto: Optional[bool] = None
 
@@ -45,10 +45,13 @@ class PartyBase(BaseModel):
     pep_anios_trabajo: Optional[int] = None
     pep_grado_relacion: Optional[str] = Field(None, max_length=200)
     pep_relacion_tipo: Optional[str] = Field(None, max_length=100)
+    pep_ya_no_ejerce: Optional[bool] = None
+    pep_fecha_fin: Optional[date] = None
+    patrimonio: Optional[dict[str, Any]] = None
 
     # Cónyuge no comparece
     conyugue_comparece: Optional[bool] = True
-    razon_exclusion_conyugue: Optional[str] = Field(None, pattern="^(disolucion|capitulacion|adquirido_solo)$")
+    razon_exclusion_conyugue: Optional[str] = Field(None, pattern="^(disolucion|capitulacion|adquirido_solo|no_requiere_adquirente|titulo_gratuito|ingresa_sociedad)$")
 
     # Calidad de participación
     calidad_participacion: Optional[str] = Field(None, pattern="^(propios_derechos|representando|propios_y_representando)$")
@@ -123,6 +126,9 @@ class PartyUpdate(BaseModel):
     pep_anios_trabajo: Optional[int] = None
     pep_grado_relacion: Optional[str] = None
     pep_relacion_tipo: Optional[str] = None
+    pep_ya_no_ejerce: Optional[bool] = None
+    pep_fecha_fin: Optional[date] = None
+    patrimonio: Optional[dict[str, Any]] = None
     rol_tramite: Optional[str] = None
     origen_fondos: Optional[str] = None
     es_pep_indirecto: Optional[bool] = None

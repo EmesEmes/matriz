@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from typing import Optional
 from app.database import get_db
 from app.models.registration_token import RegistrationToken
@@ -15,6 +15,10 @@ from app.schemas.company import CompanyCreate, CompanyResponse
 from app.middleware.auth import get_current_user
 from app.models.system_user import SystemUser
 from app.utils.access_log import registrar_acceso
+from app.utils.anexos import guardar_anexo_pdf
+import logging
+
+logger = logging.getLogger(__name__)
 from app.config import settings
 
 router = APIRouter(tags=["registro"])
@@ -197,8 +201,19 @@ def registrar_cliente(
         tipo = payload.get("tipo", "persona")
 
         if tipo == "empresa":
-            empresa_data = CompanyCreate(**payload.get("empresa", {}))
+            empresa_raw = dict(payload.get("empresa") or {})
+            anexo_base64 = empresa_raw.pop("anexo_socios_base64", None)
+            anexo_nombre = empresa_raw.pop("anexo_socios_nombre", None)
+            # Nunca aceptar una ruta de archivo enviada por el cliente
+            empresa_raw.pop("anexo_socios_path", None)
+
+            empresa_data = CompanyCreate(**empresa_raw)
             empresa = _upsert_company(db, empresa_data)
+
+            if anexo_base64:
+                ruta, nombre = guardar_anexo_pdf(anexo_base64, anexo_nombre, empresa.ruc)
+                empresa.anexo_socios_path = ruta
+                empresa.anexo_socios_nombre = nombre
             token_obj.usado = True
             token_obj.party_document_number = empresa.ruc
             registrar_acceso(db, "registro_publico", "registro_publico", "companies", empresa.ruc, ip)
@@ -274,13 +289,22 @@ def registrar_cliente(
         return {"message": "Datos registrados correctamente"}
 
     except HTTPException:
+        db.rollback()
         raise
+    except ValidationError as e:
+        db.rollback()
+        mensajes = []
+        for err in e.errors()[:5]:
+            campo = ".".join(str(x) for x in err.get("loc", []))
+            mensajes.append(f"{campo}: {err.get('msg', 'valor inválido')}")
+        raise HTTPException(
+            status_code=400,
+            detail="Hay datos inválidos en el formulario. " + "; ".join(mensajes)
+        )
     except Exception as e:
         db.rollback()
-        import traceback
-        print("ERROR EN REGISTRO:", str(e))
-        print(traceback.format_exc())
+        logger.error(f"Error en registro público: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Error: {str(e)}"
+            detail="No se pudieron guardar los datos. Revise la información ingresada o contacte a la notaría."
         )

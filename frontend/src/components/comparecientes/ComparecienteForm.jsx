@@ -73,6 +73,10 @@ const ComparecienteForm = ({
     partnerPepCargo: "",
     partnerPepAniosTrabajo: "",
     partnerPepGradoRelacion: "",
+    partnerPepRelacionTipo: "",
+    partnerPepYaNoEjerce: false,
+    partnerPepFechaFin: "",
+    partnerPatrimonio: null,
     partnerOrigenFondos: "",
     // Campos UAFE (opcionales)
     actividadEconomica: "",
@@ -86,6 +90,10 @@ const ComparecienteForm = ({
     pepCargo: "",
     pepAniosTrabajo: "",
     pepGradoRelacion: "",
+    pepRelacionTipo: "",
+    pepYaNoEjerce: false,
+    pepFechaFin: "",
+    patrimonio: null,
     origenFondos: "",
   });
 
@@ -157,6 +165,10 @@ const ComparecienteForm = ({
         partnerPepCargo: data.partner?.pepCargo || "",
         partnerPepAniosTrabajo: data.partner?.pepAniosTrabajo || "",
         partnerPepGradoRelacion: data.partner?.pepGradoRelacion || "",
+        partnerPepRelacionTipo: data.partner?.pepRelacionTipo || "",
+        partnerPepYaNoEjerce: data.partner?.pepYaNoEjerce === true,
+        partnerPepFechaFin: data.partner?.pepFechaFin || "",
+        partnerPatrimonio: data.partner?.patrimonio || null,
         partnerOrigenFondos: data.partner?.origenFondos || "",
         // Campos UAFE
         actividadEconomica: data.actividadEconomica || "",
@@ -175,6 +187,10 @@ const ComparecienteForm = ({
         pepCargo: data.pepCargo || "",
         pepAniosTrabajo: data.pepAniosTrabajo || "",
         pepGradoRelacion: data.pepGradoRelacion || "",
+        pepRelacionTipo: data.pepRelacionTipo || "",
+        pepYaNoEjerce: data.pepYaNoEjerce === true,
+        pepFechaFin: data.pepFechaFin || "",
+        patrimonio: data.patrimonio || null,
         origenFondos: data.origenFondos || "",
       };
 
@@ -443,26 +459,37 @@ const ComparecienteForm = ({
           ? formData.razonExclusionConyugue
           : null;
 
-      // Convertir campos UAFE vacíos a null y es_pep a boolean
-      if (!dataToSend.actividad_economica)
-        dataToSend.actividad_economica = null;
-      if (!dataToSend.empresa_trabajo) dataToSend.empresa_trabajo = null;
-      if (!dataToSend.ingreso_mensual) dataToSend.ingreso_mensual = null;
-      if (!dataToSend.origen_fondos) dataToSend.origen_fondos = null;
-      dataToSend.es_pep =
+      // Campos UAFE (transformToSnakeCase no los incluye, se mapean aquí)
+      const esPepBool =
         formData.esPep === "si" ? true : formData.esPep === "no" ? false : null;
-      dataToSend.es_pep_indirecto =
+      const esPepIndBool =
         formData.esPepIndirecto === "si"
           ? true
           : formData.esPepIndirecto === "no"
             ? false
             : null;
-      if (!dataToSend.pep_nombre) dataToSend.pep_nombre = null;
-      if (!dataToSend.pep_institucion) dataToSend.pep_institucion = null;
-      if (!dataToSend.pep_fecha_inicio) dataToSend.pep_fecha_inicio = null;
-      if (!dataToSend.pep_cargo) dataToSend.pep_cargo = null;
-      if (!dataToSend.pep_anios_trabajo) dataToSend.pep_anios_trabajo = null;
-      if (!dataToSend.pep_grado_relacion) dataToSend.pep_grado_relacion = null;
+      const tienePep = esPepBool === true || esPepIndBool === true;
+      Object.assign(dataToSend, {
+        actividad_economica: formData.actividadEconomica || null,
+        empresa_trabajo: formData.empresaTrabajo || null,
+        ingreso_mensual: formData.ingresoMensual || null,
+        origen_fondos: formData.origenFondos || null,
+        es_pep: esPepBool,
+        es_pep_indirecto: esPepIndBool,
+        pep_nombre: formData.pepNombre || null,
+        pep_institucion: formData.pepInstitucion || null,
+        pep_fecha_inicio: formData.pepFechaInicio || null,
+        pep_cargo: formData.pepCargo || null,
+        pep_anios_trabajo: formData.pepAniosTrabajo || null,
+        pep_grado_relacion: formData.pepGradoRelacion || null,
+        pep_relacion_tipo: formData.pepRelacionTipo || null,
+        pep_ya_no_ejerce: tienePep ? formData.pepYaNoEjerce === true : null,
+        pep_fecha_fin:
+          tienePep && formData.pepYaNoEjerce
+            ? formData.pepFechaFin || null
+            : null,
+      });
+      // El patrimonio no se edita aquí: no se envía, así el backend lo conserva.
       // Eliminar campos del frontend que no van al backend
       delete dataToSend.e_s_pep;
       delete dataToSend.e_s_pep_indirecto;
@@ -519,6 +546,13 @@ const ComparecienteForm = ({
           formData.partnerPepAniosTrabajo || null;
         partnerPayload.pep_grado_relacion =
           formData.partnerPepGradoRelacion || null;
+        partnerPayload.pep_relacion_tipo =
+          formData.partnerPepRelacionTipo || null;
+        partnerPayload.pep_ya_no_ejerce =
+          formData.partnerPepYaNoEjerce === true;
+        partnerPayload.pep_fecha_fin = formData.partnerPepYaNoEjerce
+          ? formData.partnerPepFechaFin || null
+          : null;
 
         const partnerResponse = await apiFetch(API_CONFIG.ENDPOINTS.PARTIES, {
           method: "POST",
@@ -730,6 +764,12 @@ const ComparecienteForm = ({
                     </option>
                     <option value="adquirido_solo">
                       Bien adquirido soltero/viudo/divorciado
+                    </option>
+                    <option value="no_requiere_adquirente">
+                      No se requiere comparecencia (cónyuge adquirente)
+                    </option>
+                    <option value="titulo_gratuito">
+                      Adquiere a título gratuito
                     </option>
                   </select>
                 </FormField>

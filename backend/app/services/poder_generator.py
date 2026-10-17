@@ -89,6 +89,9 @@ def procesar_compareciente_poder(persona, numero, es_apoderado=False):
         'capitulacion': 'casado/a con capitulaciones matrimoniales',
         'disolucion': 'casado/a con disolución de sociedad conyugal',
         'adquirido_solo': 'casado/a',
+        'no_requiere_adquirente': 'casado/a',
+        'titulo_gratuito': 'casado/a',
+        'ingresa_sociedad': 'casado/a',
     }
     ESTADO_CIVIL_MAP = {
         'soltero': 'soltero/a',

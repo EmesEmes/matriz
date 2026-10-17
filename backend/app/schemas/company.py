@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import Optional
+from typing import Optional, Any
 from datetime import date
 from decimal import Decimal
 
@@ -48,12 +48,21 @@ class CompanyBase(BaseModel):
     # Financiero empresa
     ingreso_mensual: Optional[Decimal] = None
     egreso_mensual: Optional[Decimal] = None
+    actividad_empresa: Optional[str] = Field(None, max_length=200)
+    rol_tramite: Optional[str] = Field(None, pattern="^(vendedor|adquirente)$")
+    origen_fondos: Optional[str] = Field(None, max_length=3000)
+
+    # Socios / accionistas
+    controlada_supercias: Optional[bool] = None
+    socios: Optional[list[dict[str, Any]]] = None
+    referencia_supercias: Optional[str] = Field(None, max_length=300)
 
     # UAFE representante legal
     rep_actividad_economica: Optional[str] = Field(None, pattern="^(independiente|empleado|jubilado|quehaceres_domesticos|cuidador_hogar|estudiante|ninguna)$")
     rep_empresa_trabajo: Optional[str] = Field(None, max_length=200)
     rep_ingreso_mensual: Optional[Decimal] = None
-    rep_origen_fondos: Optional[str] = Field(None, max_length=500)
+    rep_rol_tramite: Optional[str] = Field(None, pattern="^(vendedor|adquirente)$")
+    rep_origen_fondos: Optional[str] = Field(None, max_length=3000)
     rep_es_pep: Optional[bool] = None
     rep_pep_nombre: Optional[str] = Field(None, max_length=200)
     rep_pep_institucion: Optional[str] = Field(None, max_length=200)
@@ -61,6 +70,11 @@ class CompanyBase(BaseModel):
     rep_pep_cargo: Optional[str] = Field(None, max_length=200)
     rep_pep_anios_trabajo: Optional[int] = None
     rep_pep_grado_relacion: Optional[str] = Field(None, max_length=200)
+    rep_es_pep_indirecto: Optional[bool] = None
+    rep_pep_relacion_tipo: Optional[str] = Field(None, max_length=100)
+    rep_pep_ya_no_ejerce: Optional[bool] = None
+    rep_pep_fecha_fin: Optional[str] = None
+    rep_patrimonio: Optional[dict[str, Any]] = None
 
     @field_validator('ruc')
     @classmethod
@@ -125,5 +139,7 @@ class CompanyUpdate(BaseModel):
 
 
 class CompanyResponse(CompanyBase):
+    anexo_socios_nombre: Optional[str] = None
+
     class Config:
         from_attributes = True

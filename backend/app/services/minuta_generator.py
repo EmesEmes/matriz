@@ -267,6 +267,9 @@ def procesar_persona_data(persona, numero_global):
         'capitulacion': 'casado con capitulaciones matrimoniales',
         'disolucion': 'casado con disolución de sociedad conyugal',
         'adquirido_solo': 'casado',  # el bien fue adquirido antes del matrimonio
+        'no_requiere_adquirente': 'casado',
+        'titulo_gratuito': 'casado',  # adquiere a título gratuito (donación, herencia)
+        'ingresa_sociedad': 'casado',  # el bien ingresa a la sociedad conyugal
     }
 
     if marital_status == 'casado' and not conyugue_comparece and razon_exclusion:

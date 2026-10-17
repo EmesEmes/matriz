@@ -39,18 +39,146 @@ const RAZONES_EXCLUSION_CONYUGUE = [
     label:
       "No requiere comparecencia del cónyuge — actúa como parte adquirente",
   },
+  { value: "titulo_gratuito", label: "Adquiero a título gratuito" },
 ];
 
+// Cada opción puede pedir detalles adicionales cuando se marca.
 const ORIGENES_FONDOS = [
-  "Ahorros personales",
-  "Sueldo o salario",
-  "Venta de otro bien (inmueble, vehículo, etc.)",
-  "Herencia o legado",
-  "Préstamo bancario",
-  "Préstamo de familiar o tercero",
-  "Utilidades de negocio propio",
-  "Indemnización o liquidación laboral",
+  { value: "ahorro", label: "Ahorro" },
+  { value: "utilidades", label: "Utilidades" },
+  {
+    value: "venta_propiedad",
+    label: "Venta de propiedad",
+    detalles: [
+      {
+        key: "propiedad",
+        label: "¿Qué propiedad vendió?",
+        placeholder: "Ej: Casa en Cumbayá",
+      },
+      {
+        key: "tiempo",
+        label: "¿Hace qué tiempo la vendió?",
+        placeholder: "Ej: 2 años",
+      },
+      {
+        key: "precio",
+        label: "Precio de venta (USD)",
+        placeholder: "Ej: 80000",
+      },
+    ],
+  },
+  { value: "poliza", label: "Póliza" },
+  { value: "prestamo_hipotecario", label: "Préstamo hipotecario" },
+  {
+    value: "prestamo_entidad",
+    label: "Préstamo personal de entidad financiera",
+    detalles: [
+      {
+        key: "entidad",
+        label: "Nombre de la entidad financiera",
+        placeholder: "Ej: Banco Pichincha",
+      },
+    ],
+  },
+  {
+    value: "prestamo_personal",
+    label: "Préstamo personal",
+    detalles: [
+      {
+        key: "prestamista",
+        label:
+          "Nombres y apellidos de la persona, o razón social de la persona jurídica, que le otorgó el crédito",
+        placeholder: "Ej: JUAN PÉREZ GARCÍA",
+      },
+    ],
+  },
+  {
+    value: "otro",
+    label: "Otro",
+    detalles: [
+      {
+        key: "descripcion",
+        label: "Especifique el origen de los fondos",
+        placeholder: "Ej: Herencia",
+      },
+    ],
+  },
 ];
+
+const TIPOS_INMUEBLE_PATRIMONIO = [
+  { value: "casa", label: "Casa" },
+  { value: "terreno", label: "Terreno" },
+  { value: "solar", label: "Solar" },
+  { value: "departamento", label: "Departamento" },
+  { value: "suite", label: "Suite" },
+  { value: "oficina", label: "Oficina" },
+];
+
+const inmuebleInicial = () => ({ tipo: "", ciudad: "", valor: "" });
+const vehiculoInicial = () => ({ marca: "", modelo: "", placa: "", valor: "" });
+
+// Cada inmueble y cada vehículo es una fila con sus propios datos.
+const patrimonioInicial = () => ({
+  inmuebles: [inmuebleInicial()],
+  no_posee_inmuebles: false,
+  vehiculos: [vehiculoInicial()],
+  no_posee_vehiculos: false,
+  inversiones: "",
+  no_posee_inversiones: false,
+});
+
+const socioInicial = () => ({
+  nombres: "",
+  tipo_documento: "cedula",
+  numero_documento: "",
+  porcentaje: "",
+});
+
+// Arma el texto legible del origen de fondos que se guarda en la base y se
+// muestra en el sistema interno / endpoint UAFE.
+const construirOrigenFondosTexto = (datos, prefijo = "") => {
+  const lista = datos[`${prefijo}origen_fondos_lista`] || [];
+  const detalle = datos[`${prefijo}origen_fondos_detalle`] || {};
+  return ORIGENES_FONDOS.filter((o) => lista.includes(o.value))
+    .map((o) => {
+      if (!o.detalles) return o.label;
+      if (o.value === "otro")
+        return `Otro: ${detalle[`${o.value}_descripcion`] || ""}`;
+      const partes = o.detalles
+        .map((d) => {
+          const v = (detalle[`${o.value}_${d.key}`] || "").trim();
+          if (!v) return null;
+          if (d.key === "tiempo") return `vendida hace ${v}`;
+          if (d.key === "precio") return `precio de venta $${v}`;
+          return v;
+        })
+        .filter(Boolean);
+      return partes.length ? `${o.label} (${partes.join(", ")})` : o.label;
+    })
+    .join("; ");
+};
+
+// Limpia el patrimonio: si marcó "no posee", vacía los campos relacionados.
+const limpiarPatrimonio = (pat) => {
+  if (!pat) return null;
+  const p = { ...patrimonioInicial(), ...pat };
+  const limpiar = (fila) =>
+    Object.fromEntries(
+      Object.entries(fila).map(([k, v]) => [k, String(v ?? "").trim()]),
+    );
+  const conDatos = (fila) => Object.values(fila).some((v) => v !== "");
+  p.inmuebles = p.no_posee_inmuebles
+    ? []
+    : p.inmuebles.map(limpiar).filter(conDatos);
+  p.vehiculos = p.no_posee_vehiculos
+    ? []
+    : p.vehiculos
+        .map(limpiar)
+        .map((v) => ({ ...v, placa: v.placa.toUpperCase() }))
+        .filter(conDatos);
+  if (p.no_posee_inversiones) p.inversiones = "";
+  return p;
+};
 
 const RELACIONES_PEP = [
   "Cónyuge/Conviviente",
@@ -100,6 +228,11 @@ const personaInicial = () => ({
   pep_cargo: "",
   pep_anios_trabajo: "",
   pep_grado_relacion: "",
+  pep_ya_no_ejerce: false,
+  pep_fecha_fin: "",
+  patrimonio: patrimonioInicial(),
+  origen_fondos_lista: [],
+  origen_fondos_detalle: {},
 });
 
 const empresaInicial = () => ({
@@ -116,6 +249,15 @@ const empresaInicial = () => ({
   number_street: "",
   ingreso_mensual: "",
   egreso_mensual: "",
+  actividad_empresa: "",
+  rol_tramite: "",
+  origen_fondos_lista: [],
+  origen_fondos_detalle: {},
+  controlada_supercias: "",
+  socios: [socioInicial()],
+  referencia_supercias: "",
+  anexo_socios_base64: "",
+  anexo_socios_nombre: "",
   rep_document_type: "cedula",
   rep_document_number: "",
   rep_names: "",
@@ -149,6 +291,11 @@ const empresaInicial = () => ({
   rep_pep_cargo: "",
   rep_pep_anios_trabajo: "",
   rep_pep_grado_relacion: "",
+  rep_pep_ya_no_ejerce: false,
+  rep_pep_fecha_fin: "",
+  rep_patrimonio: patrimonioInicial(),
+  rep_origen_fondos_lista: [],
+  rep_origen_fondos_detalle: {},
 });
 
 // ============================================
@@ -376,7 +523,7 @@ const FormularioPEP = ({
     )}
     <div className="col-span-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Institución en la que trabaja el PEP
+        ¿En qué institución?
       </label>
       <input
         type="text"
@@ -393,7 +540,7 @@ const FormularioPEP = ({
     </div>
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Fecha de Inicio
+        ¿Desde qué fecha desempeña el cargo?
       </label>
       <input
         type="date"
@@ -407,33 +554,41 @@ const FormularioPEP = ({
         </p>
       )}
     </div>
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Años de Trabajo
+    <div className="flex items-end pb-2">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={!!datos[`${prefijo}pep_ya_no_ejerce`]}
+          onChange={(e) => {
+            onChange(`${prefijo}pep_ya_no_ejerce`, e.target.checked);
+            if (!e.target.checked) onChange(`${prefijo}pep_fecha_fin`, "");
+          }}
+          className="w-4 h-4 rounded text-blue-600"
+        />
+        <span className="text-sm text-gray-700">Ya no ejerce el cargo</span>
       </label>
-      <input
-        type="number"
-        min="0"
-        step="1"
-        value={datos[`${prefijo}pep_anios_trabajo`]}
-        onChange={(e) =>
-          onChange(
-            `${prefijo}pep_anios_trabajo`,
-            Math.floor(Number(e.target.value)).toString(),
-          )
-        }
-        className={inputClass(errors, `${prefijo}pep_anios_trabajo`)}
-        placeholder="Ej: 3"
-      />
-      {errors[`${prefijo}pep_anios_trabajo`] && (
-        <p className="text-red-500 text-xs mt-1">
-          {errors[`${prefijo}pep_anios_trabajo`]}
-        </p>
-      )}
     </div>
+    {datos[`${prefijo}pep_ya_no_ejerce`] && (
+      <div className="col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          ¿Cuándo terminó sus funciones?
+        </label>
+        <input
+          type="date"
+          value={datos[`${prefijo}pep_fecha_fin`] || ""}
+          onChange={(e) => onChange(`${prefijo}pep_fecha_fin`, e.target.value)}
+          className={inputClass(errors, `${prefijo}pep_fecha_fin`)}
+        />
+        {errors[`${prefijo}pep_fecha_fin`] && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors[`${prefijo}pep_fecha_fin`]}
+          </p>
+        )}
+      </div>
+    )}
     <div className="col-span-2">
       <label className="block text-sm font-medium text-gray-700 mb-1">
-        Cargo que Desempeña el PEP
+        ¿Qué cargo desempeña o desempeñó?
       </label>
       <input
         type="text"
@@ -498,6 +653,676 @@ const FormularioPEP = ({
     )}
   </div>
 );
+
+// ============================================
+// ORIGEN DE FONDOS (checklist con detalles condicionales)
+// ============================================
+const SeccionOrigenFondos = ({
+  datos,
+  onChange,
+  errors,
+  prefijo = "",
+  label,
+}) => {
+  const lista = datos[`${prefijo}origen_fondos_lista`] || [];
+  const detalle = datos[`${prefijo}origen_fondos_detalle`] || {};
+
+  const toggle = (valor) => {
+    const nuevo = lista.includes(valor)
+      ? lista.filter((v) => v !== valor)
+      : [...lista, valor];
+    onChange(`${prefijo}origen_fondos_lista`, nuevo);
+  };
+
+  const setDetalle = (clave, valor) => {
+    onChange(`${prefijo}origen_fondos_detalle`, { ...detalle, [clave]: valor });
+  };
+
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        {label}
+      </label>
+      <div
+        className={`space-y-2 p-3 border rounded-lg ${errors[`${prefijo}origen_fondos`] ? "border-red-400 bg-red-50" : "border-gray-300"}`}
+      >
+        {ORIGENES_FONDOS.map((opcion) => {
+          const checked = lista.includes(opcion.value);
+          return (
+            <div key={opcion.value}>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(opcion.value)}
+                  className="w-4 h-4 rounded text-blue-600"
+                />
+                <span className="text-sm text-gray-700">{opcion.label}</span>
+              </label>
+              {checked && opcion.detalles && (
+                <div className="ml-6 mt-2 mb-1 grid grid-cols-1 gap-2">
+                  {opcion.detalles.map((d) => {
+                    const clave = `${opcion.value}_${d.key}`;
+                    const errKey = `${prefijo}origen_fondos_${clave}`;
+                    return (
+                      <div key={clave}>
+                        <label className="block text-xs text-gray-600 mb-1">
+                          {d.label}
+                        </label>
+                        <input
+                          type={d.key === "precio" ? "number" : "text"}
+                          min={d.key === "precio" ? "0" : undefined}
+                          value={detalle[clave] || ""}
+                          onChange={(e) => setDetalle(clave, e.target.value)}
+                          className={inputClass(errors, errKey)}
+                          placeholder={d.placeholder}
+                        />
+                        {errors[errKey] && (
+                          <p className="text-red-500 text-xs mt-1">
+                            {errors[errKey]}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {errors[`${prefijo}origen_fondos`] && (
+        <p className="text-red-500 text-xs mt-1">
+          {errors[`${prefijo}origen_fondos`]}
+        </p>
+      )}
+    </div>
+  );
+};
+
+// ============================================
+// SITUACIÓN PATRIMONIAL (PEP directo o relacionado con PEP)
+// ============================================
+const SeccionPatrimonio = ({ datos, onChange, errors, prefijo = "" }) => {
+  const pat = {
+    ...patrimonioInicial(),
+    ...(datos[`${prefijo}patrimonio`] || {}),
+  };
+  const guardar = (cambios) =>
+    onChange(`${prefijo}patrimonio`, { ...pat, ...cambios });
+  const set = (campo, valor) => guardar({ [campo]: valor });
+  const key = (campo) => `${prefijo}patrimonio_${campo}`;
+  const errorMsg = (campo) =>
+    errors[key(campo)] ? (
+      <p className="text-red-500 text-xs mt-1">{errors[key(campo)]}</p>
+    ) : null;
+
+  // Edición de filas (inmuebles / vehículos)
+  const setFila = (lista, i, campo, valor) =>
+    guardar({
+      [lista]: pat[lista].map((f, j) =>
+        j === i ? { ...f, [campo]: valor } : f,
+      ),
+    });
+  const agregarFila = (lista, nueva) =>
+    guardar({ [lista]: [...pat[lista], nueva] });
+  const quitarFila = (lista, i) =>
+    guardar({ [lista]: pat[lista].filter((_, j) => j !== i) });
+  const toggleNoPosee = (campoNoPosee, lista, nueva, marcado) =>
+    guardar({
+      [campoNoPosee]: marcado,
+      // Al desmarcar se deja una fila vacía lista para llenar
+      [lista]: marcado ? [] : pat[lista].length ? pat[lista] : [nueva()],
+    });
+
+  const botonQuitar = (lista, i) =>
+    pat[lista].length > 1 && (
+      <button
+        type="button"
+        onClick={() => quitarFila(lista, i)}
+        className="text-xs text-red-600 hover:underline"
+      >
+        Quitar
+      </button>
+    );
+
+  return (
+    <div className="space-y-4 pt-3 border-t border-amber-200">
+      <div>
+        <p className="text-sm font-semibold text-gray-800">
+          Situación patrimonial
+        </p>
+        <p className="text-xs text-gray-600">
+          Estimado usuario, por favor suministre información respecto a su
+          situación patrimonial.
+        </p>
+      </div>
+
+      {/* Inmuebles */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Identifique las propiedades inmuebles de las que es propietario
+        </label>
+        {!pat.no_posee_inmuebles && (
+          <div className="space-y-3">
+            {pat.inmuebles.map((inm, i) => (
+              <div
+                key={i}
+                className="p-3 bg-white border border-gray-200 rounded-lg space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-500">
+                    Inmueble {i + 1}
+                  </span>
+                  {botonQuitar("inmuebles", i)}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Tipo
+                    </label>
+                    <select
+                      value={inm.tipo}
+                      onChange={(e) =>
+                        setFila("inmuebles", i, "tipo", e.target.value)
+                      }
+                      className={inputClass(errors, key(`inmuebles_${i}_tipo`))}
+                    >
+                      <option value="">Seleccione</option>
+                      {TIPOS_INMUEBLE_PATRIMONIO.map((t) => (
+                        <option key={t.value} value={t.value}>
+                          {t.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errorMsg(`inmuebles_${i}_tipo`)}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Ciudad
+                    </label>
+                    <input
+                      type="text"
+                      value={inm.ciudad}
+                      onChange={(e) =>
+                        setFila("inmuebles", i, "ciudad", e.target.value)
+                      }
+                      className={inputClass(
+                        errors,
+                        key(`inmuebles_${i}_ciudad`),
+                      )}
+                      placeholder="Ej: Quito"
+                    />
+                    {errorMsg(`inmuebles_${i}_ciudad`)}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Valoración aproximada (USD)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={inm.valor}
+                      onChange={(e) =>
+                        setFila("inmuebles", i, "valor", e.target.value)
+                      }
+                      className={inputClass(
+                        errors,
+                        key(`inmuebles_${i}_valor`),
+                      )}
+                      placeholder="Ej: 150000"
+                    />
+                    {errorMsg(`inmuebles_${i}_valor`)}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => agregarFila("inmuebles", inmuebleInicial())}
+              className="text-sm font-medium text-blue-600 hover:underline"
+            >
+              + Agregar otro inmueble
+            </button>
+          </div>
+        )}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={pat.no_posee_inmuebles}
+            onChange={(e) =>
+              toggleNoPosee(
+                "no_posee_inmuebles",
+                "inmuebles",
+                inmuebleInicial,
+                e.target.checked,
+              )
+            }
+            className="w-4 h-4 rounded text-gray-600"
+          />
+          <span className="text-sm text-gray-600">
+            No posee bienes inmuebles
+          </span>
+        </label>
+        {errorMsg("inmuebles")}
+      </div>
+
+      {/* Vehículos */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          Identifique los vehículos de los que es propietario
+        </label>
+        {!pat.no_posee_vehiculos && (
+          <div className="space-y-3">
+            {pat.vehiculos.map((veh, i) => (
+              <div
+                key={i}
+                className="p-3 bg-white border border-gray-200 rounded-lg space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-500">
+                    Vehículo {i + 1}
+                  </span>
+                  {botonQuitar("vehiculos", i)}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Marca
+                    </label>
+                    <input
+                      type="text"
+                      value={veh.marca}
+                      onChange={(e) =>
+                        setFila("vehiculos", i, "marca", e.target.value)
+                      }
+                      className={inputClass(
+                        errors,
+                        key(`vehiculos_${i}_marca`),
+                      )}
+                      placeholder="Ej: Toyota"
+                    />
+                    {errorMsg(`vehiculos_${i}_marca`)}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Modelo
+                    </label>
+                    <input
+                      type="text"
+                      value={veh.modelo}
+                      onChange={(e) =>
+                        setFila("vehiculos", i, "modelo", e.target.value)
+                      }
+                      className={inputClass(
+                        errors,
+                        key(`vehiculos_${i}_modelo`),
+                      )}
+                      placeholder="Ej: Hilux"
+                    />
+                    {errorMsg(`vehiculos_${i}_modelo`)}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Placa
+                    </label>
+                    <input
+                      type="text"
+                      value={veh.placa}
+                      onChange={(e) =>
+                        setFila(
+                          "vehiculos",
+                          i,
+                          "placa",
+                          e.target.value.toUpperCase(),
+                        )
+                      }
+                      className={inputClass(
+                        errors,
+                        key(`vehiculos_${i}_placa`),
+                      )}
+                      placeholder="Ej: PBC-1234"
+                      maxLength={10}
+                    />
+                    {errorMsg(`vehiculos_${i}_placa`)}
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Valoración aproximada (USD)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={veh.valor}
+                      onChange={(e) =>
+                        setFila("vehiculos", i, "valor", e.target.value)
+                      }
+                      className={inputClass(
+                        errors,
+                        key(`vehiculos_${i}_valor`),
+                      )}
+                      placeholder="Ej: 30000"
+                    />
+                    {errorMsg(`vehiculos_${i}_valor`)}
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => agregarFila("vehiculos", vehiculoInicial())}
+              className="text-sm font-medium text-blue-600 hover:underline"
+            >
+              + Agregar otro vehículo
+            </button>
+          </div>
+        )}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={pat.no_posee_vehiculos}
+            onChange={(e) =>
+              toggleNoPosee(
+                "no_posee_vehiculos",
+                "vehiculos",
+                vehiculoInicial,
+                e.target.checked,
+              )
+            }
+            className="w-4 h-4 rounded text-gray-600"
+          />
+          <span className="text-sm text-gray-600">No posee vehículos</span>
+        </label>
+        {errorMsg("vehiculos")}
+      </div>
+
+      {/* Inversiones */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          En caso de que tenga inversiones o pólizas en instituciones
+          financieras, fondos de acumulación y fideicomisos, señale el nombre de
+          las entidades
+        </label>
+        {!pat.no_posee_inversiones && (
+          <input
+            type="text"
+            value={pat.inversiones}
+            onChange={(e) => set("inversiones", e.target.value)}
+            className={inputClass(errors, key("inversiones"))}
+            placeholder="Ej: Póliza en Banco Pichincha, fideicomiso en Fiducia S.A."
+          />
+        )}
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={pat.no_posee_inversiones}
+            onChange={(e) => set("no_posee_inversiones", e.target.checked)}
+            className="w-4 h-4 rounded text-gray-600"
+          />
+          <span className="text-sm text-gray-600">
+            No posee inversiones, pólizas, fondos ni fideicomisos
+          </span>
+        </label>
+        {errorMsg("inversiones")}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// SOCIOS / ACCIONISTAS (persona jurídica)
+// ============================================
+const MAX_ANEXO_MB = 5;
+
+const SeccionSocios = ({ datos, onChange, errors }) => {
+  const [errorArchivo, setErrorArchivo] = useState("");
+  const controlada = datos.controlada_supercias;
+  const socios = datos.socios?.length ? datos.socios : [socioInicial()];
+
+  const setSocio = (i, campo, valor) => {
+    const nuevos = socios.map((s, idx) =>
+      idx === i ? { ...s, [campo]: valor } : s,
+    );
+    onChange("socios", nuevos);
+  };
+  const agregar = () => onChange("socios", [...socios, socioInicial()]);
+  const quitar = (i) =>
+    onChange(
+      "socios",
+      socios.filter((_, idx) => idx !== i),
+    );
+
+  const handleArchivo = (e) => {
+    const file = e.target.files?.[0];
+    setErrorArchivo("");
+    if (!file) return;
+    if (
+      file.type !== "application/pdf" &&
+      !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setErrorArchivo("El archivo debe ser PDF");
+      e.target.value = "";
+      return;
+    }
+    if (file.size > MAX_ANEXO_MB * 1024 * 1024) {
+      setErrorArchivo(`El archivo supera ${MAX_ANEXO_MB} MB`);
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      onChange("anexo_socios_base64", reader.result);
+      onChange("anexo_socios_nombre", file.name);
+    };
+    reader.onerror = () => setErrorArchivo("No se pudo leer el archivo");
+    reader.readAsDataURL(file);
+  };
+
+  const quitarArchivo = () => {
+    onChange("anexo_socios_base64", "");
+    onChange("anexo_socios_nombre", "");
+  };
+
+  const docObligatorio = controlada === "no";
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-medium text-gray-700 pt-2 border-t">
+        Socios o Accionistas
+      </h3>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700">
+          ¿La empresa está bajo el control de la Superintendencia de Compañías?
+        </label>
+        <div className="flex gap-3">
+          {[
+            { v: "si", l: "Sí" },
+            { v: "no", l: "No (extranjera o no controlada)" },
+          ].map(({ v, l }) => (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange("controlada_supercias", v)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium ${controlada === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+        {errors.controlada_supercias && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.controlada_supercias}
+          </p>
+        )}
+      </div>
+
+      {controlada && (
+        <>
+          <p className="text-xs text-gray-600">
+            {controlada === "si"
+              ? "Indique los nombres y apellidos de los socios o accionistas. También puede adjuntar el listado que emite la Superintendencia de Compañías o citarlo."
+              : "Indique los socios o accionistas con su número de cédula (ecuatorianos) o pasaporte (extranjeros)."}
+          </p>
+
+          <div className="space-y-3">
+            {socios.map((socio, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+              >
+                <div className="col-span-12 md:col-span-5">
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Nombres y apellidos
+                  </label>
+                  <input
+                    type="text"
+                    value={socio.nombres}
+                    onChange={(e) =>
+                      setSocio(i, "nombres", e.target.value.toUpperCase())
+                    }
+                    className={inputClass(errors, `socios_${i}_nombres`)}
+                    placeholder="NOMBRES Y APELLIDOS"
+                  />
+                  {errors[`socios_${i}_nombres`] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors[`socios_${i}_nombres`]}
+                    </p>
+                  )}
+                </div>
+                <div className="col-span-4 md:col-span-2">
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Documento
+                  </label>
+                  <select
+                    value={socio.tipo_documento}
+                    onChange={(e) =>
+                      setSocio(i, "tipo_documento", e.target.value)
+                    }
+                    className={inputClass(errors, `socios_${i}_tipo_documento`)}
+                  >
+                    <option value="cedula">Cédula</option>
+                    <option value="pasaporte">Pasaporte</option>
+                  </select>
+                </div>
+                <div className="col-span-8 md:col-span-3">
+                  <label className="block text-xs text-gray-600 mb-1">
+                    Número{docObligatorio ? "" : " (opcional)"}
+                  </label>
+                  <input
+                    type="text"
+                    value={socio.numero_documento}
+                    onChange={(e) =>
+                      setSocio(
+                        i,
+                        "numero_documento",
+                        e.target.value.toUpperCase(),
+                      )
+                    }
+                    className={inputClass(
+                      errors,
+                      `socios_${i}_numero_documento`,
+                    )}
+                    maxLength={socio.tipo_documento === "cedula" ? 10 : 20}
+                  />
+                  {errors[`socios_${i}_numero_documento`] && (
+                    <p className="text-red-500 text-xs mt-1">
+                      {errors[`socios_${i}_numero_documento`]}
+                    </p>
+                  )}
+                </div>
+                <div className="col-span-8 md:col-span-1">
+                  <label className="block text-xs text-gray-600 mb-1">%</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={socio.porcentaje}
+                    onChange={(e) => setSocio(i, "porcentaje", e.target.value)}
+                    className={inputClass(errors, `socios_${i}_porcentaje`)}
+                  />
+                </div>
+                <div className="col-span-4 md:col-span-1 flex items-end">
+                  {socios.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => quitar(i)}
+                      className="text-red-600 hover:text-red-800 text-xs font-medium pb-2"
+                    >
+                      Quitar
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={agregar}
+              className="text-sm px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"
+            >
+              + Agregar socio o accionista
+            </button>
+          </div>
+
+          {controlada === "si" && (
+            <div className="space-y-3 p-3 border border-gray-200 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Adjuntar listado de socios de la Superintendencia de Compañías
+                  (PDF, opcional)
+                </label>
+                {datos.anexo_socios_nombre ? (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-gray-700">
+                      {datos.anexo_socios_nombre}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={quitarArchivo}
+                      className="text-red-600 hover:text-red-800 text-xs font-medium"
+                    >
+                      Quitar
+                    </button>
+                  </div>
+                ) : (
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={handleArchivo}
+                    className="block text-sm text-gray-700 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Máximo {MAX_ANEXO_MB} MB.
+                </p>
+                {errorArchivo && (
+                  <p className="text-red-500 text-xs mt-1">{errorArchivo}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  O cite el listado (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={datos.referencia_supercias || ""}
+                  onChange={(e) =>
+                    onChange("referencia_supercias", e.target.value)
+                  }
+                  className={inputClass(errors, "referencia_supercias")}
+                  placeholder="Ej: Listado de socios de la Superintendencia de Compañías con corte al 15/10/2026"
+                />
+              </div>
+            </div>
+          )}
+          {errors.socios && (
+            <p className="text-red-500 text-xs">{errors.socios}</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
 const SeccionUAFE = ({
   datos,
@@ -620,74 +1445,13 @@ const SeccionUAFE = ({
             </p>
           )}
           {datos[`${prefijo}rol_tramite`] && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {labelOrigenFondos}
-              </label>
-              <div className="space-y-2 p-3 border border-gray-300 rounded-lg">
-                {ORIGENES_FONDOS.map((opcion) => {
-                  const seleccionados =
-                    datos[`${prefijo}origen_fondos_lista`] || [];
-                  const checked = seleccionados.includes(opcion);
-                  return (
-                    <label
-                      key={opcion}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => {
-                          const actual =
-                            datos[`${prefijo}origen_fondos_lista`] || [];
-                          const nuevo = checked
-                            ? actual.filter((o) => o !== opcion)
-                            : [...actual, opcion];
-                          onChange(`${prefijo}origen_fondos_lista`, nuevo);
-                        }}
-                        className="w-4 h-4 rounded text-blue-600"
-                      />
-                      <span className="text-sm text-gray-700">{opcion}</span>
-                    </label>
-                  );
-                })}
-                <label className="flex items-center gap-2 cursor-pointer pt-1 border-t">
-                  <input
-                    type="checkbox"
-                    checked={
-                      datos[`${prefijo}origen_fondos_otros_check`] || false
-                    }
-                    onChange={(e) =>
-                      onChange(
-                        `${prefijo}origen_fondos_otros_check`,
-                        e.target.checked,
-                      )
-                    }
-                    className="w-4 h-4 rounded text-blue-600"
-                  />
-                  <span className="text-sm text-gray-700">Otros</span>
-                </label>
-                {datos[`${prefijo}origen_fondos_otros_check`] && (
-                  <input
-                    type="text"
-                    value={datos[`${prefijo}origen_fondos_otros`] || ""}
-                    onChange={(e) =>
-                      onChange(`${prefijo}origen_fondos_otros`, e.target.value)
-                    }
-                    className={inputClass(
-                      errors,
-                      `${prefijo}origen_fondos_otros`,
-                    )}
-                    placeholder="Especifique el origen de los fondos"
-                  />
-                )}
-              </div>
-              {errors[`${prefijo}origen_fondos`] && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors[`${prefijo}origen_fondos`]}
-                </p>
-              )}
-            </div>
+            <SeccionOrigenFondos
+              datos={datos}
+              onChange={onChange}
+              errors={errors}
+              prefijo={prefijo}
+              label={labelOrigenFondos}
+            />
           )}
         </div>
       )}
@@ -749,6 +1513,12 @@ const SeccionUAFE = ({
             mostrarGrado={false}
             mostrarNombre={false}
           />
+          <SeccionPatrimonio
+            datos={datos}
+            onChange={onChange}
+            errors={errors}
+            prefijo={prefijo}
+          />
         </div>
       )}
 
@@ -795,6 +1565,12 @@ const SeccionUAFE = ({
             prefijo={prefijo}
             mostrarGrado={true}
             mostrarNombre={true}
+          />
+          <SeccionPatrimonio
+            datos={datos}
+            onChange={onChange}
+            errors={errors}
+            prefijo={prefijo}
           />
         </div>
       )}
@@ -1151,6 +1927,23 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
       Información Financiera de la Empresa
     </h3>
     <div className="grid grid-cols-2 gap-4">
+      <div className="col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Actividad Económica Principal
+        </label>
+        <input
+          type="text"
+          value={datos.actividad_empresa}
+          onChange={(e) => onChange("actividad_empresa", e.target.value)}
+          className={inputClass(errors, "actividad_empresa")}
+          placeholder="Ej: Comercialización de materiales de construcción"
+        />
+        {errors.actividad_empresa && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.actividad_empresa}
+          </p>
+        )}
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Ingreso Mensual (USD)
@@ -1186,6 +1979,49 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
         )}
       </div>
     </div>
+    <div className="space-y-3">
+      <label className="block text-sm font-medium text-gray-700">
+        ¿En qué calidad participa la empresa en el trámite?
+      </label>
+      <div className="flex flex-col gap-2">
+        {[
+          {
+            v: "vendedor",
+            l: "TRADENTE – VENDEDORA – DONANTE – CEDENTE – ADJUDICANTE - ACREEDORA - OTORGANTE",
+          },
+          {
+            v: "adquirente",
+            l: "ADQUIRIENTE – COMPRADORA – DONATARIA – CESIONARIA – ADJUDICATARIA - DEUDORA - BENEFICIARIA",
+          },
+        ].map(({ v, l }) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange("rol_tramite", v)}
+            className={`px-3 py-2 rounded-lg text-xs font-medium text-left ${datos.rol_tramite === v ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+      {errors.rol_tramite && (
+        <p className="text-red-500 text-xs mt-1">{errors.rol_tramite}</p>
+      )}
+      {datos.rol_tramite && (
+        <SeccionOrigenFondos
+          datos={datos}
+          onChange={onChange}
+          errors={errors}
+          prefijo=""
+          label={
+            datos.rol_tramite === "adquirente"
+              ? "Origen de los fondos con los que la empresa pagará el bien que adquiere"
+              : "Origen de los fondos con los que la empresa adquirió el bien que transfiere"
+          }
+        />
+      )}
+    </div>
+    <SeccionSocios datos={datos} onChange={onChange} errors={errors} />
     <div className="border-t-2 border-blue-200 pt-4">
       <h2 className="font-semibold text-blue-900 text-lg mb-4">
         Representante Legal
@@ -1397,6 +2233,55 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
 );
 
 // ============================================
+// PREPARACIÓN DEL PAYLOAD
+// ============================================
+// El backend rechaza "" en fechas, números y campos con opciones fijas.
+const vaciosANull = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [k, v === "" ? null : v]),
+  );
+
+// Campos que solo existen en el formulario (no en la base de datos)
+const quitarCamposTemporales = (obj, p = "") => {
+  const copia = { ...obj };
+  delete copia[`${p}origen_fondos_lista`];
+  delete copia[`${p}origen_fondos_detalle`];
+  delete copia[`${p}origen_fondos_otros_check`];
+  delete copia[`${p}origen_fondos_otros`];
+  return copia;
+};
+
+// Normaliza los datos UAFE (origen de fondos, PEP, patrimonio) con un prefijo
+// ("" para personas, "rep_" para el representante legal de una empresa).
+const prepararUAFE = (datos, p = "") => {
+  const esPep = datos[`${p}es_pep`] === "si";
+  const esIndirecto = !esPep && datos[`${p}es_pep_indirecto`] === "si";
+  const tienePep = esPep || esIndirecto;
+  const yaNoEjerce = tienePep && !!datos[`${p}pep_ya_no_ejerce`];
+  const val = (campo) => datos[`${p}${campo}`] || null;
+
+  return {
+    [`${p}origen_fondos`]: datos[`${p}rol_tramite`]
+      ? construirOrigenFondosTexto(datos, p) || null
+      : null,
+    [`${p}es_pep`]: esPep,
+    [`${p}es_pep_indirecto`]: datos[`${p}es_pep`] === "no" ? esIndirecto : null,
+    [`${p}pep_nombre`]: esIndirecto ? val("pep_nombre") : null,
+    [`${p}pep_institucion`]: tienePep ? val("pep_institucion") : null,
+    [`${p}pep_cargo`]: tienePep ? val("pep_cargo") : null,
+    [`${p}pep_fecha_inicio`]: tienePep ? val("pep_fecha_inicio") : null,
+    [`${p}pep_ya_no_ejerce`]: tienePep ? yaNoEjerce : null,
+    [`${p}pep_fecha_fin`]: yaNoEjerce ? val("pep_fecha_fin") : null,
+    [`${p}pep_relacion_tipo`]: esIndirecto ? val("pep_relacion_tipo") : null,
+    [`${p}pep_grado_relacion`]: esIndirecto ? val("pep_grado_relacion") : null,
+    [`${p}pep_anios_trabajo`]: null,
+    [`${p}patrimonio`]: tienePep
+      ? limpiarPatrimonio(datos[`${p}patrimonio`])
+      : null,
+  };
+};
+
+// ============================================
 // VALIDACIONES
 // ============================================
 const validarPersona = (datos, prefijo = "") => {
@@ -1421,52 +2306,138 @@ const validarPersona = (datos, prefijo = "") => {
   if (!datos[`${p}parroquia`]) e[`${p}parroquia`] = "Requerido";
   if (!datos[`${p}main_street`]) e[`${p}main_street`] = "Requerido";
   if (!datos[`${p}secondary_street`]) e[`${p}secondary_street`] = "Requerido";
-  if (!datos[`${p}number_street`]) e[`${p}number_street`] = "Requerido";
   if (!datos[`${p}occupation`]) e[`${p}occupation`] = "Requerido";
   return e;
 };
 
-const validarUAFE = (datos, prefijo = "", validarOrigenFondos = false) => {
+const validarOrigenFondos = (datos, p = "") => {
   const e = {};
+  const lista = datos[`${p}origen_fondos_lista`] || [];
+  const detalle = datos[`${p}origen_fondos_detalle`] || {};
+  if (lista.length === 0) {
+    e[`${p}origen_fondos`] = "Seleccione al menos una opción";
+    return e;
+  }
+  ORIGENES_FONDOS.filter((o) => lista.includes(o.value) && o.detalles).forEach(
+    (o) => {
+      o.detalles.forEach((d) => {
+        const clave = `${o.value}_${d.key}`;
+        if (!(detalle[clave] || "").toString().trim())
+          e[`${p}origen_fondos_${clave}`] = "Requerido";
+      });
+    },
+  );
+  return e;
+};
+
+const validarPatrimonio = (datos, p = "") => {
+  const e = {};
+  const pat = { ...patrimonioInicial(), ...(datos[`${p}patrimonio`] || {}) };
+  const k = (c) => `${p}patrimonio_${c}`;
+  const vacio = (v) => !String(v ?? "").trim();
+
+  if (!pat.no_posee_inmuebles) {
+    if (pat.inmuebles.length === 0)
+      e[k("inmuebles")] = "Agregue sus inmuebles o marque que no posee";
+    pat.inmuebles.forEach((inm, i) => {
+      if (vacio(inm.tipo)) e[k(`inmuebles_${i}_tipo`)] = "Requerido";
+      if (vacio(inm.ciudad)) e[k(`inmuebles_${i}_ciudad`)] = "Requerido";
+      if (vacio(inm.valor)) e[k(`inmuebles_${i}_valor`)] = "Requerido";
+    });
+  }
+
+  if (!pat.no_posee_vehiculos) {
+    if (pat.vehiculos.length === 0)
+      e[k("vehiculos")] = "Agregue sus vehículos o marque que no posee";
+    pat.vehiculos.forEach((veh, i) => {
+      if (vacio(veh.marca)) e[k(`vehiculos_${i}_marca`)] = "Requerido";
+      if (vacio(veh.modelo)) e[k(`vehiculos_${i}_modelo`)] = "Requerido";
+      if (vacio(veh.placa)) e[k(`vehiculos_${i}_placa`)] = "Requerido";
+      else if (!/^[A-Z0-9-]{5,10}$/i.test(veh.placa.trim()))
+        e[k(`vehiculos_${i}_placa`)] = "Placa inválida";
+      if (vacio(veh.valor)) e[k(`vehiculos_${i}_valor`)] = "Requerido";
+    });
+  }
+
+  if (!pat.no_posee_inversiones && vacio(pat.inversiones))
+    e[k("inversiones")] = "Indique las entidades o marque que no posee";
+  return e;
+};
+
+const validarDatosPEP = (datos, p = "", esIndirecto = false) => {
+  const e = {};
+  if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
+  if (!datos[`${p}pep_institucion`]) e[`${p}pep_institucion`] = "Requerido";
+  if (!datos[`${p}pep_fecha_inicio`]) e[`${p}pep_fecha_inicio`] = "Requerido";
+  if (datos[`${p}pep_ya_no_ejerce`]) {
+    if (!datos[`${p}pep_fecha_fin`]) e[`${p}pep_fecha_fin`] = "Requerido";
+    else if (
+      datos[`${p}pep_fecha_inicio`] &&
+      datos[`${p}pep_fecha_fin`] < datos[`${p}pep_fecha_inicio`]
+    )
+      e[`${p}pep_fecha_fin`] = "No puede ser anterior a la fecha de inicio";
+  }
+  if (esIndirecto) {
+    if (!datos[`${p}pep_nombre`]) e[`${p}pep_nombre`] = "Requerido";
+    if (!datos[`${p}pep_relacion_tipo`])
+      e[`${p}pep_relacion_tipo`] = "Requerido";
+    if (!datos[`${p}pep_grado_relacion`])
+      e[`${p}pep_grado_relacion`] = "Requerido";
+  }
+  return { ...e, ...validarPatrimonio(datos, p) };
+};
+
+const validarUAFE = (datos, prefijo = "", validarOrigen = false) => {
+  let e = {};
   const p = prefijo;
   if (!datos[`${p}actividad_economica`])
     e[`${p}actividad_economica`] = "Requerido";
   if (!datos[`${p}ingreso_mensual`]) e[`${p}ingreso_mensual`] = "Requerido";
-  if (validarOrigenFondos) {
+  if (validarOrigen) {
     if (!datos[`${p}rol_tramite`]) e[`${p}rol_tramite`] = "Requerido";
-    if (datos[`${p}rol_tramite`]) {
-      const lista = datos[`${p}origen_fondos_lista`] || [];
-      const otrosCheck = datos[`${p}origen_fondos_otros_check`];
-      const otrosTexto = datos[`${p}origen_fondos_otros`]?.trim();
-      const tieneAlgo = lista.length > 0 || (otrosCheck && otrosTexto);
-      if (!tieneAlgo) e[`${p}origen_fondos`] = "Seleccione al menos una opción";
-      if (otrosCheck && !otrosTexto)
-        e[`${p}origen_fondos_otros`] = "Especifique el origen de los fondos";
-    }
+    else e = { ...e, ...validarOrigenFondos(datos, p) };
   }
   if (!datos[`${p}es_pep`]) e[`${p}es_pep`] = "Requerido";
-  if (datos[`${p}es_pep`] === "si") {
-    if (!datos[`${p}pep_institucion`]) e[`${p}pep_institucion`] = "Requerido";
-    if (!datos[`${p}pep_fecha_inicio`]) e[`${p}pep_fecha_inicio`] = "Requerido";
-    if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
-    if (!datos[`${p}pep_anios_trabajo`])
-      e[`${p}pep_anios_trabajo`] = "Requerido";
-  }
+  if (datos[`${p}es_pep`] === "si")
+    e = { ...e, ...validarDatosPEP(datos, p, false) };
   if (datos[`${p}es_pep`] === "no") {
     if (!datos[`${p}es_pep_indirecto`]) e[`${p}es_pep_indirecto`] = "Requerido";
-    if (datos[`${p}es_pep_indirecto`] === "si") {
-      if (!datos[`${p}pep_nombre`]) e[`${p}pep_nombre`] = "Requerido";
-      if (!datos[`${p}pep_institucion`]) e[`${p}pep_institucion`] = "Requerido";
-      if (!datos[`${p}pep_fecha_inicio`])
-        e[`${p}pep_fecha_inicio`] = "Requerido";
-      if (!datos[`${p}pep_cargo`]) e[`${p}pep_cargo`] = "Requerido";
-      if (!datos[`${p}pep_anios_trabajo`])
-        e[`${p}pep_anios_trabajo`] = "Requerido";
-      if (!datos[`${p}pep_relacion_tipo`])
-        e[`${p}pep_relacion_tipo`] = "Requerido";
-      if (!datos[`${p}pep_grado_relacion`])
-        e[`${p}pep_grado_relacion`] = "Requerido";
-    }
+    if (datos[`${p}es_pep_indirecto`] === "si")
+      e = { ...e, ...validarDatosPEP(datos, p, true) };
+  }
+  return e;
+};
+
+const validarSocios = (datos) => {
+  const e = {};
+  if (!datos.controlada_supercias) {
+    e.controlada_supercias = "Requerido";
+    return e;
+  }
+  const socios = (datos.socios || []).filter(
+    (s) => s.nombres.trim() || s.numero_documento.trim(),
+  );
+  const docObligatorio = datos.controlada_supercias === "no";
+
+  (datos.socios || []).forEach((s, i) => {
+    const tieneAlgo = s.nombres.trim() || s.numero_documento.trim();
+    if (!tieneAlgo) return;
+    if (!s.nombres.trim()) e[`socios_${i}_nombres`] = "Requerido";
+    const num = s.numero_documento.trim();
+    if (docObligatorio && !num) e[`socios_${i}_numero_documento`] = "Requerido";
+    if (num && s.tipo_documento === "cedula" && !/^\d{10}$/.test(num))
+      e[`socios_${i}_numero_documento`] = "Cédula debe tener 10 dígitos";
+  });
+
+  if (docObligatorio) {
+    if (socios.length === 0)
+      e.socios = "Ingrese al menos un socio o accionista";
+  } else {
+    const tieneAlternativa =
+      datos.anexo_socios_base64 || (datos.referencia_supercias || "").trim();
+    if (socios.length === 0 && !tieneAlternativa)
+      e.socios =
+        "Ingrese al menos un socio, adjunte el listado de la Superintendencia o cítelo";
   }
   return e;
 };
@@ -1484,12 +2455,24 @@ const validarEmpresa = (datos) => {
   if (!datos.main_street) e.main_street = "Requerido";
   if (!datos.secondary_street) e.secondary_street = "Requerido";
   if (!datos.number_street) e.number_street = "Requerido";
+  if (!datos.actividad_empresa?.trim()) e.actividad_empresa = "Requerido";
   if (!datos.ingreso_mensual) e.ingreso_mensual = "Requerido";
   if (!datos.egreso_mensual) e.egreso_mensual = "Requerido";
+  if (!datos.rol_tramite) e.rol_tramite = "Requerido";
+  const errorsOrigen = datos.rol_tramite ? validarOrigenFondos(datos, "") : {};
+  const errorsSocios = validarSocios(datos);
   const errorsRep = validarPersona(datos, "rep_");
+  // La empresa exige número en la dirección del representante (backend)
+  if (!datos.rep_number_street) errorsRep.rep_number_street = "Requerido";
   if (!datos.rep_position) errorsRep.rep_position = "Requerido";
   const errorsRepUAFE = validarUAFE(datos, "rep_", true);
-  return { ...e, ...errorsRep, ...errorsRepUAFE };
+  return {
+    ...e,
+    ...errorsOrigen,
+    ...errorsSocios,
+    ...errorsRep,
+    ...errorsRepUAFE,
+  };
 };
 
 // ============================================
@@ -1630,7 +2613,7 @@ const RegistroClientePage = () => {
       e = { ...e, ...validarPersona(titular) };
       e = {
         ...e,
-        ...validarUAFE(titular, "", calidadParticipacion !== "representando"),
+        ...validarUAFE(titular, "", true),
       };
       if (
         calidadParticipacion === "propios_derechos" ||
@@ -1717,25 +2700,11 @@ const RegistroClientePage = () => {
     return e;
   };
 
-  const prepararPersona = (datos, esPep) => {
-    const lista = datos.origen_fondos_lista || [];
-    const otros = datos.origen_fondos_otros_check
-      ? datos.origen_fondos_otros
-      : "";
-    const origenFondosTexto = [...lista, otros].filter(Boolean).join(", ");
-
-    return {
-      ...datos,
-      origen_fondos: origenFondosTexto || datos.origen_fondos || null,
-      es_pep: esPep === "si",
-      pep_nombre: esPep === "si" ? datos.pep_nombre : null,
-      pep_institucion: esPep === "si" ? datos.pep_institucion : null,
-      pep_fecha_inicio: esPep === "si" ? datos.pep_fecha_inicio : null,
-      pep_cargo: esPep === "si" ? datos.pep_cargo : null,
-      pep_anios_trabajo:
-        esPep === "si" ? parseInt(datos.pep_anios_trabajo) : null,
-      pep_grado_relacion: esPep === "si" ? datos.pep_grado_relacion : null,
-    };
+  const prepararPersona = (datos) => {
+    const base = { ...vaciosANull(datos), ...prepararUAFE(datos, "") };
+    if (datos.conyugue_comparece !== false)
+      base.razon_exclusion_conyugue = null;
+    return quitarCamposTemporales(base, "");
   };
 
   const handleSubmit = async () => {
@@ -1749,39 +2718,38 @@ const RegistroClientePage = () => {
     try {
       let payload;
       if (tipoRegistro === "empresa") {
-        const repLista = empresa.rep_origen_fondos_lista || [];
-        const repOtros = empresa.rep_origen_fondos_otros_check
-          ? empresa.rep_origen_fondos_otros
-          : "";
-        const repOrigenFondosTexto = [...repLista, repOtros]
-          .filter(Boolean)
-          .join(", ");
+        const sociosValidos = (empresa.socios || [])
+          .filter((x) => x.nombres.trim() || x.numero_documento.trim())
+          .map((x) => ({
+            nombres: x.nombres.trim(),
+            tipo_documento: x.tipo_documento,
+            numero_documento: x.numero_documento.trim() || null,
+            porcentaje: x.porcentaje === "" ? null : x.porcentaje,
+          }));
+        const esControlada = empresa.controlada_supercias === "si";
 
-        payload = {
-          tipo: "empresa",
-          empresa: {
-            ...empresa,
-            rep_origen_fondos:
-              repOrigenFondosTexto || empresa.rep_origen_fondos || null,
-            rep_es_pep: empresa.rep_es_pep === "si",
-            rep_pep_nombre:
-              empresa.rep_es_pep === "si" ? empresa.rep_pep_nombre : null,
-            rep_pep_institucion:
-              empresa.rep_es_pep === "si" ? empresa.rep_pep_institucion : null,
-            rep_pep_fecha_inicio:
-              empresa.rep_es_pep === "si" ? empresa.rep_pep_fecha_inicio : null,
-            rep_pep_cargo:
-              empresa.rep_es_pep === "si" ? empresa.rep_pep_cargo : null,
-            rep_pep_anios_trabajo:
-              empresa.rep_es_pep === "si"
-                ? parseInt(empresa.rep_pep_anios_trabajo)
-                : null,
-            rep_pep_grado_relacion:
-              empresa.rep_es_pep === "si"
-                ? empresa.rep_pep_grado_relacion
-                : null,
-          },
+        let empresaPrep = {
+          ...vaciosANull(empresa),
+          ...prepararUAFE(empresa, "rep_"),
+          origen_fondos: empresa.rol_tramite
+            ? construirOrigenFondosTexto(empresa, "") || null
+            : null,
+          controlada_supercias: esControlada,
+          socios: sociosValidos,
+          referencia_supercias: esControlada
+            ? empresa.referencia_supercias?.trim() || null
+            : null,
+          anexo_socios_base64: esControlada
+            ? empresa.anexo_socios_base64 || null
+            : null,
+          anexo_socios_nombre: esControlada
+            ? empresa.anexo_socios_nombre || null
+            : null,
         };
+        empresaPrep = quitarCamposTemporales(empresaPrep, "rep_");
+        empresaPrep = quitarCamposTemporales(empresaPrep, "");
+
+        payload = { tipo: "empresa", empresa: empresaPrep };
       } else {
         const titularPrep = prepararPersona(titular, titular.es_pep);
         let conyuguePrep = null;
@@ -2211,9 +3179,7 @@ const RegistroClientePage = () => {
                   onChange={handleTitularChange}
                   errors={errors}
                   mostrarEstadoCivil={true}
-                  mostrarRolTramite={
-                    calidadParticipacion === "propios_derechos"
-                  }
+                  mostrarRolTramite={true}
                 />
               )}
 

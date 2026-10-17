@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Date, Enum as SQLEnum, ForeignKey, DateTime, Numeric, Integer, Boolean
+from sqlalchemy import Column, String, Date, Enum as SQLEnum, ForeignKey, DateTime, Numeric, Integer, Boolean, Text, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -76,7 +76,7 @@ class Party(Base):
     empresa_trabajo = Column(String(200), nullable=True)
     ingreso_mensual = Column(Numeric(10, 2), nullable=True)
     rol_tramite = Column(String(20), nullable=True)  # vendedor / adquirente
-    origen_fondos = Column(String(500), nullable=True)
+    origen_fondos = Column(Text, nullable=True)
     es_pep = Column(Boolean, nullable=True)
     es_pep_indirecto = Column(Boolean, nullable=True)
 
@@ -88,10 +88,17 @@ class Party(Base):
     pep_anios_trabajo = Column(Integer, nullable=True)
     pep_grado_relacion = Column(String(200), nullable=True)
     pep_relacion_tipo = Column(String(100), nullable=True)  # tipo de relación con el PEP (cónyuge, hermano, etc.)
+    pep_ya_no_ejerce = Column(Boolean, nullable=True)
+    pep_fecha_fin = Column(Date, nullable=True)
+
+    # Situación patrimonial (solo PEP directo o relacionado con PEP)
+    # {inmuebles: [..], no_posee_inmuebles, ciudades_inmuebles, valor_inmuebles,
+    #  vehiculos, no_posee_vehiculos, valor_vehiculos, inversiones, no_posee_inversiones}
+    patrimonio = Column(JSON, nullable=True)
 
     # Cónyuge no comparece
     conyugue_comparece = Column(Boolean, default=True, nullable=True)
-    razon_exclusion_conyugue = Column(String(50), nullable=True)  # disolucion / capitulacion / adquirido_solo
+    razon_exclusion_conyugue = Column(String(50), nullable=True)  # disolucion / capitulacion / adquirido_solo / no_requiere_adquirente / titulo_gratuito / ingresa_sociedad
 
     # Calidad en la que participó en el trámite del registro público
     calidad_participacion = Column(String(30), nullable=True)  # propios_derechos / representando / propios_y_representando

@@ -117,7 +117,14 @@ def consultar_uafe(
                 "pep_fecha_inicio": str(party.pep_fecha_inicio) if party.pep_fecha_inicio else None,
                 "pep_anios_trabajo": party.pep_anios_trabajo,
                 "pep_grado_relacion": party.pep_grado_relacion,
+                "pep_relacion_tipo": party.pep_relacion_tipo,
+                "pep_ya_no_ejerce": party.pep_ya_no_ejerce,
+                "pep_fecha_fin": str(party.pep_fecha_fin) if party.pep_fecha_fin else None,
+                "situacion_patrimonial": party.patrimonio,
+                "rol_tramite": party.rol_tramite,
                 "calidad_participacion": party.calidad_participacion,
+                "conyugue_comparece": party.conyugue_comparece,
+                "razon_exclusion_conyugue": party.razon_exclusion_conyugue,
             }
         }
 
@@ -150,6 +157,16 @@ def consultar_uafe(
             "uafe_empresa": {
                 "ingreso_mensual": float(company.ingreso_mensual) if company.ingreso_mensual else None,
                 "egreso_mensual": float(company.egreso_mensual) if company.egreso_mensual else None,
+                "actividad_economica": company.actividad_empresa,
+                "rol_tramite": company.rol_tramite,
+                "origen_fondos": company.origen_fondos,
+            },
+            # Socios / accionistas
+            "socios": {
+                "controlada_supercias": company.controlada_supercias,
+                "listado": company.socios or [],
+                "referencia_supercias": company.referencia_supercias,
+                "tiene_anexo": bool(company.anexo_socios_path),
             },
             # Representante legal
             "representante_legal": {
@@ -183,6 +200,12 @@ def consultar_uafe(
                     "pep_fecha_inicio": company.rep_pep_fecha_inicio,
                     "pep_anios_trabajo": company.rep_pep_anios_trabajo,
                     "pep_grado_relacion": company.rep_pep_grado_relacion,
+                    "es_pep_indirecto": company.rep_es_pep_indirecto,
+                    "pep_relacion_tipo": company.rep_pep_relacion_tipo,
+                    "pep_ya_no_ejerce": company.rep_pep_ya_no_ejerce,
+                    "pep_fecha_fin": company.rep_pep_fecha_fin,
+                    "situacion_patrimonial": company.rep_patrimonio,
+                    "rol_tramite": company.rep_rol_tramite,
                 }
             }
         }

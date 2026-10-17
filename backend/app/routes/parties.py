@@ -31,7 +31,9 @@ def save_user(
         ).first()
 
         if existing_user:
-            for field, value in user_data.model_dump().items():
+            # exclude_unset: solo se actualizan los campos enviados, para no borrar
+            # datos UAFE/patrimonio llenados desde el formulario público.
+            for field, value in user_data.model_dump(exclude_unset=True).items():
                 setattr(existing_user, field, value)
             db.flush()
             registrar_acceso(db, current_user.username, "actualizar", "parties", user_data.document_number, get_client_ip(request))
@@ -52,6 +54,53 @@ def save_user(
         import logging
         logging.getLogger(__name__).error(f"Error guardando compareciente: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al guardar el compareciente. Verifique los datos e intente de nuevo.")
+
+
+def _serializar_party(p: Party) -> dict:
+    """Convierte un Party en dict para la respuesta (persona principal o cónyuge)."""
+    return {
+        "document_number": p.document_number,
+        "names": p.names,
+        "last_names": p.last_names,
+        "document_type": p.document_type.value,
+        "gender": p.gender.value,
+        "marital_status": p.marital_status.value,
+        "partner_document_number": p.partner_document_number,
+        "nationality": p.nationality,
+        "birth_date": p.birth_date,
+        "email": p.email,
+        "phone": p.phone,
+        "province": p.province,
+        "canton": p.canton,
+        "parroquia": p.parroquia,
+        "sector": p.sector,
+        "main_street": p.main_street,
+        "secondary_street": p.secondary_street,
+        "number_street": p.number_street,
+        "edificio": p.edificio,
+        "occupation": p.occupation,
+        "profession": p.profession,
+        "conyugue_comparece": p.conyugue_comparece,
+        "razon_exclusion_conyugue": p.razon_exclusion_conyugue,
+        "calidad_participacion": p.calidad_participacion,
+        "actividad_economica": p.actividad_economica.value if p.actividad_economica else None,
+        "empresa_trabajo": p.empresa_trabajo,
+        "ingreso_mensual": float(p.ingreso_mensual) if p.ingreso_mensual is not None else None,
+        "rol_tramite": p.rol_tramite,
+        "origen_fondos": p.origen_fondos,
+        "es_pep": p.es_pep,
+        "es_pep_indirecto": p.es_pep_indirecto,
+        "pep_nombre": p.pep_nombre,
+        "pep_institucion": p.pep_institucion,
+        "pep_fecha_inicio": p.pep_fecha_inicio,
+        "pep_cargo": p.pep_cargo,
+        "pep_anios_trabajo": p.pep_anios_trabajo,
+        "pep_grado_relacion": p.pep_grado_relacion,
+        "pep_relacion_tipo": p.pep_relacion_tipo,
+        "pep_ya_no_ejerce": p.pep_ya_no_ejerce,
+        "pep_fecha_fin": p.pep_fecha_fin,
+        "patrimonio": p.patrimonio,
+    }
 
 
 @router.get("/{document_number}", response_model=PartyWithPartner)
@@ -79,68 +128,8 @@ def get_user(
                 Party.document_number == user.partner_document_number
             ).first()
 
-        user_dict = {
-            "document_number": user.document_number,
-            "names": user.names,
-            "last_names": user.last_names,
-            "document_type": user.document_type.value,
-            "gender": user.gender.value,
-            "marital_status": user.marital_status.value,
-            "partner_document_number": user.partner_document_number,
-            "nationality": user.nationality,
-            "birth_date": user.birth_date,
-            "email": user.email,
-            "phone": user.phone,
-            "province": user.province,
-            "canton": user.canton,
-            "parroquia": user.parroquia,
-            "sector": user.sector,
-            "main_street": user.main_street,
-            "secondary_street": user.secondary_street,
-            "number_street": user.number_street,
-            "edificio": user.edificio,
-            "occupation": user.occupation,
-            "profession": user.profession,
-            "conyugue_comparece": user.conyugue_comparece,
-            "razon_exclusion_conyugue": user.razon_exclusion_conyugue,
-            "actividad_economica": user.actividad_economica.value if user.actividad_economica else None,
-            "empresa_trabajo": user.empresa_trabajo,
-            "ingreso_mensual": float(user.ingreso_mensual) if user.ingreso_mensual is not None else None,
-            "origen_fondos": user.origen_fondos,
-            "es_pep": user.es_pep,
-            "es_pep_indirecto": user.es_pep_indirecto,
-            "pep_nombre": user.pep_nombre,
-            "pep_institucion": user.pep_institucion,
-            "pep_fecha_inicio": user.pep_fecha_inicio,
-            "pep_cargo": user.pep_cargo,
-            "pep_anios_trabajo": user.pep_anios_trabajo,
-            "pep_grado_relacion": user.pep_grado_relacion,
-            "partner": None
-        }
-
-        if partner:
-            user_dict["partner"] = {
-                "document_number": partner.document_number,
-                "names": partner.names,
-                "last_names": partner.last_names,
-                "document_type": partner.document_type.value,
-                "gender": partner.gender.value,
-                "marital_status": partner.marital_status.value,
-                "partner_document_number": partner.partner_document_number,
-                "nationality": partner.nationality,
-                "birth_date": partner.birth_date,
-                "email": partner.email,
-                "phone": partner.phone,
-                "province": partner.province,
-                "canton": partner.canton,
-                "parroquia": partner.parroquia,
-                "sector": partner.sector,
-                "main_street": partner.main_street,
-                "secondary_street": partner.secondary_street,
-                "number_street": partner.number_street,
-                "occupation": partner.occupation,
-                "profession": partner.profession
-            }
+        user_dict = _serializar_party(user)
+        user_dict["partner"] = _serializar_party(partner) if partner else None
 
         return user_dict
 

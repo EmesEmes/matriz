@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
+from pathlib import Path
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.company import Company
@@ -22,7 +24,9 @@ def save_company(
         existing = db.query(Company).filter(Company.ruc == company_data.ruc).first()
 
         if existing:
-            for field, value in company_data.model_dump().items():
+            # exclude_unset: solo se actualizan los campos que el formulario envió.
+            # Así no se borran datos UAFE/socios llenados desde el formulario público.
+            for field, value in company_data.model_dump(exclude_unset=True).items():
                 setattr(existing, field, value)
             db.commit()
             db.refresh(existing)
@@ -105,3 +109,24 @@ def update_company(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+
+@router.get("/{ruc}/anexo-socios")
+def descargar_anexo_socios(
+    ruc: str,
+    db: Session = Depends(get_db),
+    current_user: SystemUser = Depends(get_current_user)
+):
+    """GET /api/companies/{ruc}/anexo-socios - Descargar el listado de socios adjunto"""
+    company = db.query(Company).filter(Company.ruc == ruc).first()
+    if not company or not company.anexo_socios_path:
+        raise HTTPException(status_code=404, detail="Esta empresa no tiene anexo de socios")
+
+    ruta = Path(company.anexo_socios_path)
+    if not ruta.is_file():
+        raise HTTPException(status_code=404, detail="El archivo del anexo ya no existe en el servidor")
+
+    return FileResponse(
+        path=str(ruta),
+        filename=company.anexo_socios_nombre or f"socios_{ruc}.pdf",
+        media_type="application/pdf",
+    )

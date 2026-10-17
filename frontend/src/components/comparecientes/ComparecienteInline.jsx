@@ -114,7 +114,7 @@ const ComparecienteInline = ({
         }
         toast.error(msg);
       }
-    } catch (err) {
+    } catch {
       toast.error("Error de conexión al buscar compareciente");
     } finally {
       setLoading(false);
