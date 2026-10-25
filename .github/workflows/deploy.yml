@@ -1,0 +1,39 @@
+name: Desplegar en msi-server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Actualizar codigo
+        run: |
+          cd ~/matriz
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Reconstruir y levantar
+        run: |
+          cd ~/matriz
+          docker compose up -d --build
+
+      - name: Esperar a que el backend responda
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/health > /dev/null; then
+              echo "Backend respondiendo"
+              exit 0
+            fi
+            echo "Intento $i, esperando..."
+            sleep 5
+          done
+          echo "El backend no respondio en 150 segundos"
+          docker compose -f ~/matriz/docker-compose.yml logs backend --tail 50
+          exit 1
+
+      - name: Limpiar imagenes viejas
+        run: docker image prune -f
