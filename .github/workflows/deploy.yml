@@ -1,4 +1,4 @@
-name: Desplegar en msi-server
+name: Desplegar
 
 on:
   push:
@@ -6,26 +6,20 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-
+  msi-server:
+    name: Pruebas (Linux + Docker)
+    runs-on: [self-hosted, linux-docker]
     steps:
-      - name: Actualizar codigo
+      - name: Desplegar
         run: |
           cd ~/matriz
           git fetch origin main
           git reset --hard origin/main
-
-      - name: Reconstruir y levantar
-        run: |
-          cd ~/matriz
           docker compose up -d --build
-
-      - name: Esperar a que el backend responda
-        run: |
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:8080/health > /dev/null; then
               echo "Backend respondiendo"
+              docker image prune -f
               exit 0
             fi
             echo "Intento $i, esperando..."
@@ -35,5 +29,14 @@ jobs:
           docker compose -f ~/matriz/docker-compose.yml logs backend --tail 50
           exit 1
 
-      - name: Limpiar imagenes viejas
-        run: docker image prune -f
+  windows:
+    name: Pruebas (Windows + IIS)
+    runs-on: [self-hosted, windows-iis]
+    steps:
+      - name: Desplegar
+        shell: powershell
+        run: |
+          Set-Location C:\matriz
+          git fetch origin main
+          git reset --hard origin/main
+          .\deploy.ps1
