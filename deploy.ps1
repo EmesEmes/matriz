@@ -40,10 +40,14 @@ New-Item -ItemType Directory -Force -Path $RESPALDOS | Out-Null
 $fecha = Get-Date -Format "yyyy-MM-dd-HHmm"
 $dump  = "$RESPALDOS\$DB_NAME-$fecha.sql"
 
-& "$MARIADB\mariadb-dump.exe" -u $DB_USER -p"$DB_PASS" --single-transaction $DB_NAME |
-    Out-File -FilePath $dump -Encoding utf8
+# Se redirige por cmd a proposito: Out-File de PowerShell 5.1 escribe un BOM
+# al inicio del archivo y eso impide restaurar el dump.
+# --password= en una sola pieza evita que pregunte la clave y pueda correr solo.
+$cmd = "`"$MARIADB\mariadb-dump.exe`" -u $DB_USER --password=$DB_PASS --single-transaction --default-character-set=utf8mb4 $DB_NAME > `"$dump`""
+cmd /c $cmd
 if ($LASTEXITCODE -ne 0) { throw "El respaldo fallo. Se detiene el despliegue." }
-Write-Host "   $dump"
+if ((Get-Item $dump).Length -lt 1024) { throw "El respaldo quedo vacio o truncado." }
+Write-Host "   $dump ($([math]::Round((Get-Item $dump).Length / 1KB)) KB)"
 
 # Conservar solo los ultimos 30 dias
 Get-ChildItem $RESPALDOS -Filter "*.sql" |
@@ -112,4 +116,5 @@ if (-not $ok) {
     throw "Despliegue fallido: el backend no responde en /health"
 }
 
+Set-Location $RAIZ
 Write-Host "`nDespliegue completo. Version $($despues.Substring(0,7)) en $API_URL" -ForegroundColor Green
