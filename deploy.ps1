@@ -18,6 +18,14 @@ $MARIADB   = "C:\Program Files\MariaDB 10.11\bin"
 
 function Paso($texto) { Write-Host "`n==> $texto" -ForegroundColor Cyan }
 
+# PowerShell no detiene el script cuando falla un programa externo (git, npm,
+# pip): solo lo hace con sus propios errores. Esta funcion revisa el codigo de
+# salida a mano. Sin ella, un git que falla pasa desapercibido y el despliegue
+# sigue con codigo viejo reportando exito.
+function Verificar($queHacia) {
+    if ($LASTEXITCODE -ne 0) { throw "Fallo al $queHacia (codigo $LASTEXITCODE)" }
+}
+
 # --- Leer el .env del backend: es la unica fuente de verdad ---
 Paso "Leyendo configuracion"
 $env_vars = @{}
@@ -58,9 +66,13 @@ Get-ChildItem $RESPALDOS -Filter "*.sql" |
 Paso "Actualizando el codigo"
 Set-Location $RAIZ
 $antes = git rev-parse HEAD
+Verificar "leer la version actual del repositorio"
 git fetch origin main
+Verificar "traer los cambios de GitHub"
 git reset --hard origin/main
+Verificar "actualizar el codigo"
 $despues = git rev-parse HEAD
+Verificar "leer la version nueva"
 
 if ($antes -eq $despues) {
     Write-Host "   Sin cambios nuevos ($($antes.Substring(0,7)))"
@@ -72,13 +84,15 @@ if ($antes -eq $despues) {
 Paso "Dependencias de Python"
 Set-Location $BACKEND
 & "$BACKEND\venv\Scripts\python.exe" -m pip install -q -r requirements.txt
-if ($LASTEXITCODE -ne 0) { throw "pip install fallo" }
+Verificar "instalar las dependencias de Python"
 
 # --- 4. Migraciones, si el proyecto ya usa Alembic ---
 if (Test-Path "$BACKEND\alembic.ini") {
     Paso "Aplicando migraciones"
     & "$BACKEND\venv\Scripts\alembic.exe" upgrade head
-    if ($LASTEXITCODE -ne 0) { throw "La migracion fallo. La base quedo respaldada en $dump" }
+    if ($LASTEXITCODE -ne 0) {
+        throw "La migracion fallo. La base quedo respaldada en $dump"
+    }
 } else {
     Write-Host "`n==> Sin Alembic todavia; las tablas las crea el backend al arrancar" -ForegroundColor DarkGray
 }
@@ -87,11 +101,11 @@ if (Test-Path "$BACKEND\alembic.ini") {
 Paso "Construyendo el frontend"
 Set-Location $FRONTEND
 npm ci --silent
-if ($LASTEXITCODE -ne 0) { throw "npm ci fallo" }
+Verificar "instalar las dependencias de Node"
 
 $env:VITE_API_URL = $API_URL
 npm run build
-if ($LASTEXITCODE -ne 0) { throw "El build del frontend fallo" }
+Verificar "construir el frontend"
 
 # --- 6. Reiniciar el backend ---
 Paso "Reiniciando el servicio"
