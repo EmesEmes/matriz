@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app import models as _models  # noqa: F401  (registra todos los modelos)
-from app.routes import auth, users, parties, documents, minutes, companies, templates, registration, uafe
+from app.routes import auth, users, parties, documents, minutes, companies, templates, registration, uafe, declaraciones
 
 # Las tablas se crean y actualizan con Alembic (alembic upgrade head),
 # ya no con create_all.
@@ -42,6 +42,7 @@ app.include_router(companies.router)
 app.include_router(templates.router)
 app.include_router(registration.router)
 app.include_router(uafe.router)
+app.include_router(declaraciones.router)
 
 @app.get("/")
 def root():

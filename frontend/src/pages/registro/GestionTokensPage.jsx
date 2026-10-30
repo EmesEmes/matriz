@@ -10,6 +10,20 @@ const GestionTokensPage = () => {
   const [loading, setLoading] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [linkGenerado, setLinkGenerado] = useState(null);
+  const [tipo, setTipo] = useState("persona");
+  const [documento, setDocumento] = useState("");
+  const [errorDocumento, setErrorDocumento] = useState("");
+
+  const validarDocumento = () => {
+    const doc = documento.trim().toUpperCase();
+    if (tipo === "empresa") {
+      if (!/^\d{13}$/.test(doc) || !doc.endsWith("001"))
+        return "El RUC debe tener 13 dígitos y terminar en 001";
+    } else if (!/^\d{10}$/.test(doc) && !/^[A-Z0-9]{6,13}$/.test(doc)) {
+      return "Ingrese una cédula de 10 dígitos o un pasaporte válido";
+    }
+    return "";
+  };
 
   const cargarTokens = useCallback(async () => {
     setLoading(true);
@@ -31,19 +45,32 @@ const GestionTokensPage = () => {
   }, [cargarTokens]);
 
   const generarToken = async () => {
+    const error = validarDocumento();
+    setErrorDocumento(error);
+    if (error) return;
+
     setGenerando(true);
     setLinkGenerado(null);
     try {
       const res = await apiFetch("/api/registro/generar-token", {
         method: "POST",
+        body: JSON.stringify({
+          tipo,
+          documento: documento.trim().toUpperCase(),
+        }),
       });
       if (res.ok) {
         const data = await res.json();
         setLinkGenerado(data.link);
+        setDocumento("");
         toastRef.current.success("Enlace generado correctamente");
         cargarTokens();
       } else {
-        toastRef.current.error("Error al generar el enlace");
+        const data = await res.json().catch(() => ({}));
+        const detalle = Array.isArray(data.detail)
+          ? data.detail[0]?.msg?.replace("Value error, ", "")
+          : data.detail;
+        toastRef.current.error(detalle || "Error al generar el enlace");
       }
     } catch {
       toastRef.current.error("Error al generar el enlace");
@@ -119,8 +146,55 @@ const GestionTokensPage = () => {
             Al generar un enlace, el cliente podrá registrar sus datos
             personales sin necesidad de iniciar sesión. El enlace es válido por{" "}
             <strong>72 horas</strong> y solo puede usarse{" "}
-            <strong>una vez</strong>.
+            <strong>una vez</strong>. Solo sirve para el documento que indique
+            aquí: el cliente no podrá registrar otra cédula o RUC.
           </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de cliente
+              </label>
+              <select
+                value={tipo}
+                onChange={(e) => {
+                  setTipo(e.target.value);
+                  setErrorDocumento("");
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              >
+                <option value="persona">Persona natural</option>
+                <option value="empresa">Empresa (persona jurídica)</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {tipo === "empresa"
+                  ? "RUC de la empresa"
+                  : "Cédula o pasaporte de quien llenará el formulario"}
+              </label>
+              <input
+                type="text"
+                value={documento}
+                onChange={(e) => {
+                  setDocumento(e.target.value);
+                  setErrorDocumento("");
+                }}
+                maxLength={13}
+                placeholder={
+                  tipo === "empresa" ? "1790012345001" : "1712345678"
+                }
+                className={`w-full px-3 py-2 border rounded-lg text-sm ${
+                  errorDocumento
+                    ? "border-red-400 bg-red-50"
+                    : "border-gray-300"
+                }`}
+              />
+              {errorDocumento && (
+                <p className="text-red-500 text-xs mt-1">{errorDocumento}</p>
+              )}
+            </div>
+          </div>
 
           <Button
             onClick={generarToken}
@@ -185,7 +259,7 @@ const GestionTokensPage = () => {
                   <th className="pb-3 pr-4">Creado por</th>
                   <th className="pb-3 pr-4">Creado el</th>
                   <th className="pb-3 pr-4">Expira el</th>
-                  <th className="pb-3 pr-4">Cédula cliente</th>
+                  <th className="pb-3 pr-4">Cliente</th>
                   <th className="pb-3">Acciones</th>
                 </tr>
               </thead>
@@ -213,7 +287,10 @@ const GestionTokensPage = () => {
                         {formatearFecha(tkn.expira_en)}
                       </td>
                       <td className="py-3 pr-4 text-gray-700">
-                        {tkn.party_document_number || "-"}
+                        <span className="text-xs text-gray-500 mr-1">
+                          {tkn.tipo_esperado === "empresa" ? "RUC" : "Doc."}
+                        </span>
+                        {tkn.documento_esperado || "-"}
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-2">

@@ -175,6 +175,42 @@ const EmpresaForm = ({ initialData = null, onSuccess, onCancel }) => {
     return Object.keys(newErrors).length === 0;
   };
 
+  // El representante legal es una persona registrada: si ya existe, se
+  // cargan sus datos para no tener dos versiones de la misma persona.
+  const buscarRepresentante = async () => {
+    const doc = formData.repDocumentNumber.trim();
+    if (doc.length < 6) return;
+    try {
+      const res = await apiFetch(`${API_CONFIG.ENDPOINTS.PARTIES}/${doc}`);
+      if (!res.ok) return;
+      const p = await res.json();
+      setFormData((prev) => ({
+        ...prev,
+        repDocumentType: p.document_type || prev.repDocumentType,
+        repNames: p.names || "",
+        repLastNames: p.last_names || "",
+        repGender: p.gender || "",
+        repNationality: p.nationality || prev.repNationality,
+        repBirthDate: p.birth_date || "",
+        repEmail: p.email || "",
+        repPhone: p.phone || "",
+        repProvince: p.province || "",
+        repCanton: p.canton || "",
+        repParroquia: p.parroquia || "",
+        repSector: p.sector || "",
+        repMainStreet: p.main_street || "",
+        repSecondaryStreet: p.secondary_street || "",
+        repNumberStreet: p.number_street || "",
+        repOccupation: p.occupation || "",
+        repProfession: p.profession || "",
+      }));
+      if (p.province) setRepCantones(getCantones(p.province));
+      toast.info("Representante encontrado: se cargaron sus datos");
+    } catch {
+      // Si falla la búsqueda se llena a mano
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -424,10 +460,15 @@ const EmpresaForm = ({ initialData = null, onSuccess, onCancel }) => {
               name="repDocumentNumber"
               value={formData.repDocumentNumber}
               onChange={handleChange}
+              onBlur={buscarRepresentante}
               className="input-field"
               maxLength="13"
               disabled={loading}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Si la persona ya está registrada, sus datos se cargan solos y se
+              actualizan con lo que guarde aquí.
+            </p>
           </FormField>
 
           <FormField label="Nombres" required error={errors.repNames}>

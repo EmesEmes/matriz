@@ -1591,6 +1591,7 @@ const FormularioPersona = ({
   esRepresentado = false,
   mismaDir,
   onToggleMismaDir,
+  documentoFijo = false,
 }) => (
   <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
     <h2 className="font-semibold text-gray-800 text-lg border-b pb-2">
@@ -1606,6 +1607,7 @@ const FormularioPersona = ({
           value={datos.document_type}
           onChange={(e) => onChange("document_type", e.target.value)}
           className={inputClass(errors, "document_type")}
+          disabled={documentoFijo}
         >
           <option value="cedula">Cédula</option>
           <option value="pasaporte">Pasaporte</option>
@@ -1626,7 +1628,13 @@ const FormularioPersona = ({
             datos.document_type === "cedula" ? "0000000000" : "AB123456"
           }
           maxLength={datos.document_type === "cedula" ? 10 : 13}
+          readOnly={documentoFijo}
         />
+        {documentoFijo && (
+          <p className="text-xs text-gray-500 mt-1">
+            Este enlace fue generado para este documento.
+          </p>
+        )}
         {errors.document_number && (
           <p className="text-red-500 text-xs mt-1">{errors.document_number}</p>
         )}
@@ -1841,7 +1849,12 @@ const FormularioPersona = ({
 // ============================================
 // FORMULARIO EMPRESA
 // ============================================
-const FormularioEmpresa = ({ datos, onChange, errors }) => (
+const FormularioEmpresa = ({
+  datos,
+  onChange,
+  errors,
+  documentoFijo = false,
+}) => (
   <div className="bg-white rounded-xl shadow-sm p-6 space-y-4">
     <h2 className="font-semibold text-gray-800 text-lg border-b pb-2">
       Datos de la Empresa
@@ -1858,7 +1871,14 @@ const FormularioEmpresa = ({ datos, onChange, errors }) => (
           className={inputClass(errors, "ruc")}
           placeholder="0000000000001"
           maxLength={13}
+          readOnly={documentoFijo}
         />
+        {documentoFijo && (
+          <p className="text-xs text-gray-500 mt-1">
+            Este enlace fue generado para este RUC.
+          </p>
+        )}
+
         {errors.ruc && (
           <p className="text-red-500 text-xs mt-1">{errors.ruc}</p>
         )}
@@ -2483,6 +2503,8 @@ const RegistroClientePage = () => {
 
   const [tokenValido, setTokenValido] = useState(null);
   const [tipoRegistro, setTipoRegistro] = useState("persona");
+  // Tipo y documento para los que se generó el link (vienen del backend)
+  const [tokenInfo, setTokenInfo] = useState(null);
   const [calidadParticipacion, setCalidadParticipacion] = useState("");
   const [representadoEsConyugue, setRepresentadoEsConyugue] = useState(null);
   const [titular, setTitular] = useState(personaInicial());
@@ -2514,6 +2536,21 @@ const RegistroClientePage = () => {
         );
         const data = await res.json();
         setTokenValido(data.valido);
+        if (data.valido && data.tipo && data.documento) {
+          setTokenInfo({ tipo: data.tipo, documento: data.documento });
+          setTipoRegistro(data.tipo);
+          if (data.tipo === "empresa") {
+            setEmpresa((prev) => ({ ...prev, ruc: data.documento }));
+          } else {
+            setTitular((prev) => ({
+              ...prev,
+              document_number: data.documento,
+              document_type: /^\d{10}$/.test(data.documento)
+                ? "cedula"
+                : "pasaporte",
+            }));
+          }
+        }
       } catch {
         setTokenValido(false);
       }
@@ -3067,46 +3104,48 @@ const RegistroClientePage = () => {
             </div>
           )}
 
-          {/* TOGGLE PERSONA / EMPRESA */}
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              ¿Cómo va a participar en el trámite?
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setTipoRegistro("persona");
-                  setErrors({});
-                }}
-                className={`p-4 rounded-lg border-2 text-left transition-colors ${tipoRegistro === "persona" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
-              >
-                <div className="text-2xl mb-1"></div>
-                <div className="font-semibold text-gray-900 text-sm">
-                  Persona Natural
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  Como individuo
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTipoRegistro("empresa");
-                  setErrors({});
-                }}
-                className={`p-4 rounded-lg border-2 text-left transition-colors ${tipoRegistro === "empresa" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
-              >
-                <div className="text-2xl mb-1"></div>
-                <div className="font-semibold text-gray-900 text-sm">
-                  Persona Jurídica
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  En representación de una empresa
-                </div>
-              </button>
+          {/* TOGGLE PERSONA / EMPRESA (el link ya define el tipo) */}
+          {!tokenInfo && (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                ¿Cómo va a participar en el trámite?
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoRegistro("persona");
+                    setErrors({});
+                  }}
+                  className={`p-4 rounded-lg border-2 text-left transition-colors ${tipoRegistro === "persona" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                >
+                  <div className="text-2xl mb-1"></div>
+                  <div className="font-semibold text-gray-900 text-sm">
+                    Persona Natural
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    Como individuo
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoRegistro("empresa");
+                    setErrors({});
+                  }}
+                  className={`p-4 rounded-lg border-2 text-left transition-colors ${tipoRegistro === "empresa" ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                >
+                  <div className="text-2xl mb-1"></div>
+                  <div className="font-semibold text-gray-900 text-sm">
+                    Persona Jurídica
+                  </div>
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    En representación de una empresa
+                  </div>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* PERSONA NATURAL */}
           {tipoRegistro === "persona" && (
@@ -3178,6 +3217,7 @@ const RegistroClientePage = () => {
                   datos={titular}
                   onChange={handleTitularChange}
                   errors={errors}
+                  documentoFijo={!!tokenInfo}
                   mostrarEstadoCivil={true}
                   mostrarRolTramite={true}
                 />
@@ -3345,6 +3385,7 @@ const RegistroClientePage = () => {
               datos={empresa}
               onChange={handleEmpresaChange}
               errors={errors}
+              documentoFijo={!!tokenInfo}
             />
           )}
 

@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import Dict, Any
-import json
 import os
 import logging
 
@@ -42,7 +41,7 @@ async def generate_minuta(
 
         new_minute = Minute(
             minute_type=MinuteType.COMPRAVENTA_INMUEBLE,
-            contract_data=json.dumps(data, ensure_ascii=False),
+            contract_data=data,
             file_path=output_path,
             created_by=current_user.id
         )
@@ -147,7 +146,7 @@ async def generate_promesa(
         # Bug corregido: usar MinuteType.PROMESA_COMPRAVENTA en lugar de COMPRAVENTA_INMUEBLE
         new_minute = Minute(
             minute_type=MinuteType.PROMESA_COMPRAVENTA,
-            contract_data=json.dumps(data, ensure_ascii=False),
+            contract_data=data,
             file_path=output_path,
             created_by=current_user.id
         )
@@ -188,7 +187,7 @@ async def generate_poder_endpoint(
 
         new_minute = Minute(
             minute_type=MinuteType.PODERES,
-            contract_data=json.dumps(data, ensure_ascii=False),
+            contract_data=data,
             file_path=output_path,
             created_by=current_user.id
         )

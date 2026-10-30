@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Security
 from fastapi.security.api_key import APIKeyHeader
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.party import Party
-from app.models.company import Company
+from app.services import comparecientes as svc
 from app.config import settings
 import logging
 
@@ -29,6 +28,22 @@ def verificar_api_key(api_key: str = Security(API_KEY_HEADER)):
     return api_key
 
 
+def _uafe_persona(decl) -> dict:
+    """Bloque "uafe" de una persona, con el mismo formato que antes del refactor."""
+    d = svc.serializar_declaracion(decl) if decl else {}
+    campos = [
+        "actividad_economica", "empresa_trabajo", "ingreso_mensual", "origen_fondos",
+        "es_pep", "es_pep_indirecto", "pep_nombre", "pep_institucion", "pep_cargo",
+        "pep_fecha_inicio", "pep_grado_relacion", "pep_relacion_tipo", "pep_ya_no_ejerce",
+        "pep_fecha_fin", "situacion_patrimonial", "rol_tramite", "calidad_participacion",
+        "conyugue_comparece", "razon_exclusion_conyugue",
+    ]
+    bloque = {c: d.get(c) for c in campos}
+    bloque["pep_anios_trabajo"] = None  # campo retirado; se conserva la llave
+    bloque["fecha_declaracion"] = d.get("fecha")
+    return bloque
+
+
 @router.get("/consultar/{documento}")
 def consultar_uafe(
     documento: str,
@@ -38,48 +53,40 @@ def consultar_uafe(
     """
     Consulta datos UAFE de una persona natural o empresa por cédula o RUC.
 
-    - 10 dígitos → busca en personas naturales (parties)
-    - 13 dígitos → busca en empresas (companies)
+    - 10 dígitos → persona natural
+    - 13 dígitos → empresa
+
+    El bloque "uafe" corresponde a la declaración más reciente; el historial
+    completo va en "historial_declaraciones" (de la más reciente a la más antigua).
 
     Requiere header: X-API-Key
     """
     documento = documento.strip()
 
     if not documento.isdigit():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El documento debe contener solo dígitos."
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El documento debe contener solo dígitos.")
 
-    # Persona natural (cédula = 10 dígitos)
     if len(documento) == 10:
-        party = db.query(Party).filter(
-            Party.document_number == documento
-        ).first()
-
+        party = svc.buscar_party(db, documento)
         if not party:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No se encontró ninguna persona con cédula {documento}."
+                detail=f"No se encontró ninguna persona con cédula {documento}.",
             )
 
-        # Datos del cónyuge si existe
+        partner = party.partner
         conyugue = None
-        if party.partner_document_number:
-            partner = db.query(Party).filter(
-                Party.document_number == party.partner_document_number
-            ).first()
-            if partner:
-                conyugue = {
-                    "cedula": partner.document_number,
-                    "nombres": partner.names,
-                    "apellidos": partner.last_names,
-                    "genero": partner.gender.value if partner.gender else None,
-                    "nacionalidad": partner.nationality,
-                    "fecha_nacimiento": str(partner.birth_date) if partner.birth_date else None,
-                    "ocupacion": partner.occupation,
-                    "profesion": partner.profession,
-                }
+        if partner:
+            conyugue = {
+                "cedula": partner.document_number,
+                "nombres": partner.names,
+                "apellidos": partner.last_names,
+                "genero": partner.gender.value if partner.gender else None,
+                "nacionalidad": partner.nationality,
+                "fecha_nacimiento": str(partner.birth_date) if partner.birth_date else None,
+                "ocupacion": partner.occupation,
+                "profesion": partner.profession,
+            }
 
         return {
             "tipo": "persona_natural",
@@ -103,42 +110,22 @@ def consultar_uafe(
             "ocupacion": party.occupation,
             "profesion": party.profession,
             "conyugue": conyugue,
-            # Datos UAFE
-            "uafe": {
-                "actividad_economica": party.actividad_economica.value if party.actividad_economica else None,
-                "empresa_trabajo": party.empresa_trabajo,
-                "ingreso_mensual": float(party.ingreso_mensual) if party.ingreso_mensual else None,
-                "origen_fondos": party.origen_fondos,
-                "es_pep": party.es_pep,
-                "es_pep_indirecto": party.es_pep_indirecto,
-                "pep_nombre": party.pep_nombre,
-                "pep_institucion": party.pep_institucion,
-                "pep_cargo": party.pep_cargo,
-                "pep_fecha_inicio": str(party.pep_fecha_inicio) if party.pep_fecha_inicio else None,
-                "pep_anios_trabajo": party.pep_anios_trabajo,
-                "pep_grado_relacion": party.pep_grado_relacion,
-                "pep_relacion_tipo": party.pep_relacion_tipo,
-                "pep_ya_no_ejerce": party.pep_ya_no_ejerce,
-                "pep_fecha_fin": str(party.pep_fecha_fin) if party.pep_fecha_fin else None,
-                "situacion_patrimonial": party.patrimonio,
-                "rol_tramite": party.rol_tramite,
-                "calidad_participacion": party.calidad_participacion,
-                "conyugue_comparece": party.conyugue_comparece,
-                "razon_exclusion_conyugue": party.razon_exclusion_conyugue,
-            }
+            "uafe": _uafe_persona(svc.ultima_declaracion(party)),
+            "historial_declaraciones": [svc.serializar_declaracion(d) for d in party.declaraciones],
         }
 
-    # Empresa (RUC = 13 dígitos)
     elif len(documento) == 13:
-        company = db.query(Company).filter(
-            Company.ruc == documento
-        ).first()
-
+        company = svc.buscar_company(db, documento)
         if not company:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No se encontró ninguna empresa con RUC {documento}."
+                detail=f"No se encontró ninguna empresa con RUC {documento}.",
             )
+
+        decl = svc.ultima_declaracion(company)
+        d = svc.serializar_declaracion(decl) if decl else {}
+        rep = company.representante
+        rep_decl = svc._decl_rep_de(company, decl)
 
         return {
             "tipo": "persona_juridica",
@@ -153,65 +140,45 @@ def consultar_uafe(
             "calle_principal": company.main_street,
             "calle_secundaria": company.secondary_street,
             "numero": company.number_street,
-            # Financiero empresa
             "uafe_empresa": {
-                "ingreso_mensual": float(company.ingreso_mensual) if company.ingreso_mensual else None,
-                "egreso_mensual": float(company.egreso_mensual) if company.egreso_mensual else None,
-                "actividad_economica": company.actividad_empresa,
-                "rol_tramite": company.rol_tramite,
-                "origen_fondos": company.origen_fondos,
+                "ingreso_mensual": d.get("ingreso_mensual"),
+                "egreso_mensual": d.get("egreso_mensual"),
+                "actividad_economica": d.get("actividad_economica"),
+                "rol_tramite": d.get("rol_tramite"),
+                "origen_fondos": d.get("origen_fondos"),
+                "fecha_declaracion": d.get("fecha"),
             },
-            # Socios / accionistas
             "socios": {
-                "controlada_supercias": company.controlada_supercias,
-                "listado": company.socios or [],
-                "referencia_supercias": company.referencia_supercias,
-                "tiene_anexo": bool(company.anexo_socios_path),
+                "controlada_supercias": d.get("controlada_supercias"),
+                "listado": d.get("socios", []),
+                "referencia_supercias": d.get("referencia_supercias"),
+                "tiene_anexo": bool(d.get("tiene_anexo")),
             },
-            # Representante legal
             "representante_legal": {
-                "cedula": company.rep_document_number,
-                "nombres": company.rep_names,
-                "apellidos": company.rep_last_names,
-                "genero": company.rep_gender,
-                "nacionalidad": company.rep_nationality,
-                "fecha_nacimiento": str(company.rep_birth_date) if company.rep_birth_date else None,
-                "cargo": company.rep_position,
-                "ocupacion": company.rep_occupation,
-                "profesion": company.rep_profession,
-                "email": company.rep_email,
-                "telefono": company.rep_phone,
-                "provincia": company.rep_province,
-                "canton": company.rep_canton,
-                "parroquia": company.rep_parroquia,
-                "calle_principal": company.rep_main_street,
-                "calle_secundaria": company.rep_secondary_street,
-                "numero": company.rep_number_street,
-                # UAFE representante
-                "uafe": {
-                    "actividad_economica": company.rep_actividad_economica,
-                    "empresa_trabajo": company.rep_empresa_trabajo,
-                    "ingreso_mensual": float(company.rep_ingreso_mensual) if company.rep_ingreso_mensual else None,
-                    "origen_fondos": company.rep_origen_fondos,
-                    "es_pep": company.rep_es_pep,
-                    "pep_nombre": company.rep_pep_nombre,
-                    "pep_institucion": company.rep_pep_institucion,
-                    "pep_cargo": company.rep_pep_cargo,
-                    "pep_fecha_inicio": company.rep_pep_fecha_inicio,
-                    "pep_anios_trabajo": company.rep_pep_anios_trabajo,
-                    "pep_grado_relacion": company.rep_pep_grado_relacion,
-                    "es_pep_indirecto": company.rep_es_pep_indirecto,
-                    "pep_relacion_tipo": company.rep_pep_relacion_tipo,
-                    "pep_ya_no_ejerce": company.rep_pep_ya_no_ejerce,
-                    "pep_fecha_fin": company.rep_pep_fecha_fin,
-                    "situacion_patrimonial": company.rep_patrimonio,
-                    "rol_tramite": company.rep_rol_tramite,
-                }
-            }
+                "cedula": rep.document_number,
+                "nombres": rep.names,
+                "apellidos": rep.last_names,
+                "genero": rep.gender.value if rep.gender else None,
+                "nacionalidad": rep.nationality,
+                "fecha_nacimiento": str(rep.birth_date) if rep.birth_date else None,
+                "cargo": company.cargo_representante,
+                "ocupacion": rep.occupation,
+                "profesion": rep.profession,
+                "email": rep.email,
+                "telefono": rep.phone,
+                "provincia": rep.province,
+                "canton": rep.canton,
+                "parroquia": rep.parroquia,
+                "calle_principal": rep.main_street,
+                "calle_secundaria": rep.secondary_street,
+                "numero": rep.number_street,
+                "uafe": _uafe_persona(rep_decl),
+            },
+            "historial_declaraciones": [svc.serializar_declaracion(x) for x in company.declaraciones],
         }
 
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El documento debe tener 10 dígitos (cédula) o 13 dígitos (RUC)."
+            detail="El documento debe tener 10 dígitos (cédula) o 13 dígitos (RUC).",
         )

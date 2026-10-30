@@ -66,14 +66,14 @@ class CompanyBase(BaseModel):
     rep_es_pep: Optional[bool] = None
     rep_pep_nombre: Optional[str] = Field(None, max_length=200)
     rep_pep_institucion: Optional[str] = Field(None, max_length=200)
-    rep_pep_fecha_inicio: Optional[str] = None
+    rep_pep_fecha_inicio: Optional[date] = None
     rep_pep_cargo: Optional[str] = Field(None, max_length=200)
     rep_pep_anios_trabajo: Optional[int] = None
     rep_pep_grado_relacion: Optional[str] = Field(None, max_length=200)
     rep_es_pep_indirecto: Optional[bool] = None
     rep_pep_relacion_tipo: Optional[str] = Field(None, max_length=100)
     rep_pep_ya_no_ejerce: Optional[bool] = None
-    rep_pep_fecha_fin: Optional[str] = None
+    rep_pep_fecha_fin: Optional[date] = None
     rep_patrimonio: Optional[dict[str, Any]] = None
 
     @field_validator('ruc')
@@ -136,10 +136,3 @@ class CompanyUpdate(BaseModel):
     rep_occupation: Optional[str] = Field(None, min_length=2, max_length=100)
     rep_profession: Optional[str] = Field(None, max_length=100)
     rep_position: Optional[str] = Field(None, min_length=2, max_length=100)
-
-
-class CompanyResponse(CompanyBase):
-    anexo_socios_nombre: Optional[str] = None
-
-    class Config:
-        from_attributes = True

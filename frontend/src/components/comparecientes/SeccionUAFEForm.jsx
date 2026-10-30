@@ -139,7 +139,7 @@ export const ResumenPatrimonio = ({ patrimonio, nota = true }) => {
  */
 const SeccionUAFEForm = ({
   titulo = "Información UAFE (opcional)",
-  descripcion = "Estos datos son requeridos para el cumplimiento de la Ley de Prevención de Lavado de Activos. No son necesarios para generar minutas o matrices.",
+  descripcion = "Estos datos son requeridos para el cumplimiento de la Ley de Prevención de Lavado de Activos. No son necesarios para generar minutas o matrices. Si los modifica, al guardar se registra una nueva declaración UAFE y la anterior queda en el historial.",
   get,
   set,
 }) => {

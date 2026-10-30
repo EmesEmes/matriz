@@ -90,6 +90,10 @@ export const transformToCamelCase = (data) => {
       repPepRelacionTipo: data.rep_pep_relacion_tipo || "",
       repPepGradoRelacion: data.rep_pep_grado_relacion || "",
       repPatrimonio: data.rep_patrimonio || null,
+      // Declaraciones UAFE y cambios reportados pendientes de revisión
+      declaraciones: data.declaraciones || [],
+      datosReportadosPendientes: data.datos_reportados_pendientes || [],
+      repDatosReportadosPendientes: data.rep_datos_reportados_pendientes || [],
     };
   }
 
@@ -136,6 +140,8 @@ export const transformToCamelCase = (data) => {
     pepFechaFin: data.pep_fecha_fin || "",
     patrimonio: data.patrimonio || null,
     rolTramite: data.rol_tramite || "",
+    declaraciones: data.declaraciones || [],
+    datosReportadosPendientes: data.datos_reportados_pendientes || [],
     partner: data.partner ? transformToCamelCase(data.partner) : null,
   };
 };

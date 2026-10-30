@@ -5,6 +5,7 @@ import ComparecienteForm from "../components/comparecientes/ComparecienteForm";
 import ComparecienteCard from "../components/comparecientes/ComparecienteCard";
 import EmpresaForm from "../components/comparecientes/EmpresaForm";
 import EmpresaCard from "../components/comparecientes/EmpresaCard";
+import HistorialUAFE from "../components/comparecientes/HistorialUAFE";
 import { apiFetch } from "../config/api";
 import API_CONFIG from "../config/api";
 import { useToast } from "../hooks/useToast";
@@ -258,6 +259,36 @@ const ComparecientesPage = () => {
             <ComparecienteCard data={currentPersona} showPartner={true} />
           ) : (
             <EmpresaCard data={currentEmpresa} />
+          )}
+
+          {isPersona ? (
+            <HistorialUAFE
+              declaraciones={currentPersona.declaraciones}
+              pendientes={[
+                {
+                  titulo: "Datos personales",
+                  items: currentPersona.datosReportadosPendientes,
+                },
+              ]}
+              onActualizado={() =>
+                handleSearchPersona(currentPersona.documentNumber)
+              }
+            />
+          ) : (
+            <HistorialUAFE
+              declaraciones={currentEmpresa.declaraciones}
+              pendientes={[
+                {
+                  titulo: "Datos de la empresa",
+                  items: currentEmpresa.datosReportadosPendientes,
+                },
+                {
+                  titulo: "Representante legal",
+                  items: currentEmpresa.repDatosReportadosPendientes,
+                },
+              ]}
+              onActualizado={() => handleSearchEmpresa(currentEmpresa.ruc)}
+            />
           )}
         </div>
       )}

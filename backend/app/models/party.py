@@ -32,7 +32,8 @@ class Party(Base):
 
     # Datos personales
     gender = Column(enum_column_type(Gender, "gender"), nullable=False)
-    marital_status = Column(enum_column_type(MaritalStatus, "marital_status"), nullable=False)
+    # Puede quedar vacío cuando la persona se registró solo como representante legal de una empresa
+    marital_status = Column(enum_column_type(MaritalStatus, "marital_status"), nullable=True)
     nationality = Column(String(50), nullable=False)
     birth_date = Column(Date, nullable=False)
 

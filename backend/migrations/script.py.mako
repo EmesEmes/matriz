@@ -1,1 +1,1 @@
-script.py.mako
+script.py.makogit commit -m "refactor(bd): Alembic y esquema nuevo"

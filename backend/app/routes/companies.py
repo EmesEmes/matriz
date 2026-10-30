@@ -1,132 +1,116 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import FileResponse
 from pathlib import Path
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.models.company import Company
-from app.schemas.company import CompanyCreate, CompanyUpdate, CompanyResponse
 from app.middleware.auth import get_current_user
 from app.models.system_user import SystemUser
+from app.schemas.company import CompanyCreate, CompanyUpdate
+from app.services import comparecientes as svc
+from app.utils.access_log import registrar_acceso
 
 router = APIRouter(prefix="/api/companies", tags=["companies"])
+logger = logging.getLogger(__name__)
 
 
-@router.post("/", response_model=CompanyResponse, status_code=status.HTTP_201_CREATED)
-def save_company(
-    company_data: CompanyCreate,
-    db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)
-):
-    """
-    POST /api/companies - Crear o actualizar empresa (upsert por RUC)
-    """
+def _ip(request: Request):
+    fwd = request.headers.get("X-Forwarded-For")
+    return fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else None)
+
+
+def _guardar(db: Session, datos: dict, request: Request, usuario: SystemUser, accion: str):
     try:
-        existing = db.query(Company).filter(Company.ruc == company_data.ruc).first()
-
-        if existing:
-            # exclude_unset: solo se actualizan los campos que el formulario envió.
-            # Así no se borran datos UAFE/socios llenados desde el formulario público.
-            for field, value in company_data.model_dump(exclude_unset=True).items():
-                setattr(existing, field, value)
-            db.commit()
-            db.refresh(existing)
-            return existing
-
-        new_company = Company(**company_data.model_dump())
-        db.add(new_company)
+        company = svc.guardar_empresa_interna(db, datos)
+        registrar_acceso(db, usuario.username, accion, "companies", company.ruc, _ip(request))
         db.commit()
-        db.refresh(new_company)
-        return new_company
-
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
-@router.get("/{ruc}", response_model=CompanyResponse)
-def get_company(
-    ruc: str,
-    db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)
-):
-    """
-    GET /api/companies/{ruc} - Obtener empresa por RUC
-    """
-    try:
-        company = db.query(Company).filter(Company.ruc == ruc).first()
-
-        if not company:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Empresa no encontrada"
-            )
-
-        return company
-
+        db.refresh(company)
+        return svc.serializar_company(company)
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
+        db.rollback()
+        logger.error(f"Error guardando empresa: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno del servidor"
+            detail="Error interno al guardar la empresa. Verifique los datos e intente de nuevo.",
         )
 
 
-@router.put("/{ruc}", response_model=CompanyResponse)
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def save_company(
+    company_data: CompanyCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: SystemUser = Depends(get_current_user),
+):
+    """
+    POST /api/companies — Crear o actualizar empresa (por RUC).
+    El representante legal se guarda como persona: si ya existe por su cédula,
+    se actualizan sus datos.
+    """
+    existia = svc.buscar_company(db, company_data.ruc) is not None
+    return _guardar(db, company_data.model_dump(exclude_unset=True), request, current_user,
+                    "actualizar" if existia else "crear")
+
+
+@router.get("/{ruc}")
+def get_company(
+    ruc: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: SystemUser = Depends(get_current_user),
+):
+    """GET /api/companies/{ruc} — Empresa con su representante y su última declaración UAFE."""
+    company = svc.buscar_company(db, ruc)
+    if not company:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
+    registrar_acceso(db, current_user.username, "ver", "companies", company.ruc, _ip(request))
+    db.commit()
+    return svc.serializar_company(company)
+
+
+@router.put("/{ruc}")
 def update_company(
     ruc: str,
     company_data: CompanyUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)
+    current_user: SystemUser = Depends(get_current_user),
 ):
-    """
-    PUT /api/companies/{ruc} - Actualizar datos de una empresa
-    """
-    try:
-        company = db.query(Company).filter(Company.ruc == ruc).first()
+    """PUT /api/companies/{ruc} — Actualizar empresa y representante."""
+    company = svc.buscar_company(db, ruc)
+    if not company:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Empresa no encontrada")
 
-        if not company:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Empresa no encontrada"
-            )
+    # Se completa con los datos actuales lo que el formulario no envió
+    actual = svc.serializar_company(company)
+    datos = {**{k: actual.get(k) for k in list(svc.COMPANY_IDENTIDAD) + list(svc.REP_IDENTIDAD) + ["rep_position"]},
+             **company_data.model_dump(exclude_unset=True), "ruc": company.ruc}
+    return _guardar(db, datos, request, current_user, "actualizar")
 
-        for field, value in company_data.model_dump(exclude_unset=True).items():
-            setattr(company, field, value)
-
-        db.commit()
-        db.refresh(company)
-        return company
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
 
 @router.get("/{ruc}/anexo-socios")
 def descargar_anexo_socios(
     ruc: str,
     db: Session = Depends(get_db),
-    current_user: SystemUser = Depends(get_current_user)
+    current_user: SystemUser = Depends(get_current_user),
 ):
-    """GET /api/companies/{ruc}/anexo-socios - Descargar el listado de socios adjunto"""
-    company = db.query(Company).filter(Company.ruc == ruc).first()
-    if not company or not company.anexo_socios_path:
+    """GET /api/companies/{ruc}/anexo-socios — Listado de socios más reciente que adjuntó la empresa."""
+    company = svc.buscar_company(db, ruc)
+    decl = svc.declaracion_con_anexo(company) if company else None
+    if not decl:
         raise HTTPException(status_code=404, detail="Esta empresa no tiene anexo de socios")
 
-    ruta = Path(company.anexo_socios_path)
+    ruta = Path(decl.anexo_socios_path)
     if not ruta.is_file():
         raise HTTPException(status_code=404, detail="El archivo del anexo ya no existe en el servidor")
 
     return FileResponse(
         path=str(ruta),
-        filename=company.anexo_socios_nombre or f"socios_{ruc}.pdf",
+        filename=decl.anexo_socios_nombre or f"socios_{ruc}.pdf",
         media_type="application/pdf",
     )
