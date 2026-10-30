@@ -1,24 +1,27 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum, ForeignKey
-from sqlalchemy.orm import relationship
-from datetime import datetime
 import enum
+
+from sqlalchemy import Column, DateTime, Enum as SQLEnum, ForeignKey, Integer, JSON, String
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class MinuteType(enum.Enum):
     COMPRAVENTA_INMUEBLE = "compraventa_inmueble"
     PROMESA_COMPRAVENTA = "promesa_compraventa"
     PODERES = "poderes"
 
+
 class Minute(Base):
     __tablename__ = "minutes"
 
-    id = Column(Integer, primary_key=True, index=True)
-    minute_type = Column(SQLEnum(MinuteType), nullable=False)
-    contract_data = Column(Text, nullable=False)  # JSON stringified
-    file_path = Column(String(500))
-    created_by = Column(Integer, ForeignKey("system_users.id"), nullable=False)  # Cambio aquí
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    minute_type = Column(SQLEnum(MinuteType, name="minute_type"), nullable=False)
+    contract_data = Column(JSON, nullable=False)  # datos del formulario usados para la minuta
+    file_path = Column(String(500), nullable=True)
+    created_by = Column(Integer, ForeignKey("system_users.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    # Relationships
-    creator = relationship("SystemUser", back_populates="minutes")  # Cambio aquí
+    creator = relationship("SystemUser", back_populates="minutes")

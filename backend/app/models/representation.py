@@ -1,15 +1,13 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Enum as SQLEnum
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.database import Base
-import uuid
-import enum
-
-
-class EstadoRepresentacion(enum.Enum):
-    pendiente = "pendiente"
-    utilizada = "utilizada"
-    expirada = "expirada"
+from app.models.enums import (  # noqa: F401  (EstadoRepresentacion se re-exporta)
+    CalidadParticipacion,
+    EstadoRepresentacion,
+    enum_column_type,
+)
 
 
 class Representacion(Base):
@@ -19,39 +17,32 @@ class Representacion(Base):
     """
     __tablename__ = "representaciones"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    id = Column(Integer, primary_key=True, autoincrement=True)
 
-    representante_document_number = Column(
-        String(20),
-        ForeignKey("parties.document_number"),
-        nullable=False
-    )
-    representado_document_number = Column(
-        String(20),
-        ForeignKey("parties.document_number"),
-        nullable=False
-    )
+    representante_id = Column(Integer, ForeignKey("parties.id", ondelete="CASCADE"), nullable=False, index=True)
+    representado_id = Column(Integer, ForeignKey("parties.id", ondelete="CASCADE"), nullable=False, index=True)
 
     # Si el representado también es cónyuge del representante (caso "propios_y_representando")
-    es_conyugue = Column(Boolean, default=False, nullable=False)
+    es_conyugue = Column(Boolean, default=False, server_default="0", nullable=False)
 
-    # Calidad con la que el representante participó en el trámite que originó esta representación
-    calidad_participacion = Column(String(30), nullable=True)
-
-    # Token del registro público que generó esta representación
-    token = Column(
-        String(36),
-        ForeignKey("registration_tokens.token"),
-        nullable=True
+    calidad_participacion = Column(
+        enum_column_type(CalidadParticipacion, "calidad_participacion_rep"), nullable=True
     )
 
-    estado = Column(SQLEnum(EstadoRepresentacion), default=EstadoRepresentacion.pendiente, nullable=False)
+    # Link del formulario público que originó esta representación
+    registration_token_id = Column(
+        Integer, ForeignKey("registration_tokens.id", ondelete="SET NULL"), nullable=True
+    )
 
-    # Cuando se usa esta representación para generar una minuta, se guarda su id (FK definida a futuro)
-    minuta_id = Column(String(36), nullable=True)
+    estado = Column(
+        enum_column_type(EstadoRepresentacion, "estado_representacion"),
+        default=EstadoRepresentacion.pendiente,
+        server_default=EstadoRepresentacion.pendiente.value,
+        nullable=False,
+    )
 
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
-    actualizado_en = Column(DateTime(timezone=True), onupdate=func.now())
+    creado_en = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    actualizado_en = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    representante = relationship("Party", foreign_keys=[representante_document_number])
-    representado = relationship("Party", foreign_keys=[representado_document_number])
+    representante = relationship("Party", foreign_keys=[representante_id])
+    representado = relationship("Party", foreign_keys=[representado_id])

@@ -1,11 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.models import party, system_user, document, minute, company, template, registration_token, access_log, representation  # noqa: F401
-from app.database import engine, Base
+from app import models as _models  # noqa: F401  (registra todos los modelos)
 from app.routes import auth, users, parties, documents, minutes, companies, templates, registration, uafe
 
-# Crear tablas
-Base.metadata.create_all(bind=engine)
+# Las tablas se crean y actualizan con Alembic (alembic upgrade head),
+# ya no con create_all.
 
 app = FastAPI(
     title="Sistema Notarial API",

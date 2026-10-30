@@ -1,61 +1,52 @@
-from sqlalchemy import Column, String, Date, Enum as SQLEnum, ForeignKey, DateTime, Numeric, Integer, Boolean, Text, JSON
+"""
+Persona natural (identidad).
+
+Aquí solo van los datos que identifican a la persona y que usan las minutas y
+matrices. Lo que declara para la UAFE va en `declaraciones_uafe`, una fila por
+cada declaración, para no perder el historial.
+"""
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.database import Base
-import enum
-
-
-class DocumentType(enum.Enum):
-    cedula = "cedula"
-    pasaporte = "pasaporte"
-
-
-class Gender(enum.Enum):
-    masculino = "masculino"
-    femenino = "femenino"
-
-
-class MaritalStatus(enum.Enum):
-    soltero = "soltero"
-    casado = "casado"
-    divorciado = "divorciado"
-    viudo = "viudo"
-
-
-class ActividadEconomica(enum.Enum):
-    independiente = "independiente"
-    empleado = "empleado"
-    jubilado = "jubilado"
-    quehaceres_domesticos = "quehaceres_domesticos"
-    cuidador_hogar = "cuidador_hogar"
-    estudiante = "estudiante"
-    ninguna = "ninguna"
+from app.models.enums import (  # noqa: F401  (se re-exportan por compatibilidad)
+    ActividadEconomica,
+    DocumentType,
+    Gender,
+    MaritalStatus,
+    enum_column_type,
+)
 
 
 class Party(Base):
-    """Modelo para comparecientes (personas naturales)"""
     __tablename__ = "parties"
 
-    # Identificación
-    document_number = Column(String(20), primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Identificación (la cédula es única pero se puede corregir sin romper referencias)
+    document_type = Column(enum_column_type(DocumentType, "document_type"), nullable=False)
+    document_number = Column(String(20), nullable=False, unique=True, index=True)
     names = Column(String(100), nullable=False)
     last_names = Column(String(100), nullable=False)
-    document_type = Column(SQLEnum(DocumentType), nullable=False)
 
     # Datos personales
-    gender = Column(SQLEnum(Gender), nullable=False)
-    marital_status = Column(SQLEnum(MaritalStatus), nullable=False)
-    partner_document_number = Column(
-        String(20),
-        ForeignKey('parties.document_number'),
-        nullable=True
-    )
+    gender = Column(enum_column_type(Gender, "gender"), nullable=False)
+    marital_status = Column(enum_column_type(MaritalStatus, "marital_status"), nullable=False)
     nationality = Column(String(50), nullable=False)
     birth_date = Column(Date, nullable=False)
 
+    # Cónyuge: el backend mantiene sincronizados los dos lados
+    partner_id = Column(
+        Integer,
+        ForeignKey("parties.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     # Contacto
-    email = Column(String(100), nullable=False, unique=False)
-    phone = Column(String(15), nullable=False, unique=False)
+    email = Column(String(100), nullable=False)
+    phone = Column(String(15), nullable=False)
 
     # Dirección
     province = Column(String(50), nullable=False)
@@ -65,52 +56,21 @@ class Party(Base):
     main_street = Column(String(150), nullable=False)
     secondary_street = Column(String(150), nullable=False)
     number_street = Column(String(20), nullable=True)
-    edificio = Column(String(200), nullable=True) 
+    edificio = Column(String(200), nullable=True)
 
     # Ocupación
     occupation = Column(String(100), nullable=False)
     profession = Column(String(100), nullable=True)
 
-    # Campos UAFE
-    actividad_economica = Column(SQLEnum(ActividadEconomica), nullable=True)
-    empresa_trabajo = Column(String(200), nullable=True)
-    ingreso_mensual = Column(Numeric(10, 2), nullable=True)
-    rol_tramite = Column(String(20), nullable=True)  # vendedor / adquirente
-    origen_fondos = Column(Text, nullable=True)
-    es_pep = Column(Boolean, nullable=True)
-    es_pep_indirecto = Column(Boolean, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    # Detalle PEP
-    pep_nombre = Column(String(200), nullable=True)
-    pep_institucion = Column(String(200), nullable=True)
-    pep_fecha_inicio = Column(Date, nullable=True)
-    pep_cargo = Column(String(200), nullable=True)
-    pep_anios_trabajo = Column(Integer, nullable=True)
-    pep_grado_relacion = Column(String(200), nullable=True)
-    pep_relacion_tipo = Column(String(100), nullable=True)  # tipo de relación con el PEP (cónyuge, hermano, etc.)
-    pep_ya_no_ejerce = Column(Boolean, nullable=True)
-    pep_fecha_fin = Column(Date, nullable=True)
-
-    # Situación patrimonial (solo PEP directo o relacionado con PEP)
-    # {inmuebles: [..], no_posee_inmuebles, ciudades_inmuebles, valor_inmuebles,
-    #  vehiculos, no_posee_vehiculos, valor_vehiculos, inversiones, no_posee_inversiones}
-    patrimonio = Column(JSON, nullable=True)
-
-    # Cónyuge no comparece
-    conyugue_comparece = Column(Boolean, default=True, nullable=True)
-    razon_exclusion_conyugue = Column(String(50), nullable=True)  # disolucion / capitulacion / adquirido_solo / no_requiere_adquirente / titulo_gratuito / ingresa_sociedad
-
-    # Calidad en la que participó en el trámite del registro público
-    calidad_participacion = Column(String(30), nullable=True)  # propios_derechos / representando / propios_y_representando
-
-    # Timestamps
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    # Relaciones
-    partner = relationship(
-        "Party",
-        foreign_keys=[partner_document_number],
-        remote_side="Party.document_number",
-        backref="spouse_of"
+    partner = relationship("Party", remote_side=[id], foreign_keys=[partner_id], post_update=True)
+    declaraciones = relationship(
+        "DeclaracionUAFE",
+        back_populates="party",
+        foreign_keys="DeclaracionUAFE.party_id",
+        order_by="DeclaracionUAFE.fecha.desc()",
+        cascade="all, delete-orphan",
+        passive_deletes=True,  # la base borra en cascada (ON DELETE CASCADE)
     )

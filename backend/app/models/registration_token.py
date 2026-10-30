@@ -1,22 +1,33 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey
-from sqlalchemy.sql import func
-from app.database import Base
 import uuid
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.sql import func
+
+from app.database import Base
+from app.models.enums import TipoSujeto, enum_column_type
 
 
 class RegistrationToken(Base):
-    """Token único para que clientes registren sus datos sin login"""
+    """
+    Link único para que un cliente llene el formulario público sin login.
+
+    Se genera para un documento concreto (cédula/pasaporte o RUC del titular):
+    el formulario solo acepta ese documento, así un link no sirve para otra persona.
+    """
     __tablename__ = "registration_tokens"
 
-    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    token = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
-    link = Column(String(500), nullable=True)
-    usado = Column(Boolean, default=False, nullable=False)
-    party_document_number = Column(
-        String(20),
-        ForeignKey('parties.document_number'),
-        nullable=True  # Se llena cuando el cliente guarda sus datos
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    token = Column(
+        String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid.uuid4())
     )
-    creado_en = Column(DateTime(timezone=True), server_default=func.now())
+    link = Column(String(500), nullable=True)
+
+    tipo_esperado = Column(enum_column_type(TipoSujeto, "tipo_esperado"), nullable=False)
+    documento_esperado = Column(String(20), nullable=False)
+
+    usado = Column(Boolean, default=False, server_default="0", nullable=False)
+    usado_en = Column(DateTime(timezone=True), nullable=True)
     expira_en = Column(DateTime(timezone=True), nullable=False)
-    creado_por = Column(String(50), nullable=True)  # username del empleado que generó el token
+
+    creado_por = Column(Integer, ForeignKey("system_users.id", ondelete="SET NULL"), nullable=True)
+    creado_en = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
