@@ -6,31 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  msi-server:
-    name: Pruebas (Linux + Docker)
-    runs-on: [self-hosted, linux-docker]
-    steps:
-      - name: Desplegar
-        run: |
-          cd ~/matriz
-          git fetch origin main
-          git reset --hard origin/main
-          docker compose up -d --build
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/health > /dev/null; then
-              echo "Backend respondiendo"
-              docker image prune -f
-              exit 0
-            fi
-            echo "Intento $i, esperando..."
-            sleep 5
-          done
-          echo "El backend no respondio en 150 segundos"
-          docker compose -f ~/matriz/docker-compose.yml logs backend --tail 50
-          exit 1
-
-  windows:
-    name: Pruebas (Windows + IIS)
+  produccion:
+    name: Produccion (Windows + IIS)
     runs-on: [self-hosted, windows-iis]
     steps:
       - name: Desplegar
